@@ -4,66 +4,57 @@
             <div class="container-fluid py-4">
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
                     <div>
-                        <h1 class="page-title mb-1">Quản lý đơn vị</h1>
+                        <h1 class="page-title mb-1">Đơn vị chưa nộp báo cáo KPI</h1>
                         <p class="page-subtitle mb-0">
-                            Quản lý danh sách đơn vị trong hệ thống
+                            Theo dõi các đơn vị/chỉ tiêu chưa có báo cáo theo kỳ
                         </p>
                     </div>
 
-                    <button class="btn btn-primary btn-action" @click="openCreateModal">
-                        <i class="bi bi-plus-circle me-2"></i>
-                        Tạo đơn vị
+                    <button class="btn btn-primary btn-action" @click="fetchData">
+                        <i class="bi bi-arrow-repeat me-2"></i>
+                        Tải lại dữ liệu
                     </button>
                 </div>
 
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Tra cứu nhanh theo nhiều tiêu chí</small>
+                        <small class="text-muted">Tra cứu nhanh đơn vị chưa nộp báo cáo</small>
                     </div>
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-md-6 col-xl-4">
-                                <label class="form-label">Từ khóa</label>
-                                <input v-model="filters.keyword" type="text" class="form-control"
-                                    placeholder="Mã hoặc tên đơn vị" />
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Loại đơn vị</label>
-                                <select v-model="filters.loaiDonVi" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option value="THANH_PHO">Thành phố</option>
-                                    <option value="PHONG">Cấp phòng</option>
-                                    <option value="XA">Cấp xã/phường</option>
-                                </select>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Đơn vị cha</label>
-                                <select v-model="filters.donViChaId" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option v-for="parent in parentOptions" :key="parent.id" :value="parent.id">
-                                        {{ parent.tenDonVi }}
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Kỳ báo cáo KPI</label>
+                                <select v-model.number="filters.kyBaoCaoKPIId" class="form-select">
+                                    <option :value="null">Tất cả</option>
+                                    <option v-for="item in kyBaoCaoOptions" :key="getId(item)" :value="getId(item)">
+                                        {{ getKyBaoCaoDisplay(item) }}
                                     </option>
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
-                                <label class="form-label">Trạng thái</label>
-                                <select v-model="filters.trangThai" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option value="HOAT_DONG">Hoạt động</option>
-                                    <option value="NGUNG_HOAT_DONG">Ngừng hoạt động</option>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Đơn vị thực hiện</label>
+                                <select v-model.number="filters.donViNhanId" class="form-select">
+                                    <option :value="null">Tất cả</option>
+                                    <option v-for="item in donViOptions" :key="getId(item)" :value="getId(item)">
+                                        {{ getTenDonVi(item) }}
+                                    </option>
                                 </select>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Từ khóa</label>
+                                <input v-model="filters.keyword" type="text" class="form-control"
+                                    placeholder="Mã chỉ tiêu, tên chỉ tiêu, tên đơn vị..." />
                             </div>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 mt-4">
-                            <button class="btn btn-primary" @click="fetchDonVi">
+                            <button class="btn btn-primary" @click="fetchData">
                                 <i class="bi bi-search me-1"></i>
-                                Tìm kiếm
+                                Tải dữ liệu
                             </button>
                             <button class="btn btn-outline-secondary" @click="resetFilters">
                                 <i class="bi bi-arrow-clockwise me-1"></i>
@@ -73,13 +64,42 @@
                     </div>
                 </div>
 
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-4">
+                        <div class="card custom-card stat-card">
+                            <div class="card-body">
+                                <div class="stat-label">Tổng chỉ tiêu phải báo cáo</div>
+                                <div class="stat-value">{{ requiredReportItems.length }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card custom-card stat-card">
+                            <div class="card-body">
+                                <div class="stat-label">Đã nộp báo cáo</div>
+                                <div class="stat-value text-success">{{ submittedItems.length }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card custom-card stat-card">
+                            <div class="card-body">
+                                <div class="stat-label">Chưa nộp báo cáo</div>
+                                <div class="stat-value text-danger">{{ filteredMissingItems.length }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card custom-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
-                            <h5 class="mb-1">Danh sách đơn vị</h5>
-                            <small class="text-muted">Theo dõi và quản lý dữ liệu đơn vị</small>
+                            <h5 class="mb-1">Danh sách chưa nộp</h5>
+                            <small class="text-muted">Các đơn vị/chỉ tiêu chưa có bản ghi theo dõi KPI</small>
                         </div>
-                        <span class="badge text-bg-light border">Tổng: {{ items.length }}</span>
+                        <span class="badge text-bg-light border">Tổng: {{ filteredMissingItems.length }}</span>
                     </div>
 
                     <div class="card-body p-0">
@@ -88,48 +108,37 @@
                             <div>Đang tải dữ liệu...</div>
                         </div>
 
-                        <div v-else-if="!items.length" class="empty-state">
-                            <i class="bi bi-inbox fs-1 text-muted mb-2"></i>
-                            <div>Chưa có dữ liệu</div>
+                        <div v-else-if="!filteredMissingItems.length" class="empty-state">
+                            <i class="bi bi-check-circle fs-1 text-success mb-2"></i>
+                            <div>Không có đơn vị nào chưa nộp báo cáo</div>
                         </div>
 
                         <div v-else class="table-responsive">
                             <table class="table table-hover align-middle mb-0 custom-table">
                                 <thead>
                                     <tr>
-                                        <th>Mã đơn vị</th>
-                                        <th>Tên đơn vị</th>
-                                        <th>Loại đơn vị</th>
-                                        <th>Đơn vị cha</th>
-                                        <th>Người đại diện</th>
+                                        <th>Kỳ báo cáo</th>
+                                        <th>Đơn vị thực hiện</th>
+                                        <th>Mã chỉ tiêu</th>
+                                        <th>Tên chỉ tiêu</th>
+                                        <th>Tần suất</th>
                                         <th>Trạng thái</th>
-                                        <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in items" :key="item.id">
-                                        <td class="fw-semibold text-primary">{{ item.maDonVi }}</td>
-                                        <td>{{ item.tenDonVi }}</td>
-                                        <td>{{ mapLoaiDonVi(item.loaiDonVi) }}</td>
-                                        <td>{{ item.tenDonViCha || '-' }}</td>
-                                        <td>{{ item.nguoiDaiDien || '-' }}</td>
+                                    <tr v-for="item in filteredMissingItems" :key="item.uniqueKey">
                                         <td>
-                                            <span class="badge rounded-pill"
-                                                :class="item.trangThai === 'HOAT_DONG' ? 'text-bg-success' : 'text-bg-danger'">
-                                                {{ item.trangThai === 'HOAT_DONG' ? 'Hoạt động' : 'Ngừng hoạt động' }}
-                                            </span>
+                                            <div class="fw-semibold">{{ item.tenKy }}</div>
+                                            <small class="text-muted">{{ item.maKy || '-' }}</small>
                                         </td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
-                                                    @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger"
-                                                    @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
-                                                </button>
-                                            </div>
+                                        <td>{{ item.tenDonViNhan || '-' }}</td>
+                                        <td class="fw-semibold text-primary">{{ item.maChiTieu || '-' }}</td>
+                                        <td>{{ item.tenChiTieu || '-' }}</td>
+                                        <td>{{ mapTanSuat(item.tanSuatBaoCao) }}</td>
+                                        <td>
+                                            <span class="badge rounded-pill text-bg-danger">
+                                                Chưa nộp
+                                            </span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -137,107 +146,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div v-if="showModal" class="modal fade show d-block custom-modal" tabindex="-1"
-                    @click.self="closeModal">
-                    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                        <div class="modal-content border-0 shadow-lg rounded-4">
-                            <div class="modal-header border-0 pb-0">
-                                <div>
-                                    <h4 class="modal-title mb-1">
-                                        {{ isEdit ? 'Cập nhật đơn vị' : 'Tạo đơn vị mới' }}
-                                    </h4>
-                                    <p class="text-muted mb-0">Nhập thông tin đơn vị</p>
-                                </div>
-                                <button type="button" class="btn-close" @click="closeModal"></button>
-                            </div>
-
-                            <div class="modal-body pt-3">
-                                <div class="row g-3">
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Mã đơn vị <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.maDonVi" :disabled="isEdit" type="text"
-                                            class="form-control" />
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Tên đơn vị <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.tenDonVi" type="text" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Loại đơn vị <span class="text-danger">*</span>
-                                        </label>
-                                        <select v-model="form.loaiDonVi" class="form-select">
-                                            <option value="THANH_PHO">Thành phố</option>
-                                            <option value="PHONG">Cấp phòng</option>
-                                            <option value="XA">Cấp xã/phường</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Đơn vị cha</label>
-                                        <select v-model="form.donViChaId" class="form-select">
-                                            <option :value="null">Không có</option>
-                                            <option v-for="parent in availableParentOptions" :key="parent.id"
-                                                :value="parent.id">
-                                                {{ parent.tenDonVi }}
-                                            </option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Trạng thái</label>
-                                        <select v-model="form.trangThai" class="form-select">
-                                            <option value="HOAT_DONG">Hoạt động</option>
-                                            <option value="NGUNG_HOAT_DONG">Ngừng hoạt động</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Người đại diện</label>
-                                        <input v-model="form.nguoiDaiDien" type="text" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Số điện thoại</label>
-                                        <input v-model="form.soDienThoai" type="text" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Email</label>
-                                        <input v-model="form.email" type="email" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">Địa chỉ</label>
-                                        <input v-model="form.diaChi" type="text" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">Ghi chú</label>
-                                        <textarea v-model="form.ghiChu" rows="3" class="form-control"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="modal-footer border-0 pt-0">
-                                <button class="btn btn-light" @click="closeModal">Hủy</button>
-                                <button class="btn btn-primary" :disabled="saving" @click="handleSubmit">
-                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                                    {{ saving ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Lưu đơn vị' }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="showModal" class="modal-backdrop fade show"></div>
             </div>
         </div>
     </BaseLayout>
@@ -245,224 +153,284 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
+    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-    import { apiRequest } from '../../services/api.js'
+
+    const api = axios.create({
+        baseURL: 'https://localhost:5000/api'
+    })
+
+    api.interceptors.request.use((config) => {
+        const token = localStorage.getItem('token')
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`
+        }
+        return config
+    })
+
+    const API_PATHS = {
+        theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
+        chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
+        kyBaoCaoKPI: '/KyBaoCaoKPI',
+        danhMucChiTieu: '/danh-muc-chi-tieu',
+        donVi: '/DonVi'
+    }
 
     const loading = ref(false)
-    const saving = ref(false)
-    const showModal = ref(false)
-    const isEdit = ref(false)
-    const editingId = ref(null)
-    const items = ref([])
+
+    const theoDoiItems = ref([])
+    const chiTietGiaoChiTieuOptions = ref([])
+    const kyBaoCaoOptions = ref([])
+    const danhMucChiTieuOptions = ref([])
+    const donViOptions = ref([])
 
     const filters = reactive({
-        keyword: '',
-        loaiDonVi: '',
-        donViChaId: '',
-        trangThai: ''
+        kyBaoCaoKPIId: null,
+        donViNhanId: null,
+        keyword: ''
     })
 
-    const createDefaultForm = () => ({
-        maDonVi: '',
-        tenDonVi: '',
-        loaiDonVi: 'THANH_PHO',
-        donViChaId: null,
-        trangThai: 'HOAT_DONG',
-        diaChi: '',
-        nguoiDaiDien: '',
-        soDienThoai: '',
-        email: '',
-        ghiChu: ''
-    })
+    const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
 
-    const form = reactive(createDefaultForm())
-
-    const resetForm = () => {
-        Object.assign(form, createDefaultForm())
+    const normalizeList = (response) => {
+        if (Array.isArray(response?.data)) return response.data
+        if (Array.isArray(response?.data?.data)) return response.data.data
+        if (Array.isArray(response?.data?.items)) return response.data.items
+        return []
     }
 
-    const parentOptions = computed(() => items.value)
+    const getKyBaoCaoDisplay = (item) => {
+        return item?.TenKy || item?.tenKy || item?.TenKyBaoCao || item?.tenKyBaoCao || '-'
+    }
 
-    const availableParentOptions = computed(() => {
-        return items.value.filter(item => item.id !== editingId.value)
-    })
+    const getMaKy = (item) => {
+        return item?.MaKy || item?.maKy || '-'
+    }
 
-    const buildPayload = () => {
-        return {
-            maDonVi: form.maDonVi?.trim(),
-            tenDonVi: form.tenDonVi?.trim(),
-            loaiDonVi: form.loaiDonVi,
-            donViChaId: form.donViChaId || null,
-            trangThai: form.trangThai,
-            diaChi: form.diaChi?.trim() || null,
-            nguoiDaiDien: form.nguoiDaiDien?.trim() || null,
-            soDienThoai: form.soDienThoai?.trim() || null,
-            email: form.email?.trim() || null,
-            ghiChu: form.ghiChu?.trim() || null
+    const getLoaiKy = (item) => {
+        return item?.LoaiKy || item?.loaiKy || item?.LoaiKyBaoCao || item?.loaiKyBaoCao || ''
+    }
+
+    const getTrangThaiKy = (item) => {
+        return item?.TrangThai || item?.trangThai || item?.TrangThaiKy || item?.trangThaiKy || ''
+    }
+
+    const getTanSuatBaoCao = (item) => {
+        return item?.TanSuatBaoCao || item?.tanSuatBaoCao || ''
+    }
+
+    const getDanhMucChiTieuId = (item) => {
+        return Number(item?.DanhMucChiTieuId ?? item?.danhMucChiTieuId ?? 0)
+    }
+
+    const getDonViNhanId = (item) => {
+        return Number(item?.DonViNhanId ?? item?.donViNhanId ?? 0)
+    }
+
+    const getTenDonVi = (item) => {
+        return item?.TenDonVi || item?.tenDonVi || '-'
+    }
+
+    const mapTanSuat = (value) => {
+        const map = {
+            THANG: 'Tháng',
+            QUY: 'Quý',
+            '6THANG': '6 tháng',
+            NAM: 'Năm'
         }
+        return map[value] || value || '-'
     }
 
-    const buildQueryString = (params) => {
-        const searchParams = new URLSearchParams()
+    const isKyDangMo = (item) => {
+        return getTrangThaiKy(item) === 'DANG_MO'
+    }
 
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== '') {
-                searchParams.append(key, value)
+    const isKyPhuHopTanSuat = (kyItem, tanSuatBaoCao) => {
+        if (!tanSuatBaoCao) return true
+
+        const loaiKy = getLoaiKy(kyItem)
+
+        const map = {
+            THANG: ['THANG'],
+            QUY: ['QUY'],
+            '6THANG': ['6THANG', 'SAU_THANG', 'BAN_NIEN'],
+            NAM: ['NAM']
+        }
+
+        return (map[tanSuatBaoCao] || []).includes(loaiKy)
+    }
+
+    const findDanhMucById = (id) => {
+        return danhMucChiTieuOptions.value.find((x) => getId(x) === Number(id)) || null
+    }
+
+    const findDonViById = (id) => {
+        return donViOptions.value.find((x) => getId(x) === Number(id)) || null
+    }
+
+    const enrichedChiTietGiaoChiTieuOptions = computed(() => {
+        return chiTietGiaoChiTieuOptions.value.map((item) => {
+            const danhMuc = findDanhMucById(getDanhMucChiTieuId(item))
+            const donVi = findDonViById(getDonViNhanId(item))
+
+            return {
+                ...item,
+                id: getId(item),
+                donViNhanId: getDonViNhanId(item),
+                maChiTieu:
+                    item?.MaChiTieu ||
+                    item?.maChiTieu ||
+                    danhMuc?.MaChiTieu ||
+                    danhMuc?.maChiTieu ||
+                    '',
+                tenChiTieu:
+                    item?.TenChiTieu ||
+                    item?.tenChiTieu ||
+                    danhMuc?.TenChiTieu ||
+                    danhMuc?.tenChiTieu ||
+                    '',
+                tenDonViNhan:
+                    item?.TenDonViNhan ||
+                    item?.tenDonViNhan ||
+                    donVi?.TenDonVi ||
+                    donVi?.tenDonVi ||
+                    '',
+                tanSuatBaoCao: getTanSuatBaoCao(item) || getTanSuatBaoCao(danhMuc)
             }
         })
+    })
 
-        const query = searchParams.toString()
-        return query ? `?${query}` : ''
+    const reportedKeys = computed(() => {
+        return new Set(
+            theoDoiItems.value.map((item) => {
+                const chiTietId = Number(item?.ChiTietGiaoChiTieuId ?? item?.chiTietGiaoChiTieuId ?? 0)
+                const kyId = Number(item?.KyBaoCaoKPIId ?? item?.kyBaoCaoKPIId ?? 0)
+                return `${chiTietId}_${kyId}`
+            })
+        )
+    })
+
+    const requiredReportItems = computed(() => {
+        const result = []
+
+        enrichedChiTietGiaoChiTieuOptions.value.forEach((chiTiet) => {
+            kyBaoCaoOptions.value.forEach((ky) => {
+                if (!isKyDangMo(ky)) return
+                if (!isKyPhuHopTanSuat(ky, chiTiet.tanSuatBaoCao)) return
+
+                result.push({
+                    uniqueKey: `${chiTiet.id}_${getId(ky)}`,
+                    chiTietGiaoChiTieuId: chiTiet.id,
+                    kyBaoCaoKPIId: getId(ky),
+                    donViNhanId: chiTiet.donViNhanId,
+                    tenDonViNhan: chiTiet.tenDonViNhan,
+                    maChiTieu: chiTiet.maChiTieu,
+                    tenChiTieu: chiTiet.tenChiTieu,
+                    tanSuatBaoCao: chiTiet.tanSuatBaoCao,
+                    tenKy: getKyBaoCaoDisplay(ky),
+                    maKy: getMaKy(ky)
+                })
+            })
+        })
+
+        return result
+    })
+
+    const submittedItems = computed(() => {
+        return requiredReportItems.value.filter((item) =>
+            reportedKeys.value.has(`${item.chiTietGiaoChiTieuId}_${item.kyBaoCaoKPIId}`)
+        )
+    })
+
+    const missingItems = computed(() => {
+        return requiredReportItems.value.filter((item) =>
+            !reportedKeys.value.has(`${item.chiTietGiaoChiTieuId}_${item.kyBaoCaoKPIId}`)
+        )
+    })
+
+    const parentOptions = computed(() => {
+        return donViOptions.value
+    })
+
+    const filteredMissingItems = computed(() => {
+        const keyword = filters.keyword.trim().toLowerCase()
+
+        return missingItems.value.filter((item) => {
+            const matchKy =
+                !filters.kyBaoCaoKPIId ||
+                Number(filters.kyBaoCaoKPIId) === Number(item.kyBaoCaoKPIId)
+
+            const matchDonVi =
+                !filters.donViNhanId ||
+                Number(filters.donViNhanId) === Number(item.donViNhanId)
+
+            const searchText = [
+                item.maChiTieu || '',
+                item.tenChiTieu || '',
+                item.tenDonViNhan || '',
+                item.tenKy || '',
+                item.maKy || ''
+            ]
+                .join(' ')
+                .toLowerCase()
+
+            const matchKeyword = !keyword || searchText.includes(keyword)
+
+            return matchKy && matchDonVi && matchKeyword
+        })
+    })
+
+    const fetchTheoDoiItems = async () => {
+        const response = await api.get(API_PATHS.theoDoiThucHienKPI)
+        theoDoiItems.value = normalizeList(response)
     }
 
-    const fetchDonVi = async () => {
+    const fetchChiTietGiaoChiTieuOptions = async () => {
+        const response = await api.get(API_PATHS.chiTietGiaoChiTieu)
+        chiTietGiaoChiTieuOptions.value = normalizeList(response)
+    }
+
+    const fetchKyBaoCaoOptions = async () => {
+        const response = await api.get(API_PATHS.kyBaoCaoKPI)
+        kyBaoCaoOptions.value = normalizeList(response)
+    }
+
+    const fetchDanhMucChiTieuOptions = async () => {
+        const response = await api.get(API_PATHS.danhMucChiTieu)
+        danhMucChiTieuOptions.value = normalizeList(response)
+    }
+
+    const fetchDonViOptions = async () => {
+        const response = await api.get(API_PATHS.donVi)
+        donViOptions.value = normalizeList(response)
+    }
+
+    const fetchData = async () => {
         try {
             loading.value = true
-
-            const queryString = buildQueryString({
-                keyword: filters.keyword || undefined,
-                loaiDonVi: filters.loaiDonVi || undefined,
-                donViChaId: filters.donViChaId || undefined,
-                trangThai: filters.trangThai || undefined
-            })
-
-            const data = await apiRequest(`/don-vi${queryString}`)
-            items.value = Array.isArray(data) ? data : []
+            await Promise.all([
+                fetchTheoDoiItems(),
+                fetchChiTietGiaoChiTieuOptions(),
+                fetchKyBaoCaoOptions(),
+                fetchDanhMucChiTieuOptions(),
+                fetchDonViOptions()
+            ])
         } catch (error) {
-            console.error(error)
-            alert(error.message || 'Không tải được danh sách đơn vị.')
-            items.value = []
+            console.error('fetchData error:', error?.response?.status, error?.config?.url, error)
+            alert(error?.response?.data?.message || 'Không tải được dữ liệu.')
         } finally {
             loading.value = false
         }
     }
 
-    const openCreateModal = () => {
-        isEdit.value = false
-        editingId.value = null
-        resetForm()
-        showModal.value = true
-    }
-
-    const openEditModal = (item) => {
-        isEdit.value = true
-        editingId.value = item.id
-
-        Object.assign(form, {
-            maDonVi: item.maDonVi,
-            tenDonVi: item.tenDonVi,
-            loaiDonVi: item.loaiDonVi,
-            donViChaId: item.donViChaId || null,
-            trangThai: item.trangThai || 'HOAT_DONG',
-            diaChi: item.diaChi || '',
-            nguoiDaiDien: item.nguoiDaiDien || '',
-            soDienThoai: item.soDienThoai || '',
-            email: item.email || '',
-            ghiChu: item.ghiChu || ''
-        })
-
-        showModal.value = true
-    }
-
-    const closeModal = () => {
-        showModal.value = false
-        resetForm()
-    }
-
-    const validateForm = () => {
-        if (!form.maDonVi && !isEdit.value) {
-            alert('Vui lòng nhập mã đơn vị.')
-            return false
-        }
-
-        if (!form.tenDonVi) {
-            alert('Vui lòng nhập tên đơn vị.')
-            return false
-        }
-
-        if (!form.loaiDonVi) {
-            alert('Vui lòng chọn loại đơn vị.')
-            return false
-        }
-
-        if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-            alert('Email không đúng định dạng.')
-            return false
-        }
-
-        if (isEdit.value && editingId.value && form.donViChaId === editingId.value) {
-            alert('Đơn vị cha không được trùng với chính đơn vị hiện tại.')
-            return false
-        }
-
-        return true
-    }
-
-    const handleSubmit = async () => {
-        if (!validateForm()) return
-
-        try {
-            saving.value = true
-            const payload = buildPayload()
-
-            if (isEdit.value && editingId.value) {
-                await apiRequest(`/don-vi/${editingId.value}`, 'PUT', {
-                    tenDonVi: payload.tenDonVi,
-                    loaiDonVi: payload.loaiDonVi,
-                    donViChaId: payload.donViChaId,
-                    trangThai: payload.trangThai,
-                    diaChi: payload.diaChi,
-                    nguoiDaiDien: payload.nguoiDaiDien,
-                    soDienThoai: payload.soDienThoai,
-                    email: payload.email,
-                    ghiChu: payload.ghiChu
-                })
-            } else {
-                await apiRequest('/don-vi', 'POST', payload)
-            }
-
-            closeModal()
-            await fetchDonVi()
-        } catch (error) {
-            console.error(error)
-            alert(error.message || 'Lưu đơn vị thất bại.')
-        } finally {
-            saving.value = false
-        }
-    }
-
-    const handleDelete = async (item) => {
-        const ok = window.confirm(`Bạn có chắc muốn xóa đơn vị "${item.tenDonVi}" không?`)
-        if (!ok) return
-
-        try {
-            await apiRequest(`/don-vi/${item.id}`, 'DELETE')
-            await fetchDonVi()
-        } catch (error) {
-            console.error(error)
-            alert(error.message || 'Xóa đơn vị thất bại.')
-        }
-    }
-
-    const resetFilters = async () => {
+    const resetFilters = () => {
+        filters.kyBaoCaoKPIId = null
+        filters.donViNhanId = null
         filters.keyword = ''
-        filters.loaiDonVi = ''
-        filters.donViChaId = ''
-        filters.trangThai = ''
-        await fetchDonVi()
     }
 
-    const mapLoaiDonVi = (value) => {
-        const map = {
-            THANH_PHO: 'Thành phố',
-            PHONG: 'Cấp phòng',
-            XA: 'Cấp xã/phường'
-        }
-        return map[value] || value
-    }
-
-    onMounted(() => {
-        fetchDonVi()
+    onMounted(async () => {
+        await fetchData()
     })
 </script>
 
@@ -545,16 +513,19 @@
         font-weight: 500;
     }
 
-    .custom-modal {
-        background: rgba(15, 23, 42, 0.35);
+    .stat-card .card-body {
+        padding: 1.25rem 1.5rem;
     }
 
-    .modal-content {
-        border-radius: 24px;
+    .stat-label {
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
     }
 
-    textarea.form-control {
-        min-height: 100px;
-        resize: vertical;
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0f172a;
     }
 </style>

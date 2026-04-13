@@ -4,7 +4,7 @@
             <div class="container-fluid py-4">
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
                     <div>
-                        <h1 class="page-title mb-1">Theo dõi thực hiện KPI</h1>
+                        <h1 class="page-title mb-1">Danh sách theo dõi báo kỳ</h1>
                         <p class="page-subtitle mb-0">
                             Quản lý số liệu thực hiện KPI theo kỳ báo cáo
                         </p>
@@ -24,7 +24,7 @@
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-4">
                                 <label class="form-label">Kỳ báo cáo KPI</label>
                                 <select v-model.number="filters.kyBaoCaoKPIId" class="form-select">
                                     <option :value="null">Tất cả</option>
@@ -34,7 +34,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-4">
                                 <label class="form-label">Đơn vị thực hiện</label>
                                 <select v-model.number="filters.donViNhanId" class="form-select">
                                     <option :value="null">Tất cả</option>
@@ -44,7 +44,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-4">
                                 <label class="form-label">Tên chỉ tiêu</label>
                                 <select v-model.number="filters.chiTietGiaoChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
@@ -55,21 +55,10 @@
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-3">
-                                <label class="form-label">Trạng thái</label>
-                                <select v-model="filters.trangThai" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option value="MOI_TAO">Mới tạo</option>
-                                    <option value="CHO_DUYET">Chờ duyệt</option>
-                                    <option value="DA_DUYET">Đã duyệt</option>
-                                    <option value="TU_CHOI">Từ chối</option>
-                                </select>
-                            </div>
-
                             <div class="col-12">
                                 <label class="form-label">Từ khóa</label>
                                 <input v-model="filters.keyword" type="text" class="form-control"
-                                    placeholder="Mã chỉ tiêu, nhận xét..." />
+                                    placeholder="Mã kỳ, mã chỉ tiêu..." />
                             </div>
                         </div>
 
@@ -116,8 +105,6 @@
                                         <th>Thực hiện trong kỳ</th>
                                         <th>Cuối kỳ</th>
                                         <th>Lũy kế</th>
-                                        <th>Trạng thái</th>
-                                        <th>Nhận xét</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
                                 </thead>
@@ -147,13 +134,6 @@
                                         </td>
                                         <td>{{ formatNumber(item.GiaTriCuoiKy ?? item.giaTriCuoiKy) }}</td>
                                         <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe) }}</td>
-                                        <td>
-                                            <span class="badge rounded-pill"
-                                                :class="getTrangThaiClass(item.TrangThai || item.trangThai)">
-                                                {{ mapTrangThai(item.TrangThai || item.trangThai) }}
-                                            </span>
-                                        </td>
-                                        <td>{{ item.NhanXet || item.nhanXet || '-' }}</td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
                                                 <button class="btn btn-sm btn-outline-primary"
@@ -272,12 +252,6 @@
                                         <input :value="formatEditableNumber(giaTriCuoiKyPreview)" type="text"
                                             class="form-control" readonly />
                                     </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">Nhận xét</label>
-                                        <textarea v-model="form.nhanXet" rows="4" class="form-control"
-                                            placeholder="Nhập nhận xét, giải trình..."></textarea>
-                                    </div>
                                 </div>
                             </div>
 
@@ -339,7 +313,6 @@
         kyBaoCaoKPIId: null,
         donViNhanId: null,
         chiTietGiaoChiTieuId: null,
-        trangThai: '',
         keyword: ''
     })
 
@@ -348,8 +321,7 @@
         chiTietGiaoChiTieuId: null,
         kyBaoCaoKPIId: null,
         giaTriDauKy: 0,
-        giaTriThucHienTrongKy: 0,
-        nhanXet: ''
+        giaTriThucHienTrongKy: 0
     })
 
     const form = reactive(createDefaultForm())
@@ -411,26 +383,6 @@
             NAM: 'Năm'
         }
         return map[value] || value || '-'
-    }
-
-    const mapTrangThai = (value) => {
-        const map = {
-            MOI_TAO: 'Mới tạo',
-            CHO_DUYET: 'Chờ duyệt',
-            DA_DUYET: 'Đã duyệt',
-            TU_CHOI: 'Từ chối'
-        }
-        return map[value] || value || '-'
-    }
-
-    const getTrangThaiClass = (value) => {
-        const map = {
-            MOI_TAO: 'text-bg-secondary',
-            CHO_DUYET: 'text-bg-warning',
-            DA_DUYET: 'text-bg-success',
-            TU_CHOI: 'text-bg-danger'
-        }
-        return map[value] || 'text-bg-light'
     }
 
     const isKyDangMo = (item) => {
@@ -611,12 +563,12 @@
             const kyId = Number(item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? 0)
             const donViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
             const chiTietId = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
-            const trangThai = item.TrangThai || item.trangThai || ''
 
             const searchText = [
                 item.MaKy || '',
                 item.MaChiTieu || '',
-                item.NhanXet || item.nhanXet || ''
+                item.TenChiTieu || '',
+                item.TenDonViNhan || ''
             ]
                 .join(' ')
                 .toLowerCase()
@@ -626,9 +578,8 @@
             const matchDonViNhan = !filters.donViNhanId || Number(filters.donViNhanId) === donViNhanId
             const matchChiTiet =
                 !filters.chiTietGiaoChiTieuId || Number(filters.chiTietGiaoChiTieuId) === chiTietId
-            const matchTrangThai = !filters.trangThai || filters.trangThai === trangThai
 
-            return matchKeyword && matchKy && matchDonViNhan && matchChiTiet && matchTrangThai
+            return matchKeyword && matchKy && matchDonViNhan && matchChiTiet
         })
     })
 
@@ -636,8 +587,7 @@
         chiTietGiaoChiTieuId: form.chiTietGiaoChiTieuId,
         kyBaoCaoKPIId: form.kyBaoCaoKPIId,
         giaTriDauKy: Number(form.giaTriDauKy ?? 0),
-        giaTriThucHienTrongKy: Number(form.giaTriThucHienTrongKy ?? 0),
-        nhanXet: form.nhanXet?.trim() || ''
+        giaTriThucHienTrongKy: Number(form.giaTriThucHienTrongKy ?? 0)
     })
 
     const fetchItems = async () => {
@@ -712,8 +662,7 @@
             chiTietGiaoChiTieuId: chiTietId || null,
             kyBaoCaoKPIId: item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? null,
             giaTriDauKy: item.GiaTriDauKy ?? item.giaTriDauKy ?? 0,
-            giaTriThucHienTrongKy: item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0,
-            nhanXet: item.NhanXet || item.nhanXet || ''
+            giaTriThucHienTrongKy: item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0
         })
 
         showModal.value = true
@@ -826,7 +775,6 @@
         filters.kyBaoCaoKPIId = null
         filters.donViNhanId = null
         filters.chiTietGiaoChiTieuId = null
-        filters.trangThai = ''
         filters.keyword = ''
     }
 

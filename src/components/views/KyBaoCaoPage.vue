@@ -19,12 +19,12 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Lọc theo năm và loại kỳ</small>
+                        <small class="text-muted">Lọc theo năm, loại kỳ và trạng thái</small>
                     </div>
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-md-6 col-xl-3">
+                            <div class="col-12 col-md-4 col-xl-3">
                                 <label class="form-label">Loại kỳ</label>
                                 <select v-model="filters.loaiKy" class="form-select">
                                     <option value="">Tất cả</option>
@@ -35,10 +35,20 @@
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-3">
+                            <div class="col-12 col-md-4 col-xl-3">
                                 <label class="form-label">Năm</label>
                                 <input v-model="filters.nam" type="number" class="form-control"
                                     placeholder="VD: 2026" />
+                            </div>
+
+                            <div class="col-12 col-md-4 col-xl-3">
+                                <label class="form-label">Trạng thái</label>
+                                <select v-model="filters.trangThai" class="form-select">
+                                    <option value="">Tất cả</option>
+                                    <option value="CHUA_MO">Chưa mở</option>
+                                    <option value="DANG_MO">Đang mở</option>
+                                    <option value="DA_DONG">Đã đóng</option>
+                                </select>
                             </div>
                         </div>
 
@@ -61,7 +71,7 @@
                             <h5 class="mb-1">Danh sách kỳ báo cáo</h5>
                             <small class="text-muted">Theo dõi các kỳ báo cáo KPI trong hệ thống</small>
                         </div>
-                        <span class="badge text-bg-light border">Tổng: {{ items.length }}</span>
+                        <span class="badge text-bg-light border">Tổng: {{ filteredItems.length }}</span>
                     </div>
 
                     <div class="card-body p-0">
@@ -70,7 +80,7 @@
                             <div>Đang tải dữ liệu...</div>
                         </div>
 
-                        <div v-else-if="!items.length" class="empty-state">
+                        <div v-else-if="!filteredItems.length" class="empty-state">
                             <i class="bi bi-inbox fs-1 text-muted mb-2"></i>
                             <div>Chưa có dữ liệu</div>
                         </div>
@@ -84,8 +94,7 @@
                                         <th>Loại kỳ</th>
                                         <th>Năm</th>
                                         <th>Số kỳ</th>
-                                        <th>Từ ngày</th>
-                                        <th>Đến ngày</th>
+                                        <th>Trạng thái</th>
                                         <th>Ngày đầu kỳ</th>
                                         <th>Ngày cuối kỳ</th>
                                         <th>Ghi chú</th>
@@ -93,14 +102,17 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in items" :key="item.id">
+                                    <tr v-for="item in filteredItems" :key="item.id">
                                         <td class="fw-semibold text-primary">{{ item.maKy }}</td>
                                         <td>{{ item.tenKy }}</td>
                                         <td>{{ mapLoaiKy(item.loaiKy) }}</td>
                                         <td>{{ item.nam }}</td>
                                         <td>{{ item.soKy ?? '-' }}</td>
-                                        <td>{{ formatDate(item.tuNgay) }}</td>
-                                        <td>{{ formatDate(item.denNgay) }}</td>
+                                        <td>
+                                            <span class="badge" :class="getTrangThaiBadgeClass(item.trangThai)">
+                                                {{ mapTrangThai(item.trangThai) }}
+                                            </span>
+                                        </td>
                                         <td>{{ formatDate(item.ngayDauKy) }}</td>
                                         <td>{{ formatDate(item.ngayCuoiKy) }}</td>
                                         <td class="text-truncate" style="max-width: 220px">
@@ -178,35 +190,23 @@
 
                                     <div class="col-12 col-md-3">
                                         <label class="form-label">Số kỳ</label>
-                                        <input v-model="form.soKy" type="number" class="form-control" />
+                                        <input v-model="form.soKy" type="number" class="form-control"
+                                            :readonly="form.loaiKy === 'NAM'" :disabled="form.loaiKy === 'NAM'"
+                                            placeholder="VD: 1, 2, 3..." />
+                                        <small v-if="form.loaiKy === 'NAM'" class="text-muted">
+                                            Loại kỳ năm sẽ tự động đặt số kỳ = 1.
+                                        </small>
                                     </div>
 
                                     <div class="col-12 col-md-3">
                                         <label class="form-label">
-                                            Từ ngày <span class="text-danger">*</span>
+                                            Trạng thái <span class="text-danger">*</span>
                                         </label>
-                                        <input v-model="form.tuNgay" type="date" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">
-                                            Đến ngày <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.denNgay" type="date" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">
-                                            Ngày đầu kỳ <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.ngayDauKy" type="date" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">
-                                            Ngày cuối kỳ <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.ngayCuoiKy" type="date" class="form-control" />
+                                        <select v-model="form.trangThai" class="form-select">
+                                            <option value="CHUA_MO">Chưa mở</option>
+                                            <option value="DANG_MO">Đang mở</option>
+                                            <option value="DA_DONG">Đã đóng</option>
+                                        </select>
                                     </div>
 
                                     <div class="col-12 col-md-3">
@@ -215,6 +215,20 @@
                                         </label>
                                         <input v-model="form.updatedBy" type="text" class="form-control"
                                             placeholder="VD: kienlee1990" />
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">
+                                            Ngày đầu kỳ <span class="text-danger">*</span>
+                                        </label>
+                                        <input v-model="form.ngayDauKy" type="date" class="form-control" />
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">
+                                            Ngày cuối kỳ <span class="text-danger">*</span>
+                                        </label>
+                                        <input v-model="form.ngayCuoiKy" type="date" class="form-control" />
                                     </div>
 
                                     <div class="col-12">
@@ -242,7 +256,7 @@
 </template>
 
 <script setup>
-    import { onMounted, reactive, ref } from 'vue'
+    import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
 
@@ -257,7 +271,8 @@
 
     const filters = reactive({
         loaiKy: '',
-        nam: ''
+        nam: '',
+        trangThai: ''
     })
 
     const createDefaultForm = () => ({
@@ -266,8 +281,7 @@
         loaiKy: 'QUY',
         nam: new Date().getFullYear(),
         soKy: '',
-        tuNgay: '',
-        denNgay: '',
+        trangThai: 'CHUA_MO',
         ngayDauKy: '',
         ngayCuoiKy: '',
         ghiChu: '',
@@ -306,38 +320,28 @@
         tenKy: form.tenKy?.trim(),
         loaiKy: form.loaiKy,
         nam: Number(form.nam),
-        soKy: form.soKy !== '' && form.soKy !== null ? Number(form.soKy) : 0,
-        tuNgay: toIsoDateStart(form.tuNgay),
-        denNgay: toIsoDateEnd(form.denNgay),
+        soKy: form.loaiKy === 'NAM'
+            ? 1
+            : (form.soKy !== '' && form.soKy !== null ? Number(form.soKy) : 0),
+        trangThai: form.trangThai,
         ngayDauKy: toIsoDateStart(form.ngayDauKy),
         ngayCuoiKy: toIsoDateEnd(form.ngayCuoiKy),
         ghiChu: form.ghiChu?.trim() || '',
         updatedBy: form.updatedBy?.trim()
     })
 
+    const filteredItems = computed(() => {
+        return items.value.filter((item) => {
+            const matchLoaiKy = !filters.loaiKy || item.loaiKy === filters.loaiKy
+            const matchNam = !filters.nam || Number(item.nam) === Number(filters.nam)
+            const matchTrangThai = !filters.trangThai || item.trangThai === filters.trangThai
+            return matchLoaiKy && matchNam && matchTrangThai
+        })
+    })
+
     const fetchItems = async () => {
         try {
             loading.value = true
-
-            if (filters.nam && filters.loaiKy) {
-                const data = await apiRequest(`${API_CONTROLLER}/by-nam/${filters.nam}`)
-                const list = normalizeList(data)
-                items.value = list.filter((x) => x.loaiKy === filters.loaiKy)
-                return
-            }
-
-            if (filters.nam) {
-                const data = await apiRequest(`${API_CONTROLLER}/by-nam/${filters.nam}`)
-                items.value = normalizeList(data)
-                return
-            }
-
-            if (filters.loaiKy) {
-                const data = await apiRequest(`${API_CONTROLLER}/by-loaiky/${filters.loaiKy}`)
-                items.value = normalizeList(data)
-                return
-            }
-
             const data = await apiRequest(API_CONTROLLER)
             items.value = normalizeList(data)
         } catch (error) {
@@ -365,9 +369,8 @@
             tenKy: item.tenKy || '',
             loaiKy: item.loaiKy || 'QUY',
             nam: item.nam || new Date().getFullYear(),
-            soKy: item.soKy ?? '',
-            tuNgay: toInputDate(item.tuNgay),
-            denNgay: toInputDate(item.denNgay),
+            soKy: item.loaiKy === 'NAM' ? 1 : (item.soKy ?? ''),
+            trangThai: item.trangThai || 'CHUA_MO',
             ngayDauKy: toInputDate(item.ngayDauKy),
             ngayCuoiKy: toInputDate(item.ngayCuoiKy),
             ghiChu: item.ghiChu || '',
@@ -407,8 +410,13 @@
             return false
         }
 
-        if (!form.tuNgay || !form.denNgay) {
-            alert('Vui lòng nhập từ ngày và đến ngày.')
+        if (form.loaiKy !== 'NAM' && (form.soKy === '' || form.soKy === null)) {
+            alert('Vui lòng nhập số kỳ.')
+            return false
+        }
+
+        if (!form.trangThai) {
+            alert('Vui lòng chọn trạng thái.')
             return false
         }
 
@@ -419,11 +427,6 @@
 
         if (!form.updatedBy?.trim()) {
             alert('Vui lòng nhập người cập nhật.')
-            return false
-        }
-
-        if (new Date(form.tuNgay) > new Date(form.denNgay)) {
-            alert('Từ ngày không được lớn hơn đến ngày.')
             return false
         }
 
@@ -474,6 +477,7 @@
     const resetFilters = async () => {
         filters.loaiKy = ''
         filters.nam = ''
+        filters.trangThai = ''
         await fetchItems()
     }
 
@@ -485,6 +489,24 @@
             NAM: 'Năm'
         }
         return map[value] || value || '-'
+    }
+
+    const mapTrangThai = (value) => {
+        const map = {
+            CHUA_MO: 'Chưa mở',
+            DANG_MO: 'Đang mở',
+            DA_DONG: 'Đã đóng'
+        }
+        return map[value] || value || '-'
+    }
+
+    const getTrangThaiBadgeClass = (value) => {
+        const map = {
+            CHUA_MO: 'text-bg-secondary',
+            DANG_MO: 'text-bg-success',
+            DA_DONG: 'text-bg-dark'
+        }
+        return map[value] || 'text-bg-light'
     }
 
     const formatDate = (value) => {
@@ -500,6 +522,16 @@
         if (Number.isNaN(date.getTime())) return ''
         return date.toISOString().split('T')[0]
     }
+
+    watch(
+        () => form.loaiKy,
+        (newValue) => {
+            if (newValue === 'NAM') {
+                form.soKy = 1
+            }
+        },
+        { immediate: true }
+    )
 
     onMounted(() => {
         fetchItems()
