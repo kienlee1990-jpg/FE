@@ -8,6 +8,7 @@ import ChiTieuBoGiaoPage from "../components/views/ChiTieuBoGiaoPage.vue"
 import ChiTieuThanhPhoGiaoPage from "../components/views/ChiTieuThanhPhoGiaoPage.vue"
 import DanhMucDonViPage from "../components/views/DanhMucDonViPage.vue"
 import CanhBaoRuiRoPage from "../components/views/CanhBaoRuiRoPage.vue"
+import BaoCaoTheoChiTieuPage from "../components/views/BaoCaoTheoChiTieuPage.vue"
 
 import DonViChuaCapNhatPage from "../components/views/DonViChuaCapNhatPage.vue"
 import DotGiaoChiTieuPage from "../components/views/DotGiaoChiTieuPage.vue"
@@ -148,6 +149,12 @@ const routes = [
         path: "/canh-bao-rui-ro",
         name: "CanhBaoRuiRo",
         component: CanhBaoRuiRoPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: "/bao-cao-theo-chi-tieu",
+        name: "BaoCaoTheoChiTieu",
+        component: BaoCaoTheoChiTieuPage,
         meta: { requiresAuth: true }
     },
 

@@ -89,8 +89,10 @@
                 <div class="card custom-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
-                            <h5 class="mb-1">Danh sách giao chỉ tiêu</h5>
-                            <small class="text-muted">Theo dõi dữ liệu giao chỉ tiêu cho đơn vị</small>
+                            <h5 class="mb-1">Danh sách chỉ tiêu không phân rã</h5>
+                            <small class="text-muted">
+                                Chỉ hiển thị các danh mục chỉ tiêu không cho phân rã
+                            </small>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ filteredItems.length }}</span>
                     </div>
@@ -152,8 +154,8 @@
                                             <small
                                                 v-if="(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== null && (item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== undefined"
                                                 class="text-muted">
-                                                Mặc định: {{ formatNumber(item.DieuKienHoanThanh ??
-                                                item.dieuKienHoanThanh) }}
+                                                Mặc định:
+                                                {{ formatNumber(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) }}
                                             </small>
                                         </td>
                                         <td>{{ item.GhiChu || item.ghiChu || '-' }}</td>
@@ -258,8 +260,9 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label">Giá trị mục tiêu <span
-                                                class="text-danger">*</span></label>
+                                        <label class="form-label">
+                                            Giá trị mục tiêu <span class="text-danger">*</span>
+                                        </label>
                                         <input v-model="form.giaTriMucTieu" type="number" step="any"
                                             class="form-control" placeholder="Nhập giá trị mục tiêu" />
                                         <small class="text-muted">
@@ -300,20 +303,8 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import { apiRequest } from '../../services/api.js'
 
     const API_PATHS = {
         chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
@@ -368,9 +359,11 @@
     const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
 
     const normalizeList = (response) => {
+        if (Array.isArray(response)) return response
         if (Array.isArray(response?.data)) return response.data
         if (Array.isArray(response?.data?.data)) return response.data.data
         if (Array.isArray(response?.data?.items)) return response.data.items
+        if (Array.isArray(response?.items)) return response.items
         return []
     }
 
@@ -462,6 +455,8 @@
             const donViId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
             const tanSuatBaoCao = (item.TanSuatBaoCao || item.tanSuatBaoCao || '').trim()
 
+            const isKhongPhanRa = danhMucKhongPhanRaIds.value.has(danhMucId)
+
             const searchText = [
                 item.TenDotGiao || '',
                 item.MaChiTieu || '',
@@ -480,7 +475,14 @@
             const matchDonVi = !filters.donViId || Number(filters.donViId) === donViId
             const matchTanSuat = !filters.tanSuatBaoCao || filters.tanSuatBaoCao === tanSuatBaoCao
 
-            return matchKeyword && matchDot && matchDanhMuc && matchDonVi && matchTanSuat
+            return (
+                isKhongPhanRa &&
+                matchKeyword &&
+                matchDot &&
+                matchDanhMuc &&
+                matchDonVi &&
+                matchTanSuat
+            )
         })
     })
 
@@ -491,7 +493,11 @@
     })
 
     const displayGiaTriMacDinh = computed(() => {
-        if (defaultGiaTriMucTieu.value === null || defaultGiaTriMucTieu.value === undefined || defaultGiaTriMucTieu.value === '') {
+        if (
+            defaultGiaTriMucTieu.value === null ||
+            defaultGiaTriMucTieu.value === undefined ||
+            defaultGiaTriMucTieu.value === ''
+        ) {
             return '-'
         }
         return formatNumber(defaultGiaTriMucTieu.value)
@@ -536,11 +542,12 @@
     const fetchItems = async () => {
         try {
             loading.value = true
-            const response = await api.get(API_PATHS.chiTietGiaoChiTieu)
-            items.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.chiTietGiaoChiTieu)
+            items.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchItems error:', error?.response?.status, error?.config?.url, error)
-            alert(error?.response?.data?.message || 'Không tải được danh sách giao chỉ tiêu.')
+            console.error('fetchItems error:', error)
+            alert(error.message || 'Không tải được danh sách giao chỉ tiêu.')
+            items.value = []
         } finally {
             loading.value = false
         }
@@ -548,30 +555,30 @@
 
     const fetchDotOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.dotGiaoChiTieu)
-            dotOptions.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.dotGiaoChiTieu)
+            dotOptions.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchDotOptions error:', error?.response?.status, error?.config?.url, error)
+            console.error('fetchDotOptions error:', error)
             dotOptions.value = []
         }
     }
 
     const fetchDanhMucOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.danhMucChiTieu)
-            danhMucOptions.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.danhMucChiTieu)
+            danhMucOptions.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchDanhMucOptions error:', error?.response?.status, error?.config?.url, error)
+            console.error('fetchDanhMucOptions error:', error)
             danhMucOptions.value = []
         }
     }
 
     const fetchDonViOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.donVi)
-            donViOptions.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.donVi)
+            donViOptions.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchDonViOptions error:', error?.response?.status, error?.config?.url, error)
+            console.error('fetchDonViOptions error:', error)
             donViOptions.value = []
         }
     }
@@ -657,23 +664,16 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`${API_PATHS.chiTietGiaoChiTieu}/${editingId.value}`, payload)
+                await apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/${editingId.value}`, 'PUT', payload)
             } else {
-                await api.post(API_PATHS.chiTietGiaoChiTieu, payload)
+                await apiRequest(API_PATHS.chiTietGiaoChiTieu, 'POST', payload)
             }
 
             closeModal()
             await fetchItems()
         } catch (error) {
-            console.error('handleSubmit error:', error?.response?.status, error?.config?.url, error)
-
-            const message =
-                error?.response?.data?.message ||
-                error?.response?.data?.title ||
-                JSON.stringify(error?.response?.data?.errors || {}, null, 2) ||
-                'Lưu giao chỉ tiêu thất bại.'
-
-            alert(message)
+            console.error('handleSubmit error:', error)
+            alert(error.message || 'Lưu giao chỉ tiêu thất bại.')
         } finally {
             saving.value = false
         }
@@ -685,11 +685,11 @@
         if (!ok) return
 
         try {
-            await api.delete(`${API_PATHS.chiTietGiaoChiTieu}/${getId(item)}`)
+            await apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/${getId(item)}`, 'DELETE')
             await fetchItems()
         } catch (error) {
-            console.error('handleDelete error:', error?.response?.status, error?.config?.url, error)
-            alert(error?.response?.data?.message || 'Xóa giao chỉ tiêu thất bại.')
+            console.error('handleDelete error:', error)
+            alert(error.message || 'Xóa giao chỉ tiêu thất bại.')
         }
     }
 

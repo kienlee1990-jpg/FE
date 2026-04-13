@@ -289,20 +289,8 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import { apiRequest } from '../../services/api.js'
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
@@ -334,9 +322,11 @@
     const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
 
     const normalizeList = (response) => {
+        if (Array.isArray(response)) return response
         if (Array.isArray(response?.data)) return response.data
         if (Array.isArray(response?.data?.data)) return response.data.data
         if (Array.isArray(response?.data?.items)) return response.data.items
+        if (Array.isArray(response?.items)) return response.items
         return []
     }
 
@@ -358,11 +348,11 @@
                 dotResponse,
                 donViResponse
             ] = await Promise.all([
-                api.get(API_PATHS.theoDoiThucHienKPI),
-                api.get(API_PATHS.chiTietGiaoChiTieu),
-                api.get(API_PATHS.kyBaoCaoKPI),
-                api.get(API_PATHS.dotGiaoChiTieu),
-                api.get(API_PATHS.donVi)
+                apiRequest(API_PATHS.theoDoiThucHienKPI),
+                apiRequest(API_PATHS.chiTietGiaoChiTieu),
+                apiRequest(API_PATHS.kyBaoCaoKPI),
+                apiRequest(API_PATHS.dotGiaoChiTieu),
+                apiRequest(API_PATHS.donVi)
             ])
 
             progressItems.value = normalizeList(progressResponse)
@@ -371,8 +361,8 @@
             dotOptions.value = normalizeList(dotResponse)
             donViOptions.value = normalizeList(donViResponse)
         } catch (error) {
-            console.error('fetchData error:', error?.response?.status, error?.config?.url, error)
-            alert(error?.response?.data?.message || 'Không tải được dữ liệu tiến độ KPI.')
+            console.error('fetchData error:', error)
+            alert(error.message || 'Không tải được dữ liệu tiến độ KPI.')
         } finally {
             loading.value = false
         }

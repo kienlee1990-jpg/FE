@@ -310,20 +310,8 @@
 
 <script setup>
     import { onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
-    import BaseLayout from "../BaseLayout.vue"
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import BaseLayout from '../BaseLayout.vue'
+    import { apiRequest } from '../../services/api.js'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -389,22 +377,37 @@
         }
     }
 
+    const buildQueryString = (params) => {
+        const searchParams = new URLSearchParams()
+
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                searchParams.append(key, value)
+            }
+        })
+
+        const query = searchParams.toString()
+        return query ? `?${query}` : ''
+    }
+
     const fetchChiTieuBoGiao = async () => {
         try {
             loading.value = true
-            const { data } = await api.get('/danh-muc-chi-tieu', {
-                params: {
-                    keyword: filters.keyword || undefined,
-                    nguonChiTieu: 'BO',
-                    loaiChiTieu: filters.loaiChiTieu || undefined,
-                    capApDung: filters.capApDung || undefined,
-                    trangThaiSuDung: filters.trangThaiSuDung || undefined
-                }
+
+            const queryString = buildQueryString({
+                keyword: filters.keyword || undefined,
+                nguonChiTieu: 'BO',
+                loaiChiTieu: filters.loaiChiTieu || undefined,
+                capApDung: filters.capApDung || undefined,
+                trangThaiSuDung: filters.trangThaiSuDung || undefined
             })
-            items.value = data
+
+            const data = await apiRequest(`/danh-muc-chi-tieu${queryString}`)
+            items.value = Array.isArray(data) ? data : []
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Không tải được chỉ tiêu Bộ giao.')
+            alert(error.message || 'Không tải được chỉ tiêu Bộ giao.')
+            items.value = []
         } finally {
             loading.value = false
         }
@@ -486,16 +489,16 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`/danh-muc-chi-tieu/${editingId.value}`, payload)
+                await apiRequest(`/danh-muc-chi-tieu/${editingId.value}`, 'PUT', payload)
             } else {
-                await api.post('/danh-muc-chi-tieu', payload)
+                await apiRequest('/danh-muc-chi-tieu', 'POST', payload)
             }
 
             closeModal()
             await fetchChiTieuBoGiao()
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Lưu chỉ tiêu Bộ giao thất bại.')
+            alert(error.message || 'Lưu chỉ tiêu Bộ giao thất bại.')
         } finally {
             saving.value = false
         }
@@ -506,11 +509,11 @@
         if (!ok) return
 
         try {
-            await api.delete(`/danh-muc-chi-tieu/${item.id}`)
+            await apiRequest(`/danh-muc-chi-tieu/${item.id}`, 'DELETE')
             await fetchChiTieuBoGiao()
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Xóa chỉ tiêu thất bại.')
+            alert(error.message || 'Xóa chỉ tiêu thất bại.')
         }
     }
 

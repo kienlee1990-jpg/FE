@@ -214,12 +214,22 @@
 
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">Lĩnh vực nghiệp vụ</label>
-                                        <input v-model="form.linhVucNghiepVu" type="text" class="form-control" />
+                                        <input v-model="form.linhVucNghiepVu" type="text" class="form-control"
+                                            list="linh-vuc-nghiep-vu-options"
+                                            placeholder="Chọn hoặc nhập lĩnh vực nghiệp vụ" />
+                                        <datalist id="linh-vuc-nghiep-vu-options">
+                                            <option v-for="option in linhVucNghiepVuOptions" :key="option"
+                                                :value="option" />
+                                        </datalist>
                                     </div>
 
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">Đơn vị tính</label>
-                                        <input v-model="form.donViTinh" type="text" class="form-control" />
+                                        <input v-model="form.donViTinh" type="text" class="form-control"
+                                            list="don-vi-tinh-options" placeholder="Chọn hoặc nhập đơn vị tính" />
+                                        <datalist id="don-vi-tinh-options">
+                                            <option v-for="option in donViTinhOptions" :key="option" :value="option" />
+                                        </datalist>
                                     </div>
 
                                     <div class="col-12 col-md-6">
@@ -318,21 +328,9 @@
 </template>
 
 <script setup>
-    import { onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
-    import BaseLayout from "../BaseLayout.vue"
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import { computed, onMounted, reactive, ref } from 'vue'
+    import BaseLayout from '../BaseLayout.vue'
+    import { apiRequest } from '../../services/api.js'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -340,6 +338,22 @@
     const isEdit = ref(false)
     const editingId = ref(null)
     const items = ref([])
+
+    const linhVucNghiepVuOptions = computed(() => {
+        const values = items.value
+            .map(item => item.linhVucNghiepVu?.trim())
+            .filter(Boolean)
+
+        return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'vi'))
+    })
+
+    const donViTinhOptions = computed(() => {
+        const values = items.value
+            .map(item => item.donViTinh?.trim())
+            .filter(Boolean)
+
+        return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'vi'))
+    })
 
     const filters = reactive({
         keyword: '',
@@ -377,14 +391,14 @@
     }
 
     const buildPayload = () => {
-        const payload = {
+        return {
             maChiTieu: form.maChiTieu?.trim(),
             tenChiTieu: form.tenChiTieu?.trim(),
             nguonChiTieu: form.nguonChiTieu,
             loaiChiTieu: form.loaiChiTieu,
             capApDung: form.capApDung,
-            linhVucNghiepVu: form.linhVucNghiepVu || null,
-            donViTinh: form.donViTinh || null,
+            linhVucNghiepVu: form.linhVucNghiepVu?.trim() || null,
+            donViTinh: form.donViTinh?.trim() || null,
             moTa: form.moTa || null,
             huongDanTinhToan: form.huongDanTinhToan || null,
             coChoPhepPhanRa: form.coChoPhepPhanRa,
@@ -397,26 +411,39 @@
             loaiMocSoSanh: form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? form.loaiMocSoSanh || null : null,
             chieuSoSanh: form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? form.chieuSoSanh || null : null
         }
+    }
 
-        return payload
+    const buildQueryString = (params) => {
+        const searchParams = new URLSearchParams()
+
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                searchParams.append(key, value)
+            }
+        })
+
+        const query = searchParams.toString()
+        return query ? `?${query}` : ''
     }
 
     const fetchDanhMucChiTieu = async () => {
         try {
             loading.value = true
-            const { data } = await api.get('/danh-muc-chi-tieu', {
-                params: {
-                    keyword: filters.keyword || undefined,
-                    nguonChiTieu: filters.nguonChiTieu || undefined,
-                    loaiChiTieu: filters.loaiChiTieu || undefined,
-                    capApDung: filters.capApDung || undefined,
-                    trangThaiSuDung: filters.trangThaiSuDung || undefined
-                }
+
+            const queryString = buildQueryString({
+                keyword: filters.keyword || undefined,
+                nguonChiTieu: filters.nguonChiTieu || undefined,
+                loaiChiTieu: filters.loaiChiTieu || undefined,
+                capApDung: filters.capApDung || undefined,
+                trangThaiSuDung: filters.trangThaiSuDung || undefined
             })
-            items.value = data
+
+            const data = await apiRequest(`/danh-muc-chi-tieu${queryString}`)
+            items.value = Array.isArray(data) ? data : []
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Không tải được danh mục chỉ tiêu.')
+            alert(error.message || 'Không tải được danh mục chỉ tiêu.')
+            items.value = []
         } finally {
             loading.value = false
         }
@@ -467,22 +494,26 @@
             alert('Vui lòng nhập mã chỉ tiêu.')
             return false
         }
+
         if (!form.tenChiTieu) {
             alert('Vui lòng nhập tên chỉ tiêu.')
             return false
         }
+
         if (form.loaiChiTieu === 'DINH_TINH') {
             if (!form.dieuKienHoanThanh || !form.dieuKienKhongHoanThanh) {
                 alert('Chỉ tiêu định tính phải nhập điều kiện hoàn thành và điều kiện không hoàn thành.')
                 return false
             }
         }
+
         if (form.loaiChiTieu === 'DINH_LUONG_SO_SANH') {
             if (!form.tyLePhanTramMucTieu || !form.loaiMocSoSanh || !form.chieuSoSanh) {
                 alert('Chỉ tiêu định lượng so sánh phải nhập đủ tỷ lệ %, loại mốc so sánh và chiều so sánh.')
                 return false
             }
         }
+
         return true
     }
 
@@ -494,16 +525,16 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`/danh-muc-chi-tieu/${editingId.value}`, payload)
+                await apiRequest(`/danh-muc-chi-tieu/${editingId.value}`, 'PUT', payload)
             } else {
-                await api.post('/danh-muc-chi-tieu', payload)
+                await apiRequest('/danh-muc-chi-tieu', 'POST', payload)
             }
 
             closeModal()
             await fetchDanhMucChiTieu()
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Lưu chỉ tiêu thất bại.')
+            alert(error.message || 'Lưu chỉ tiêu thất bại.')
         } finally {
             saving.value = false
         }
@@ -515,17 +546,14 @@
 
         try {
             console.log('Deleting id:', item.id, 'item:', item)
-            const res = await api.delete(`/danh-muc-chi-tieu/${item.id}`)
-            console.log('Delete success:', res.data)
+            await apiRequest(`/danh-muc-chi-tieu/${item.id}`, 'DELETE')
             await fetchDanhMucChiTieu()
         } catch (error) {
             console.error('Delete error:', error)
-            console.error('Status:', error.response?.status)
-            console.error('Response data:', error.response?.data)
-            console.error('Request url:', `/danh-muc-chi-tieu/${item.id}`)
-            alert(error?.response?.data?.message || 'Xóa chỉ tiêu thất bại.')
+            alert(error.message || 'Xóa chỉ tiêu thất bại.')
         }
     }
+
     const resetFilters = async () => {
         filters.keyword = ''
         filters.nguonChiTieu = ''

@@ -19,17 +19,11 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Lọc dữ liệu tại frontend theo API hiện tại</small>
+                        <small class="text-muted">Tra cứu nhanh theo nhiều tiêu chí</small>
                     </div>
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Từ khóa</label>
-                                <input v-model="filters.keyword" type="text" class="form-control"
-                                    placeholder="Tên chỉ tiêu, mã chỉ tiêu hoặc ghi chú" />
-                            </div>
-
                             <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Đợt giao chỉ tiêu</label>
                                 <select v-model.number="filters.dotGiaoChiTieuId" class="form-select">
@@ -53,14 +47,29 @@
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-3">
+                                <label class="form-label">Đơn vị nhận</label>
+                                <select v-model.number="filters.donViNhanId" class="form-select">
+                                    <option :value="null">Tất cả</option>
+                                    <option v-for="item in donViOptions" :key="getId(item)" :value="getId(item)">
+                                        {{ item.TenDonVi || item.tenDonVi || '-' }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Tần suất báo cáo</label>
                                 <select v-model="filters.tanSuatBaoCao" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="THANG">Tháng</option>
-                                    <option value="QUY">Quý</option>
-                                    <option value="6THANG">6 tháng</option>
-                                    <option value="NAM">Năm</option>
+                                    <option v-for="item in tanSuatBaoCaoOptions" :key="item.value" :value="item.value">
+                                        {{ item.label }}
+                                    </option>
                                 </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Từ khóa</label>
+                                <input v-model="filters.keyword" type="text" class="form-control"
+                                    placeholder="Tên đợt, mã chỉ tiêu, tên chỉ tiêu, đơn vị nhận, đơn vị thực hiện chính, tần suất, ghi chú" />
                             </div>
                         </div>
 
@@ -80,8 +89,10 @@
                 <div class="card custom-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
-                            <h5 class="mb-1">Danh sách phân rã chỉ tiêu</h5>
-                            <small class="text-muted">Theo dõi chỉ tiêu phân rã theo từng đợt</small>
+                            <h5 class="mb-1">Danh sách chỉ tiêu đã phân rã</h5>
+                            <small class="text-muted">
+                                Chỉ hiển thị các danh mục chỉ tiêu có cho phép phân rã
+                            </small>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ filteredItems.length }}</span>
                     </div>
@@ -102,11 +113,10 @@
                                 <thead>
                                     <tr>
                                         <th>Đợt giao</th>
-                                        <th>Mã chỉ tiêu</th>
-                                        <th>Tên chỉ tiêu</th>
-                                        <th>Tần suất báo cáo</th>
+                                        <th>Chỉ tiêu</th>
                                         <th>Đơn vị nhận</th>
                                         <th>Đơn vị thực hiện chính</th>
+                                        <th>Tần suất báo cáo</th>
                                         <th>Giá trị mục tiêu</th>
                                         <th>Ghi chú</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
@@ -114,22 +124,49 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="item in filteredItems" :key="getId(item)">
-                                        <td>{{ item.TenDotGiao || item.tenDotGiao || '-' }}</td>
-                                        <td class="fw-semibold text-primary">
-                                            {{ item.MaChiTieu || item.maChiTieu || '-' }}
+                                        <td>
+                                            <div class="fw-semibold">
+                                                {{ item.TenDotGiao || item.tenDotGiao || '-' }}
+                                            </div>
                                         </td>
-                                        <td>{{ item.TenChiTieu || item.tenChiTieu || '-' }}</td>
-                                        <td>{{ mapTanSuat(item.TanSuatBaoCao || item.tanSuatBaoCao) }}</td>
-                                        <td>{{ item.TenDonViNhan || item.tenDonViNhan || '-' }}</td>
-                                        <td>{{ item.TenDonViThucHienChinh || item.tenDonViThucHienChinh || '-' }}</td>
+
+                                        <td>
+                                            <div class="fw-semibold text-primary">
+                                                {{ item.TenChiTieu || item.tenChiTieu || '-' }}
+                                            </div>
+                                            <small class="text-muted">
+                                                {{ item.MaChiTieu || item.maChiTieu || '-' }}
+                                            </small>
+                                        </td>
+
+                                        <td>
+                                            <div class="fw-semibold">
+                                                {{ item.TenDonViNhan || item.tenDonViNhan || '-' }}
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <div class="fw-semibold">
+                                                {{ item.TenDonViThucHienChinh || item.tenDonViThucHienChinh || '-' }}
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <span class="badge text-bg-light border">
+                                                {{ getTanSuatLabel(item.TanSuatBaoCao || item.tanSuatBaoCao) }}
+                                            </span>
+                                        </td>
+
                                         <td>
                                             <div>{{ formatNumber(item.GiaTriMucTieu ?? item.giaTriMucTieu) }}</div>
-                                            <small class="text-muted"
-                                                v-if="item.GiaTriMucTieuText || item.giaTriMucTieuText">
+                                            <small v-if="item.GiaTriMucTieuText || item.giaTriMucTieuText"
+                                                class="text-muted">
                                                 {{ item.GiaTriMucTieuText || item.giaTriMucTieuText }}
                                             </small>
                                         </td>
+
                                         <td>{{ item.GhiChu || item.ghiChu || '-' }}</td>
+
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
                                                 <button class="btn btn-sm btn-outline-primary"
@@ -175,7 +212,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Đợt giao chỉ tiêu <span class="text-danger">*</span>
                                         </label>
@@ -187,7 +224,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Danh mục chỉ tiêu <span class="text-danger">*</span>
                                         </label>
@@ -201,19 +238,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Tần suất báo cáo <span class="text-danger">*</span>
-                                        </label>
-                                        <select v-model="form.tanSuatBaoCao" class="form-select">
-                                            <option value="THANG">Tháng</option>
-                                            <option value="QUY">Quý</option>
-                                            <option value="6THANG">6 tháng</option>
-                                            <option value="NAM">Năm</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Đơn vị nhận <span class="text-danger">*</span>
                                         </label>
@@ -222,6 +247,19 @@
                                             <option v-for="item in donViOptions" :key="getId(item)"
                                                 :value="getId(item)">
                                                 {{ item.TenDonVi || item.tenDonVi || '-' }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label">
+                                            Tần suất báo cáo <span class="text-danger">*</span>
+                                        </label>
+                                        <select v-model="form.tanSuatBaoCao" class="form-select">
+                                            <option value="">Chọn tần suất</option>
+                                            <option v-for="item in tanSuatBaoCaoOptions" :key="item.value"
+                                                :value="item.value">
+                                                {{ item.label }}
                                             </option>
                                         </select>
                                     </div>
@@ -239,7 +277,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Giá trị mục tiêu <span class="text-danger">*</span>
                                         </label>
@@ -247,16 +285,16 @@
                                             class="form-control" placeholder="Nhập giá trị mục tiêu" />
                                     </div>
 
-                                    <div class="col-12 col-md-4">
-                                        <label class="form-label">Giá trị mục tiêu (text)</label>
-                                        <input v-model="form.giaTriMucTieuText" type="text" class="form-control"
-                                            placeholder="Ví dụ: 95%, 10 vụ, 120 hồ sơ" />
-                                    </div>
-
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">Thứ tự hiển thị</label>
                                         <input v-model.number="form.thuTuHienThi" type="number" min="1" step="1"
                                             class="form-control" placeholder="Nhập thứ tự hiển thị" />
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Giá trị mục tiêu (text)</label>
+                                        <input v-model="form.giaTriMucTieuText" type="text" class="form-control"
+                                            placeholder="Ví dụ: 95%, 10 vụ, 120 hồ sơ" />
                                     </div>
 
                                     <div class="col-12">
@@ -286,20 +324,8 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import { apiRequest } from '../../services/api.js'
 
     const API_PATHS = {
         chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
@@ -319,11 +345,19 @@
     const danhMucOptions = ref([])
     const donViOptions = ref([])
 
+    const tanSuatBaoCaoOptions = [
+        { value: 'THANG', label: 'Tháng' },
+        { value: 'QUY', label: 'Quý' },
+        { value: '6THANG', label: '6 tháng' },
+        { value: 'NAM', label: 'Năm' }
+    ]
+
     const filters = reactive({
-        keyword: '',
         dotGiaoChiTieuId: null,
         danhMucChiTieuId: null,
-        tanSuatBaoCao: ''
+        donViNhanId: null,
+        tanSuatBaoCao: '',
+        keyword: ''
     })
 
     const createDefaultForm = () => ({
@@ -347,10 +381,17 @@
     const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
 
     const normalizeList = (response) => {
+        if (Array.isArray(response)) return response
         if (Array.isArray(response?.data)) return response.data
         if (Array.isArray(response?.data?.data)) return response.data.data
         if (Array.isArray(response?.data?.items)) return response.data.items
+        if (Array.isArray(response?.items)) return response.items
         return []
+    }
+
+    const getTanSuatLabel = (value) => {
+        const found = tanSuatBaoCaoOptions.find((x) => x.value === value)
+        return found?.label || value || '-'
     }
 
     const danhMucPhanRaOptions = computed(() => {
@@ -383,21 +424,17 @@
                     dot?.TenDotGiao ||
                     dot?.tenDotGiao ||
                     '-',
-                MaChiTieu:
-                    item.MaChiTieu ||
-                    item.maChiTieu ||
-                    danhMuc?.MaChiTieu ||
-                    danhMuc?.maChiTieu ||
-                    '-',
                 TenChiTieu:
                     item.TenChiTieu ||
                     item.tenChiTieu ||
                     danhMuc?.TenChiTieu ||
                     danhMuc?.tenChiTieu ||
                     '-',
-                TanSuatBaoCao:
-                    item.TanSuatBaoCao ||
-                    item.tanSuatBaoCao ||
+                MaChiTieu:
+                    item.MaChiTieu ||
+                    item.maChiTieu ||
+                    danhMuc?.MaChiTieu ||
+                    danhMuc?.maChiTieu ||
                     '-',
                 TenDonViNhan:
                     item.TenDonViNhan ||
@@ -410,7 +447,8 @@
                     item.tenDonViThucHienChinh ||
                     donViThucHienChinh?.TenDonVi ||
                     donViThucHienChinh?.tenDonVi ||
-                    '-'
+                    '-',
+                TanSuatBaoCao: item.TanSuatBaoCao || item.tanSuatBaoCao || ''
             }
         })
     })
@@ -418,33 +456,39 @@
     const filteredItems = computed(() => {
         return enrichedItems.value.filter((item) => {
             const keyword = filters.keyword.trim().toLowerCase()
-
-            const maChiTieu = (item.MaChiTieu || item.maChiTieu || '').toLowerCase()
-            const tenChiTieu = (item.TenChiTieu || item.tenChiTieu || '').toLowerCase()
-            const ghiChu = (item.GhiChu || item.ghiChu || '').toLowerCase()
             const dotId = Number(item.DotGiaoChiTieuId ?? item.dotGiaoChiTieuId ?? 0)
             const danhMucId = Number(item.DanhMucChiTieuId ?? item.danhMucChiTieuId ?? 0)
-            const tanSuatBaoCao = item.TanSuatBaoCao || item.tanSuatBaoCao || ''
+            const donViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
+            const tanSuatBaoCao = (item.TanSuatBaoCao || item.tanSuatBaoCao || '').trim()
 
-            const matchKeyword =
-                !keyword ||
-                maChiTieu.includes(keyword) ||
-                tenChiTieu.includes(keyword) ||
-                ghiChu.includes(keyword)
+            const isChoPhepPhanRa = danhMucPhanRaIds.value.has(danhMucId)
 
-            const matchDot =
-                !filters.dotGiaoChiTieuId ||
-                Number(filters.dotGiaoChiTieuId) === dotId
+            const searchText = [
+                item.TenDotGiao || '',
+                item.MaChiTieu || '',
+                item.TenChiTieu || '',
+                item.TenDonViNhan || '',
+                item.TenDonViThucHienChinh || '',
+                getTanSuatLabel(item.TanSuatBaoCao || item.tanSuatBaoCao || ''),
+                item.GhiChu || item.ghiChu || ''
+            ]
+                .join(' ')
+                .toLowerCase()
 
-            const matchDanhMuc =
-                !filters.danhMucChiTieuId ||
-                Number(filters.danhMucChiTieuId) === danhMucId
+            const matchKeyword = !keyword || searchText.includes(keyword)
+            const matchDot = !filters.dotGiaoChiTieuId || Number(filters.dotGiaoChiTieuId) === dotId
+            const matchDanhMuc = !filters.danhMucChiTieuId || Number(filters.danhMucChiTieuId) === danhMucId
+            const matchDonViNhan = !filters.donViNhanId || Number(filters.donViNhanId) === donViNhanId
+            const matchTanSuat = !filters.tanSuatBaoCao || filters.tanSuatBaoCao === tanSuatBaoCao
 
-            const matchTanSuat =
-                !filters.tanSuatBaoCao ||
-                filters.tanSuatBaoCao === tanSuatBaoCao
-
-            return matchKeyword && matchDot && matchDanhMuc && matchTanSuat
+            return (
+                isChoPhepPhanRa &&
+                matchKeyword &&
+                matchDot &&
+                matchDanhMuc &&
+                matchDonViNhan &&
+                matchTanSuat
+            )
         })
     })
 
@@ -454,7 +498,10 @@
         donViNhanId: form.donViNhanId,
         donViThucHienChinhId: form.donViThucHienChinhId,
         tanSuatBaoCao: form.tanSuatBaoCao || null,
-        giaTriMucTieu: form.giaTriMucTieu,
+        giaTriMucTieu:
+            form.giaTriMucTieu === '' || form.giaTriMucTieu === null || form.giaTriMucTieu === undefined
+                ? null
+                : Number(form.giaTriMucTieu),
         giaTriMucTieuText: form.giaTriMucTieuText?.trim() || null,
         ghiChu: form.ghiChu?.trim() || null,
         thuTuHienThi: form.thuTuHienThi ?? 1
@@ -463,11 +510,12 @@
     const fetchItems = async () => {
         try {
             loading.value = true
-            const response = await api.get(API_PATHS.chiTietGiaoChiTieu)
-            items.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.chiTietGiaoChiTieu)
+            items.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchItems error:', error?.response?.status, error?.config?.url, error)
-            alert(error?.response?.data?.message || 'Không tải được danh sách phân rã chỉ tiêu.')
+            console.error('fetchItems error:', error)
+            alert(error.message || 'Không tải được danh sách phân rã chỉ tiêu.')
+            items.value = []
         } finally {
             loading.value = false
         }
@@ -475,30 +523,30 @@
 
     const fetchDotOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.dotGiaoChiTieu)
-            dotOptions.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.dotGiaoChiTieu)
+            dotOptions.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchDotOptions error:', error?.response?.status, error?.config?.url, error)
+            console.error('fetchDotOptions error:', error)
             dotOptions.value = []
         }
     }
 
     const fetchDanhMucOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.danhMucChiTieu)
-            danhMucOptions.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.danhMucChiTieu)
+            danhMucOptions.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchDanhMucOptions error:', error?.response?.status, error?.config?.url, error)
+            console.error('fetchDanhMucOptions error:', error)
             danhMucOptions.value = []
         }
     }
 
     const fetchDonViOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.donVi)
-            donViOptions.value = normalizeList(response)
+            const data = await apiRequest(API_PATHS.donVi)
+            donViOptions.value = normalizeList(data)
         } catch (error) {
-            console.error('fetchDonViOptions error:', error?.response?.status, error?.config?.url, error)
+            console.error('fetchDonViOptions error:', error)
             donViOptions.value = []
         }
     }
@@ -550,11 +598,6 @@
             return false
         }
 
-        if (!form.tanSuatBaoCao) {
-            alert('Vui lòng chọn tần suất báo cáo.')
-            return false
-        }
-
         if (!form.donViNhanId || Number(form.donViNhanId) <= 0) {
             alert('Vui lòng chọn đơn vị nhận.')
             return false
@@ -562,6 +605,11 @@
 
         if (!form.donViThucHienChinhId || Number(form.donViThucHienChinhId) <= 0) {
             alert('Vui lòng chọn đơn vị thực hiện chính.')
+            return false
+        }
+
+        if (!form.tanSuatBaoCao) {
+            alert('Vui lòng chọn tần suất báo cáo.')
             return false
         }
 
@@ -581,64 +629,50 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`${API_PATHS.chiTietGiaoChiTieu}/${editingId.value}`, payload)
+                await apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/${editingId.value}`, 'PUT', payload)
             } else {
-                await api.post(API_PATHS.chiTietGiaoChiTieu, payload)
+                await apiRequest(API_PATHS.chiTietGiaoChiTieu, 'POST', payload)
             }
 
             closeModal()
             await fetchItems()
         } catch (error) {
-            console.error('handleSubmit error:', error?.response?.status, error?.config?.url, error)
-
-            const message =
-                error?.response?.data?.message ||
-                error?.response?.data?.title ||
-                JSON.stringify(error?.response?.data?.errors || {}, null, 2) ||
-                'Lưu phân rã chỉ tiêu thất bại.'
-
-            alert(message)
+            console.error('handleSubmit error:', error)
+            alert(error.message || 'Lưu phân rã chỉ tiêu thất bại.')
         } finally {
             saving.value = false
         }
     }
 
     const handleDelete = async (item) => {
-        const id = getId(item)
         const tenChiTieu = item.TenChiTieu || item.tenChiTieu || ''
-
         const ok = window.confirm(`Bạn có chắc muốn xóa phân rã của chỉ tiêu "${tenChiTieu}" không?`)
         if (!ok) return
 
         try {
-            await api.delete(`${API_PATHS.chiTietGiaoChiTieu}/${id}`)
+            await apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/${getId(item)}`, 'DELETE')
             await fetchItems()
         } catch (error) {
-            console.error('handleDelete error:', error?.response?.status, error?.config?.url, error)
-            alert(error?.response?.data?.message || 'Xóa phân rã chỉ tiêu thất bại.')
+            console.error('handleDelete error:', error)
+            alert(error.message || 'Xóa phân rã chỉ tiêu thất bại.')
         }
     }
 
     const resetFilters = () => {
-        filters.keyword = ''
         filters.dotGiaoChiTieuId = null
         filters.danhMucChiTieuId = null
+        filters.donViNhanId = null
         filters.tanSuatBaoCao = ''
+        filters.keyword = ''
     }
 
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '-'
-        return Number(value).toLocaleString('vi-VN')
-    }
 
-    const mapTanSuat = (value) => {
-        const map = {
-            THANG: 'Tháng',
-            QUY: 'Quý',
-            '6THANG': '6 tháng',
-            NAM: 'Năm'
-        }
-        return map[value] || value || '-'
+        const numberValue = Number(value)
+        if (Number.isNaN(numberValue)) return value
+
+        return numberValue.toLocaleString('vi-VN')
     }
 
     watch(
@@ -678,7 +712,7 @@
     }
 
     .custom-card {
-        border: 0;
+        border: 1px solid #e5e7eb;
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
         overflow: hidden;
@@ -710,23 +744,45 @@
         margin-bottom: 0.45rem;
     }
 
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
     .custom-table thead th {
         background: #f8fafc;
         color: #334155;
         font-weight: 700;
-        border-bottom: 1px solid #e2e8f0;
         white-space: nowrap;
+        border-bottom: 1px solid #dbe3ef !important;
+        border-right: 1px solid #e5e7eb;
+        padding: 14px 16px;
+        vertical-align: middle;
+    }
+
+    .custom-table thead th:last-child {
+        border-right: none;
     }
 
     .custom-table tbody td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: #eef2f7;
+        padding: 14px 16px;
+        vertical-align: middle;
         color: #334155;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
     }
 
-    .custom-table tbody tr:hover {
-        background-color: #f8fbff;
+    .custom-table tbody td:last-child {
+        border-right: none;
+    }
+
+    .custom-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .custom-table tbody tr:hover td {
+        background: #f8fbff;
     }
 
     .empty-state {
@@ -750,5 +806,17 @@
     textarea.form-control {
         min-height: 100px;
         resize: vertical;
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.4rem;
+        }
+
+        .custom-table thead th,
+        .custom-table tbody td {
+            padding: 12px 10px;
+            font-size: 0.9rem;
+        }
     }
 </style>

@@ -31,7 +31,7 @@
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-4">
-                                <label class="form-label">Đơn vị cha</label>
+                                <label class="form-label">Đơn vị quản lý trực tiếp</label>
                                 <select v-model="filters.donViChaId" class="form-select">
                                     <option value="">Tất cả</option>
                                     <option v-for="parent in parentOptions" :key="parent.id" :value="String(parent.id)">
@@ -91,7 +91,7 @@
                                         <th>Mã đơn vị</th>
                                         <th>Tên đơn vị</th>
                                         <th>Loại đơn vị</th>
-                                        <th>Đơn vị cha</th>
+                                        <th>Đơn vị quản lý trực tiếp</th>
                                         <th>Người đại diện</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
@@ -165,7 +165,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label">Đơn vị cha</label>
+                                        <label class="form-label">Đơn vị quản lý trực tiếp</label>
                                         <select v-model="form.donViChaId" class="form-select">
                                             <option :value="null">Không có</option>
                                             <option v-for="parent in availableParentOptions" :key="parent.id"
@@ -221,20 +221,8 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import { apiRequest } from '../../services/api.js'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -276,6 +264,7 @@
     const filteredItems = computed(() => {
         return items.value.filter(item => {
             const keyword = filters.keyword.trim().toLowerCase()
+
             const matchKeyword =
                 !keyword ||
                 item.maDonVi?.toLowerCase().includes(keyword) ||
@@ -307,11 +296,12 @@
     const fetchDonVi = async () => {
         try {
             loading.value = true
-            const { data } = await api.get('/DonVi')
+            const data = await apiRequest('/DonVi')
             items.value = Array.isArray(data) ? data : []
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Không tải được danh sách đơn vị.')
+            alert(error.message || 'Không tải được danh sách đơn vị.')
+            items.value = []
         } finally {
             loading.value = false
         }
@@ -385,16 +375,16 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`/DonVi/${editingId.value}`, payload)
+                await apiRequest(`/DonVi/${editingId.value}`, 'PUT', payload)
             } else {
-                await api.post('/DonVi', payload)
+                await apiRequest('/DonVi', 'POST', payload)
             }
 
             closeModal()
             await fetchDonVi()
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Lưu đơn vị thất bại.')
+            alert(error.message || 'Lưu đơn vị thất bại.')
         } finally {
             saving.value = false
         }
@@ -405,11 +395,11 @@
         if (!ok) return
 
         try {
-            await api.delete(`/DonVi/${item.id}`)
+            await apiRequest(`/DonVi/${item.id}`, 'DELETE')
             await fetchDonVi()
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Xóa đơn vị thất bại.')
+            alert(error.message || 'Xóa đơn vị thất bại.')
         }
     }
 

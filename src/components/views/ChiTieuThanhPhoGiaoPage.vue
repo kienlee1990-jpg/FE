@@ -40,7 +40,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Cấp áp dụng</label>
                                 <select v-model="filters.capApDung" class="form-select">
                                     <option value="">Tất cả</option>
@@ -50,18 +50,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
-                                <label class="form-label">Tần suất báo cáo</label>
-                                <select v-model="filters.tanSuatBaoCao" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option value="THANG">Tháng</option>
-                                    <option value="QUY">Quý</option>
-                                    <option value="6THANG">6 tháng</option>
-                                    <option value="NAM">Năm</option>
-                                </select>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-2">
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Trạng thái</label>
                                 <select v-model="filters.trangThaiSuDung" class="form-select">
                                     <option value="">Tất cả</option>
@@ -112,7 +101,6 @@
                                         <th>Tên chỉ tiêu</th>
                                         <th>Loại</th>
                                         <th>Cấp áp dụng</th>
-                                        <th>Tần suất báo cáo</th>
                                         <th>Cho phép phân rã</th>
                                         <th>Trạng thái</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
@@ -124,7 +112,6 @@
                                         <td>{{ item.tenChiTieu || item.TenChiTieu }}</td>
                                         <td>{{ mapLoai(item.loaiChiTieu || item.LoaiChiTieu) }}</td>
                                         <td>{{ mapCap(item.capApDung || item.CapApDung) }}</td>
-                                        <td>{{ mapTanSuat(item.tanSuatBaoCao || item.TanSuatBaoCao) }}</td>
                                         <td>
                                             <span class="badge rounded-pill"
                                                 :class="(item.coChoPhepPhanRa ?? item.CoChoPhepPhanRa) ? 'text-bg-info' : 'text-bg-secondary'">
@@ -204,7 +191,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-6">
                                         <label class="form-label">
                                             Cấp áp dụng <span class="text-danger">*</span>
                                         </label>
@@ -215,19 +202,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
-                                        <label class="form-label">
-                                            Tần suất báo cáo <span class="text-danger">*</span>
-                                        </label>
-                                        <select v-model="form.tanSuatBaoCao" class="form-select">
-                                            <option value="THANG">Tháng</option>
-                                            <option value="QUY">Quý</option>
-                                            <option value="6THANG">6 tháng</option>
-                                            <option value="NAM">Năm</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-6">
                                         <label class="form-label">Lĩnh vực nghiệp vụ</label>
                                         <input v-model="form.linhVucNghiepVu" type="text" class="form-control" />
                                     </div>
@@ -360,7 +335,6 @@
         keyword: '',
         loaiChiTieu: '',
         capApDung: '',
-        tanSuatBaoCao: '',
         trangThaiSuDung: ''
     })
 
@@ -370,7 +344,6 @@
         nguonChiTieu: 'THANH_PHO',
         loaiChiTieu: 'DINH_TINH',
         capApDung: 'THANH_PHO',
-        tanSuatBaoCao: 'THANG',
         linhVucNghiepVu: '',
         donViTinh: '',
         moTa: '',
@@ -398,7 +371,6 @@
         nguonChiTieu: 'THANH_PHO',
         loaiChiTieu: form.loaiChiTieu,
         capApDung: form.capApDung,
-        tanSuatBaoCao: form.tanSuatBaoCao || null,
         linhVucNghiepVu: form.linhVucNghiepVu || null,
         donViTinh: form.donViTinh || null,
         moTa: form.moTa || null,
@@ -423,7 +395,6 @@
                     nguonChiTieu: 'THANH_PHO',
                     loaiChiTieu: filters.loaiChiTieu || undefined,
                     capApDung: filters.capApDung || undefined,
-                    tanSuatBaoCao: filters.tanSuatBaoCao || undefined,
                     trangThaiSuDung: filters.trangThaiSuDung || undefined
                 }
             })
@@ -453,7 +424,6 @@
             nguonChiTieu: 'THANH_PHO',
             loaiChiTieu: item.loaiChiTieu || item.LoaiChiTieu || 'DINH_TINH',
             capApDung: item.capApDung || item.CapApDung || 'THANH_PHO',
-            tanSuatBaoCao: item.tanSuatBaoCao || item.TanSuatBaoCao || 'THANG',
             linhVucNghiepVu: item.linhVucNghiepVu || item.LinhVucNghiepVu || '',
             donViTinh: item.donViTinh || item.DonViTinh || '',
             moTa: item.moTa || item.MoTa || '',
@@ -485,11 +455,6 @@
 
         if (!form.tenChiTieu) {
             alert('Vui lòng nhập tên chỉ tiêu.')
-            return false
-        }
-
-        if (!form.tanSuatBaoCao) {
-            alert('Vui lòng chọn tần suất báo cáo.')
             return false
         }
 
@@ -552,7 +517,6 @@
         filters.keyword = ''
         filters.loaiChiTieu = ''
         filters.capApDung = ''
-        filters.tanSuatBaoCao = ''
         filters.trangThaiSuDung = ''
         await fetchChiTieuThanhPhoGiao()
     }
@@ -573,16 +537,6 @@
             XA: 'Cấp xã/phường'
         }
         return map[value] || value || '-'
-    }
-
-    const mapTanSuat = (value) => {
-        const map = {
-            THANG: 'Tháng',
-            QUY: 'Quý',
-            '6THANG': '6 tháng',
-            NAM: 'Năm'
-        }
-        return map[value] || '-'
     }
 
     const mapTrangThaiSuDung = (value) => {

@@ -1,19 +1,33 @@
 <template>
     <BaseLayout>
-        <div class="bao-cao-don-vi-page">
+        <div class="xep-hang-don-vi-page">
             <div class="page-header">
-                <h2>Báo cáo đánh giá KPI theo đơn vị</h2>
-                <p>Tổng hợp kết quả đánh giá KPI theo từng đơn vị nhận</p>
+                <h2>Xếp hạng đơn vị theo chỉ tiêu KPI</h2>
+                <p>
+                    Chọn đợt giao chỉ tiêu và danh mục chỉ tiêu để xem xếp hạng cộng dồn
+                    của các đơn vị theo toàn bộ kỳ báo cáo.
+                </p>
             </div>
 
             <div class="filter-card">
                 <div class="filter-grid">
                     <div class="form-group">
-                        <label>Kỳ báo cáo</label>
-                        <select v-model="filters.kyBaoCaoKPIId" @change="fetchDanhGiaKPI">
-                            <option value="">-- Tất cả kỳ báo cáo --</option>
-                            <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
-                                {{ item.tenKy }}
+                        <label>Đợt giao chỉ tiêu</label>
+                        <select v-model="filters.dotGiaoChiTieuId" @change="handleDotGiaoChange">
+                            <option value="">-- Chọn đợt giao chỉ tiêu --</option>
+                            <option v-for="item in dotGiaoOptions" :key="item.id" :value="item.id">
+                                {{ formatDotGiaoLabel(item) }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Danh mục chỉ tiêu</label>
+                        <select v-model="filters.danhMucChiTieuId" :disabled="!filters.dotGiaoChiTieuId">
+                            <option value="">-- Chọn chỉ tiêu --</option>
+                            <option v-for="item in chiTieuOptions" :key="item.danhMucChiTieuId"
+                                :value="item.danhMucChiTieuId">
+                                {{ item.tenDanhMucChiTieu }}
                             </option>
                         </select>
                     </div>
@@ -24,7 +38,7 @@
                     </div>
 
                     <div class="form-group actions">
-                        <button class="btn btn-primary" @click="fetchDanhGiaKPI">Tải dữ liệu</button>
+                        <button class="btn btn-primary" @click="fetchAllData">Tải dữ liệu</button>
                         <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
                     </div>
                 </div>
@@ -32,63 +46,82 @@
 
             <div class="summary-grid">
                 <div class="summary-card">
-                    <span class="label">Tổng số đơn vị</span>
-                    <strong>{{ groupedRows.length }}</strong>
+                    <span class="label">Số đơn vị</span>
+                    <strong>{{ rankedRows.length }}</strong>
                 </div>
                 <div class="summary-card">
-                    <span class="label">Tổng số chỉ tiêu</span>
-                    <strong>{{ tongChiTieu }}</strong>
+                    <span class="label">Chỉ tiêu đang xem</span>
+                    <strong>{{ selectedChiTieuLabel || '-' }}</strong>
+                </div>
+                <div class="summary-card">
+                    <span class="label">Số kỳ đã tổng hợp</span>
+                    <strong>{{ totalKyBaoCao }}</strong>
                 </div>
                 <div class="summary-card">
                     <span class="label">Tỷ lệ hoàn thành TB</span>
-                    <strong>{{ formatPercent(tongHopTyLeHoanThanh) }}</strong>
+                    <strong>{{ formatPercent(avgTyLeHoanThanh) }}</strong>
                 </div>
             </div>
 
             <div class="table-card">
                 <div class="table-toolbar">
-                    <button class="btn btn-success" @click="exportCsv">Xuất CSV</button>
+                    <button class="btn btn-success" @click="exportCsv" :disabled="rankedRows.length === 0">
+                        Xuất CSV
+                    </button>
                 </div>
 
                 <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                 <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
+                <div v-else-if="!filters.dotGiaoChiTieuId" class="state empty">
+                    Vui lòng chọn đợt giao chỉ tiêu.
+                </div>
+                <div v-else-if="!filters.danhMucChiTieuId" class="state empty">
+                    Vui lòng chọn danh mục chỉ tiêu.
+                </div>
                 <div v-else class="table-wrapper">
                     <table>
                         <thead>
                             <tr>
-                                <th>STT</th>
+                                <th>Hạng</th>
                                 <th>Đơn vị</th>
-                                <th>Số chỉ tiêu</th>
-                                <th>Xuất sắc</th>
-                                <th>Tốt</th>
-                                <th>Đạt</th>
-                                <th>Không đạt</th>
-                                <th>Chưa cấu hình</th>
-                                <th>Chưa đánh giá</th>
-                                <th>Tỷ lệ hoàn thành TB</th>
-                                <th>Tỷ lệ hoàn thành cao nhất</th>
-                                <th>Tỷ lệ hoàn thành thấp nhất</th>
-                                <th>Kỳ báo cáo</th>
+                                <th>Chỉ tiêu</th>
+                                <th>Số kỳ</th>
+                                <th>Giá trị mục tiêu</th>
+                                <th>Giá trị đầu kỳ cộng dồn</th>
+                                <th>Giá trị cuối kỳ cộng dồn</th>
+                                <th>Tỷ lệ hoàn thành</th>
+                                <th>Xếp loại</th>
+                                <th>Kết quả</th>
+                                <th>Người đánh giá</th>
+                                <th>Ngày đánh giá</th>
+                                <th>Nhận xét</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-if="groupedRows.length === 0">
-                                <td colspan="13" class="empty-cell">Không có dữ liệu</td>
+                            <tr v-if="rankedRows.length === 0">
+                                <td colspan="13" class="empty-cell">Không có dữ liệu phù hợp</td>
                             </tr>
-                            <tr v-for="(row, index) in groupedRows" :key="row.tenDonViNhan">
-                                <td>{{ index + 1 }}</td>
+
+                            <tr v-for="row in rankedRows" :key="row.uniqueKey">
+                                <td class="text-center">
+                                    <span class="rank-badge">{{ row.ranking }}</span>
+                                </td>
                                 <td>{{ row.tenDonViNhan }}</td>
-                                <td class="text-center">{{ row.soChiTieu }}</td>
-                                <td class="text-center">{{ row.xuatSac }}</td>
-                                <td class="text-center">{{ row.tot }}</td>
-                                <td class="text-center">{{ row.dat }}</td>
-                                <td class="text-center">{{ row.khongDat }}</td>
-                                <td class="text-center">{{ row.chuaCauHinh }}</td>
-                                <td class="text-center">{{ row.chuaDanhGia }}</td>
-                                <td class="text-right">{{ formatPercent(row.tyLeHoanThanhTrungBinh) }}</td>
-                                <td class="text-right">{{ formatPercent(row.tyLeHoanThanhCaoNhat) }}</td>
-                                <td class="text-right">{{ formatPercent(row.tyLeHoanThanhThapNhat) }}</td>
-                                <td>{{ row.tenKy }}</td>
+                                <td>{{ row.tenChiTieu }}</td>
+                                <td class="text-center">{{ row.soKyBaoCao }}</td>
+                                <td class="text-right">{{ formatNumber(row.giaTriMucTieu) }}</td>
+                                <td class="text-right">{{ formatNumber(row.giaTriDauKy) }}</td>
+                                <td class="text-right">{{ formatNumber(row.giaTriCuoiKy) }}</td>
+                                <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
+                                <td class="text-center">
+                                    <span class="badge" :class="getXepLoaiClass(row.xepLoai)">
+                                        {{ row.xepLoai || '-' }}
+                                    </span>
+                                </td>
+                                <td class="text-center">{{ row.ketQua || '-' }}</td>
+                                <td>{{ row.nguoiDanhGia || '-' }}</td>
+                                <td>{{ formatDateTime(row.ngayDanhGia) }}</td>
+                                <td>{{ row.nhanXetDanhGia || '-' }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -100,187 +133,432 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const API_BASE = 'https://localhost:5000/api'
+    import { apiRequest } from '../../services/api.js'
 
     const loading = ref(false)
     const errorMessage = ref('')
-    const rows = ref([])
+
+    const dotGiaoOptions = ref([])
+    const chiTietGiaoRows = ref([])
     const kyBaoCaoOptions = ref([])
+    const danhGiaRows = ref([])
 
     const filters = reactive({
-        kyBaoCaoKPIId: '',
+        dotGiaoChiTieuId: '',
+        danhMucChiTieuId: '',
         keyword: ''
     })
 
     onMounted(async () => {
-        await Promise.all([fetchKyBaoCao(), fetchDanhGiaKPI()])
+        await fetchInitialData()
     })
 
-    async function fetchKyBaoCao() {
-        try {
-            const response = await axios.get(`${API_BASE}/KyBaoCaoKPI`)
-            kyBaoCaoOptions.value = Array.isArray(response.data) ? response.data : []
-        } catch (error) {
-            console.error('Lỗi tải kỳ báo cáo:', error)
-        }
-    }
-
-    async function fetchDanhGiaKPI() {
+    async function fetchInitialData() {
         loading.value = true
         errorMessage.value = ''
 
         try {
-            let response
-            if (filters.kyBaoCaoKPIId) {
-                response = await axios.get(`${API_BASE}/DanhGiaKPI/by-ky-bao-cao/${filters.kyBaoCaoKPIId}`)
-            } else {
-                response = await axios.get(`${API_BASE}/DanhGiaKPI`)
-            }
+            const [dotGiaoData, chiTietData, kyBaoCaoData, danhGiaData] = await Promise.all([
+                apiRequest('/dot-giao-chi-tieu'),
+                apiRequest('/ChiTietGiaoChiTieu'),
+                apiRequest('/KyBaoCaoKPI'),
+                apiRequest('/DanhGiaKPI')
+            ])
 
-            rows.value = Array.isArray(response.data) ? response.data : []
+            dotGiaoOptions.value = Array.isArray(dotGiaoData) ? dotGiaoData : []
+            chiTietGiaoRows.value = Array.isArray(chiTietData) ? chiTietData : []
+            kyBaoCaoOptions.value = Array.isArray(kyBaoCaoData) ? kyBaoCaoData : []
+            danhGiaRows.value = Array.isArray(danhGiaData) ? danhGiaData : []
         } catch (error) {
             console.error(error)
-            errorMessage.value = error?.response?.data?.message || 'Không thể tải dữ liệu đánh giá KPI.'
-            rows.value = []
+            errorMessage.value = error.message || 'Không thể tải dữ liệu ban đầu.'
         } finally {
             loading.value = false
         }
     }
 
-    function resetFilters() {
-        filters.kyBaoCaoKPIId = ''
-        filters.keyword = ''
-        fetchDanhGiaKPI()
+    async function fetchAllData() {
+        await fetchInitialData()
     }
 
-    const groupedRows = computed(() => {
-        const keyword = filters.keyword.toLowerCase()
+    function resetFilters() {
+        filters.dotGiaoChiTieuId = ''
+        filters.danhMucChiTieuId = ''
+        filters.keyword = ''
+        errorMessage.value = ''
+    }
+
+    function handleDotGiaoChange() {
+        filters.danhMucChiTieuId = ''
+    }
+
+    function normalizeText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim()
+    }
+
+    function formatDotGiaoLabel(item) {
+        const ma = item.maDotGiao || ''
+        const ten = item.tenDotGiao || `Đợt #${item.id}`
+        return ma ? `${ma} - ${ten}` : ten
+    }
+
+    const chiTieuOptions = computed(() => {
+        if (!filters.dotGiaoChiTieuId) return []
+
+        const filtered = chiTietGiaoRows.value.filter(
+            x => String(x.dotGiaoChiTieuId) === String(filters.dotGiaoChiTieuId)
+        )
+
         const map = new Map()
 
-        rows.value.forEach(item => {
-            const tenDonViNhan = item.tenDonViNhan || 'Chưa xác định'
+        for (const item of filtered) {
+            const key = item.danhMucChiTieuId
+            if (!key) continue
 
-            if (keyword && !tenDonViNhan.toLowerCase().includes(keyword)) {
-                return
+            if (!map.has(key)) {
+                map.set(key, {
+                    danhMucChiTieuId: item.danhMucChiTieuId,
+                    tenDanhMucChiTieu:
+                        item.tenDanhMucChiTieu || `Chỉ tiêu #${item.danhMucChiTieuId}`,
+                    tanSuatBaoCao: item.tanSuatBaoCao || ''
+                })
             }
+        }
 
-            if (!map.has(tenDonViNhan)) {
-                map.set(tenDonViNhan, {
-                    tenDonViNhan,
-                    soChiTieu: 0,
-                    xuatSac: 0,
-                    tot: 0,
-                    dat: 0,
-                    khongDat: 0,
-                    chuaCauHinh: 0,
-                    chuaDanhGia: 0,
+        return Array.from(map.values()).sort((a, b) =>
+            a.tenDanhMucChiTieu.localeCompare(b.tenDanhMucChiTieu, 'vi')
+        )
+    })
+
+    const selectedChiTieu = computed(() => {
+        return (
+            chiTieuOptions.value.find(
+                x => String(x.danhMucChiTieuId) === String(filters.danhMucChiTieuId)
+            ) || null
+        )
+    })
+
+    const selectedChiTieuLabel = computed(() => {
+        return selectedChiTieu.value?.tenDanhMucChiTieu || ''
+    })
+
+    const chiTietByIdMap = computed(() => {
+        const map = new Map()
+
+        for (const item of chiTietGiaoRows.value) {
+            map.set(String(item.id), item)
+        }
+
+        return map
+    })
+
+    function getXepLoaiScore(xepLoai) {
+        const normalized = normalizeText(xepLoai)
+
+        if (normalized === 'xuat sac') return 5
+        if (normalized === 'tot') return 4
+        if (normalized === 'dat') return 3
+        if (normalized === 'khong dat') return 2
+        if (normalized === 'chua danh gia') return 1
+        if (normalized === 'chua cau hinh') return 0
+
+        return -1
+    }
+
+    function getXepLoaiClass(xepLoai) {
+        const normalized = normalizeText(xepLoai)
+
+        if (normalized === 'xuat sac') return 'badge-excellent'
+        if (normalized === 'tot') return 'badge-good'
+        if (normalized === 'dat') return 'badge-pass'
+        if (normalized === 'khong dat') return 'badge-fail'
+        if (normalized === 'chua danh gia') return 'badge-pending'
+        if (normalized === 'chua cau hinh') return 'badge-muted'
+
+        return 'badge-default'
+    }
+
+    const joinedRows = computed(() => {
+        return danhGiaRows.value
+            .map(dg => {
+                const chiTiet = chiTietByIdMap.value.get(String(dg.chiTietGiaoChiTieuId))
+                if (!chiTiet) return null
+
+                const ky = kyBaoCaoOptions.value.find(
+                    x => String(x.id) === String(dg.kyBaoCaoKPIId)
+                )
+
+                return {
+                    ...dg,
+                    dotGiaoChiTieuId: chiTiet.dotGiaoChiTieuId,
+                    danhMucChiTieuId: chiTiet.danhMucChiTieuId,
+                    tenDanhMucChiTieu: chiTiet.tenDanhMucChiTieu,
+                    tenDonViNhanFromGiao: chiTiet.tenDonViNhan,
+                    tenKyBaoCao: ky?.tenKy || ''
+                }
+            })
+            .filter(Boolean)
+    })
+
+    const filteredSourceRows = computed(() => {
+        if (!filters.dotGiaoChiTieuId || !filters.danhMucChiTieuId) {
+            return []
+        }
+
+        const keyword = normalizeText(filters.keyword)
+
+        return joinedRows.value.filter(item => {
+            const matchDot =
+                String(item.dotGiaoChiTieuId) === String(filters.dotGiaoChiTieuId)
+            const matchDanhMuc =
+                String(item.danhMucChiTieuId) === String(filters.danhMucChiTieuId)
+            const tenDonVi = item.tenDonViNhan || item.tenDonViNhanFromGiao || ''
+            const matchKeyword = !keyword || normalizeText(tenDonVi).includes(keyword)
+
+            return matchDot && matchDanhMuc && matchKeyword
+        })
+    })
+
+    const aggregatedRows = computed(() => {
+        const groupedMap = new Map()
+
+        for (const item of filteredSourceRows.value) {
+            const tenDonVi = item.tenDonViNhan || item.tenDonViNhanFromGiao || 'Chưa xác định'
+            const tenChiTieu = item.tenChiTieu || item.tenDanhMucChiTieu || 'Chưa xác định'
+            const groupKey = `${tenDonVi}__${item.danhMucChiTieuId}`
+
+            if (!groupedMap.has(groupKey)) {
+                groupedMap.set(groupKey, {
+                    uniqueKey: groupKey,
+                    tenDonViNhan: tenDonVi,
+                    tenChiTieu,
+                    danhMucChiTieuId: item.danhMucChiTieuId,
+                    dotGiaoChiTieuId: item.dotGiaoChiTieuId,
+
+                    giaTriMucTieu: Number(item.giaTriMucTieu || 0),
+                    giaTriDauKy: 0,
+                    giaTriCuoiKy: 0,
+
                     tongTyLeHoanThanh: 0,
-                    soBanGhiCoTyLe: 0,
-                    tyLeHoanThanhCaoNhat: null,
-                    tyLeHoanThanhThapNhat: null,
-                    tenKy: filters.kyBaoCaoKPIId
-                        ? (rows.value.find(x => (x.tenDonViNhan || 'Chưa xác định') === tenDonViNhan)?.tenKy || '-')
-                        : 'Nhiều kỳ'
+                    soBanGhiTyLe: 0,
+
+                    kyBaoCaoIds: new Set(),
+                    xepLoaiList: [],
+
+                    ketQua: item.ketQua || '',
+                    nguoiDanhGia: item.nguoiDanhGia || '',
+                    ngayDanhGia: item.ngayDanhGia || null,
+                    nhanXetDanhGia: item.nhanXetDanhGia || ''
                 })
             }
 
-            const group = map.get(tenDonViNhan)
-            group.soChiTieu += 1
+            const target = groupedMap.get(groupKey)
 
-            const xepLoai = (item.xepLoai || '').toLowerCase()
-            if (xepLoai === 'xuất sắc' || xepLoai === 'xuat sac') group.xuatSac += 1
-            else if (xepLoai === 'tốt' || xepLoai === 'tot') group.tot += 1
-            else if (xepLoai === 'đạt' || xepLoai === 'dat') group.dat += 1
-            else if (xepLoai === 'không đạt' || xepLoai === 'khong dat') group.khongDat += 1
-            else if (xepLoai === 'chưa cấu hình' || xepLoai === 'chua cau hinh') group.chuaCauHinh += 1
-            else if (xepLoai === 'chưa đánh giá' || xepLoai === 'chua danh gia') group.chuaDanhGia += 1
+            target.giaTriDauKy += Number(item.giaTriDauKy || 0)
+            target.giaTriCuoiKy += Number(item.giaTriCuoiKy || 0)
 
-            if (item.tyLeHoanThanh !== null && item.tyLeHoanThanh !== undefined) {
-                const tyLe = Number(item.tyLeHoanThanh)
-                group.tongTyLeHoanThanh += tyLe
-                group.soBanGhiCoTyLe += 1
+            if (!target.giaTriMucTieu || target.giaTriMucTieu === 0) {
+                target.giaTriMucTieu = Number(item.giaTriMucTieu || 0)
+            }
 
-                if (group.tyLeHoanThanhCaoNhat === null || tyLe > group.tyLeHoanThanhCaoNhat) {
-                    group.tyLeHoanThanhCaoNhat = tyLe
-                }
+            const tyLe = Number(item.tyLeHoanThanh)
+            if (!Number.isNaN(tyLe)) {
+                target.tongTyLeHoanThanh += tyLe
+                target.soBanGhiTyLe += 1
+            }
 
-                if (group.tyLeHoanThanhThapNhat === null || tyLe < group.tyLeHoanThanhThapNhat) {
-                    group.tyLeHoanThanhThapNhat = tyLe
-                }
+            if (
+                item.kyBaoCaoKPIId !== null &&
+                item.kyBaoCaoKPIId !== undefined &&
+                item.kyBaoCaoKPIId !== ''
+            ) {
+                target.kyBaoCaoIds.add(String(item.kyBaoCaoKPIId))
+            }
+
+            if (item.xepLoai) {
+                target.xepLoaiList.push(item.xepLoai)
+            }
+
+            const currentTime = new Date(target.ngayDanhGia || 0).getTime()
+            const itemTime = new Date(
+                item.updatedAt || item.ngayDanhGia || item.createdAt || 0
+            ).getTime()
+
+            if (itemTime > currentTime) {
+                target.ketQua = item.ketQua || ''
+                target.nguoiDanhGia = item.nguoiDanhGia || ''
+                target.ngayDanhGia = item.ngayDanhGia || null
+                target.nhanXetDanhGia = item.nhanXetDanhGia || ''
+            }
+        }
+
+        return Array.from(groupedMap.values()).map(item => {
+            const tyLeHoanThanh =
+                item.giaTriMucTieu > 0
+                    ? (item.giaTriCuoiKy / item.giaTriMucTieu) * 100
+                    : item.soBanGhiTyLe > 0
+                        ? item.tongTyLeHoanThanh / item.soBanGhiTyLe
+                        : 0
+
+            const xepLoai =
+                item.xepLoaiList.length > 0
+                    ? item.xepLoaiList.sort((a, b) => getXepLoaiScore(b) - getXepLoaiScore(a))[0]
+                    : 'Chưa đánh giá'
+
+            return {
+                ...item,
+                tyLeHoanThanh,
+                xepLoai,
+                soKyBaoCao: item.kyBaoCaoIds.size
             }
         })
+    })
 
-        return Array.from(map.values())
+    const rankedRows = computed(() => {
+        const rows = aggregatedRows.value
             .map(item => ({
                 ...item,
-                tyLeHoanThanhTrungBinh: item.soBanGhiCoTyLe > 0
-                    ? item.tongTyLeHoanThanh / item.soBanGhiCoTyLe
-                    : null
+                xepLoaiScore: getXepLoaiScore(item.xepLoai),
+                tyLeHoanThanhNumber: Number(item.tyLeHoanThanh ?? -1),
+                giaTriCuoiKyNumber: Number(item.giaTriCuoiKy ?? -1)
             }))
-            .sort((a, b) => a.tenDonViNhan.localeCompare(b.tenDonViNhan, 'vi'))
+            .sort((a, b) =>
+                (b.tyLeHoanThanhNumber - a.tyLeHoanThanhNumber) ||
+                (b.xepLoaiScore - a.xepLoaiScore) ||
+                (b.giaTriCuoiKyNumber - a.giaTriCuoiKyNumber) ||
+                a.tenDonViNhan.localeCompare(b.tenDonViNhan, 'vi')
+            )
+
+        let currentRank = 0
+        let previousScoreKey = ''
+        let displayedIndex = 0
+
+        return rows.map(item => {
+            displayedIndex += 1
+
+            const scoreKey = [
+                item.tyLeHoanThanhNumber,
+                item.xepLoaiScore,
+                item.giaTriCuoiKyNumber
+            ].join('|')
+
+            if (scoreKey !== previousScoreKey) {
+                currentRank = displayedIndex
+                previousScoreKey = scoreKey
+            }
+
+            return {
+                ...item,
+                ranking: currentRank
+            }
+        })
     })
 
-    const tongChiTieu = computed(() => {
-        return groupedRows.value.reduce((sum, item) => sum + item.soChiTieu, 0)
+    const totalKyBaoCao = computed(() => {
+        const ids = new Set()
+
+        for (const item of filteredSourceRows.value) {
+            if (item.kyBaoCaoKPIId) {
+                ids.add(String(item.kyBaoCaoKPIId))
+            }
+        }
+
+        return ids.size
     })
 
-    const tongHopTyLeHoanThanh = computed(() => {
-        const valid = groupedRows.value.filter(x => x.tyLeHoanThanhTrungBinh !== null)
+    const avgTyLeHoanThanh = computed(() => {
+        const valid = rankedRows.value
+            .map(x => Number(x.tyLeHoanThanh))
+            .filter(x => !Number.isNaN(x))
+
         if (valid.length === 0) return null
-        return valid.reduce((sum, item) => sum + item.tyLeHoanThanhTrungBinh, 0) / valid.length
+
+        return valid.reduce((sum, value) => sum + value, 0) / valid.length
     })
 
     function formatPercent(value) {
         if (value === null || value === undefined || value === '') return '-'
-        return `${Number(value).toLocaleString('vi-VN', {
+        const num = Number(value)
+        if (Number.isNaN(num)) return '-'
+
+        return `${num.toLocaleString('vi-VN', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2
         })}%`
     }
 
+    function formatNumber(value) {
+        if (value === null || value === undefined || value === '') return '-'
+        const num = Number(value)
+        if (Number.isNaN(num)) return '-'
+
+        return num.toLocaleString('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        })
+    }
+
+    function formatDateTime(value) {
+        if (!value) return '-'
+
+        const date = new Date(value)
+        if (Number.isNaN(date.getTime())) return '-'
+
+        return date.toLocaleString('vi-VN')
+    }
+
+    function escapeCsvValue(value) {
+        return `"${String(value ?? '').replace(/"/g, '""')}"`
+    }
+
     function exportCsv() {
         const headers = [
+            'Hạng',
             'Đơn vị',
-            'Số chỉ tiêu',
-            'Xuất sắc',
-            'Tốt',
-            'Đạt',
-            'Không đạt',
-            'Chưa cấu hình',
-            'Chưa đánh giá',
-            'Tỷ lệ hoàn thành TB',
-            'Tỷ lệ hoàn thành cao nhất',
-            'Tỷ lệ hoàn thành thấp nhất',
-            'Kỳ báo cáo'
+            'Chỉ tiêu',
+            'Số kỳ',
+            'Giá trị mục tiêu',
+            'Giá trị đầu kỳ cộng dồn',
+            'Giá trị cuối kỳ cộng dồn',
+            'Tỷ lệ hoàn thành',
+            'Xếp loại',
+            'Kết quả',
+            'Người đánh giá',
+            'Ngày đánh giá',
+            'Nhận xét'
         ]
 
-        const csvRows = groupedRows.value.map(item => [
+        const csvRows = rankedRows.value.map(item => [
+            item.ranking,
             item.tenDonViNhan,
-            item.soChiTieu,
-            item.xuatSac,
-            item.tot,
-            item.dat,
-            item.khongDat,
-            item.chuaCauHinh,
-            item.chuaDanhGia,
-            item.tyLeHoanThanhTrungBinh ?? '',
-            item.tyLeHoanThanhCaoNhat ?? '',
-            item.tyLeHoanThanhThapNhat ?? '',
-            item.tenKy
+            item.tenChiTieu,
+            item.soKyBaoCao,
+            formatNumber(item.giaTriMucTieu),
+            formatNumber(item.giaTriDauKy),
+            formatNumber(item.giaTriCuoiKy),
+            formatPercent(item.tyLeHoanThanh),
+            item.xepLoai || '',
+            item.ketQua || '',
+            item.nguoiDanhGia || '',
+            formatDateTime(item.ngayDanhGia),
+            item.nhanXetDanhGia || ''
         ])
 
         const csvContent = [headers, ...csvRows]
-            .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+            .map(row => row.map(escapeCsvValue).join(','))
             .join('\n')
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
+
         link.href = url
-        link.setAttribute('download', 'bao-cao-danh-gia-kpi-theo-don-vi.csv')
+        link.setAttribute('download', 'xep-hang-don-vi-theo-chi-tieu-kpi-cong-don.csv')
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -289,39 +567,32 @@
 </script>
 
 <style scoped>
-    .bao-cao-don-vi-page {
-        padding: 20px;
-        background: #f6f8fb;
-        min-height: 100%;
-    }
-
-    .page-header {
-        margin-bottom: 16px;
+    .xep-hang-don-vi-page {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
     }
 
     .page-header h2 {
-        margin: 0 0 6px;
-        font-size: 24px;
-        color: #1f2937;
+        margin: 0 0 8px;
     }
 
     .page-header p {
         margin: 0;
-        color: #6b7280;
+        color: #666;
     }
 
     .filter-card,
     .table-card {
-        background: #ffffff;
+        background: #fff;
         border-radius: 12px;
         padding: 16px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     }
 
     .filter-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 16px;
         align-items: end;
     }
@@ -334,39 +605,41 @@
 
     .form-group label {
         font-weight: 600;
-        color: #374151;
     }
 
     .form-group input,
     .form-group select {
         height: 40px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
         padding: 0 12px;
+        border: 1px solid #dcdfe6;
+        border-radius: 8px;
         outline: none;
+        font-size: 14px;
     }
 
-    .actions {
+    .form-group.actions {
+        display: flex;
         flex-direction: row;
-        gap: 10px;
+        gap: 8px;
+        align-items: end;
     }
 
     .btn {
         height: 40px;
+        padding: 0 16px;
         border: none;
         border-radius: 8px;
-        padding: 0 16px;
         cursor: pointer;
         font-weight: 600;
     }
 
     .btn-primary {
-        background: #2563eb;
+        background: #1677ff;
         color: #fff;
     }
 
     .btn-secondary {
-        background: #e5e7eb;
+        background: #f3f4f6;
         color: #111827;
     }
 
@@ -375,31 +648,34 @@
         color: #fff;
     }
 
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 16px;
-        margin-bottom: 16px;
     }
 
     .summary-card {
-        background: #ffffff;
+        background: #fff;
         border-radius: 12px;
         padding: 16px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
     }
 
     .summary-card .label {
-        color: #6b7280;
-        font-size: 14px;
+        color: #666;
+        font-size: 13px;
     }
 
     .summary-card strong {
-        font-size: 24px;
-        color: #111827;
+        font-size: 20px;
     }
 
     .table-toolbar {
@@ -409,7 +685,7 @@
     }
 
     .table-wrapper {
-        overflow: auto;
+        overflow-x: auto;
     }
 
     table {
@@ -418,37 +694,31 @@
         min-width: 1400px;
     }
 
-    thead th {
-        background: #f3f4f6;
-        color: #111827;
+    th,
+    td {
+        border: 1px solid #e5e7eb;
+        padding: 10px 12px;
+        vertical-align: middle;
+    }
+
+    th {
+        background: #f9fafb;
+        text-align: center;
         font-weight: 700;
-        text-align: left;
-        padding: 12px;
-        border-bottom: 1px solid #e5e7eb;
         white-space: nowrap;
-    }
-
-    tbody td {
-        padding: 12px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .text-right {
-        text-align: right;
     }
 
     .text-center {
         text-align: center;
     }
 
-    .empty-cell {
-        text-align: center;
-        color: #6b7280;
-        padding: 24px;
+    .text-right {
+        text-align: right;
     }
 
     .state {
-        padding: 20px;
+        padding: 24px;
+        text-align: center;
         border-radius: 8px;
     }
 
@@ -462,15 +732,67 @@
         color: #dc2626;
     }
 
-    @media (max-width: 1200px) {
+    .state.empty {
+        background: #f9fafb;
+        color: #6b7280;
+    }
 
-        .filter-grid,
-        .summary-grid {
-            grid-template-columns: 1fr;
-        }
+    .empty-cell {
+        text-align: center;
+        color: #6b7280;
+        padding: 24px;
+    }
 
-        .actions {
-            flex-direction: column;
-        }
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #111827;
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge-excellent {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-good {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .badge-pass {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-fail {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .badge-pending {
+        background: #ede9fe;
+        color: #6d28d9;
+    }
+
+    .badge-muted,
+    .badge-default {
+        background: #f3f4f6;
+        color: #4b5563;
     }
 </style>

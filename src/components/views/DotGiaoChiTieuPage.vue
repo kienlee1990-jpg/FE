@@ -24,7 +24,7 @@
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-md-6 col-xl-3">
+                            <div class="col-12 col-md-6 col-xl-4">
                                 <label class="form-label">Từ khóa</label>
                                 <input v-model="filters.keyword" type="text" class="form-control"
                                     placeholder="Mã hoặc tên đợt giao" />
@@ -36,7 +36,7 @@
                                     placeholder="Ví dụ: 2026" />
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Nguồn đợt giao</label>
                                 <select v-model="filters.nguonDotGiao" class="form-select">
                                     <option value="">Tất cả</option>
@@ -45,24 +45,12 @@
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Cấp giao</label>
                                 <select v-model="filters.capGiao" class="form-select">
                                     <option value="">Tất cả</option>
                                     <option value="BO">Bộ</option>
                                     <option value="THANH_PHO">Thành phố</option>
-                                </select>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Trạng thái</label>
-                                <select v-model="filters.trangThai" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option value="DRAFT">Nháp</option>
-                                    <option value="MOI_TAO">Mới tạo</option>
-                                    <option value="DANG_MO">Đang mở</option>
-                                    <option value="DA_KHOA">Đã khóa</option>
-                                    <option value="HOAN_TAT">Hoàn tất</option>
                                 </select>
                             </div>
                         </div>
@@ -111,7 +99,6 @@
                                         <th>Cấp giao</th>
                                         <th>Đơn vị giao ID</th>
                                         <th>Ngày giao</th>
-                                        <th>Trạng thái</th>
                                         <th>Ghi chú</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
@@ -125,11 +112,6 @@
                                         <td>{{ mapCapGiao(item.capGiao) }}</td>
                                         <td>{{ item.donViGiaoId ?? '-' }}</td>
                                         <td>{{ formatDateTime(item.ngayGiao) }}</td>
-                                        <td>
-                                            <span class="badge rounded-pill" :class="getTrangThaiClass(item.trangThai)">
-                                                {{ mapTrangThai(item.trangThai) }}
-                                            </span>
-                                        </td>
                                         <td>{{ item.ghiChu || '-' }}</td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
@@ -275,8 +257,7 @@
         keyword: '',
         namApDung: '',
         nguonDotGiao: '',
-        capGiao: '',
-        trangThai: ''
+        capGiao: ''
     })
 
     const createDefaultForm = () => ({
@@ -334,8 +315,7 @@
                     keyword: filters.keyword || undefined,
                     namApDung: filters.namApDung ? Number(filters.namApDung) : undefined,
                     nguonDotGiao: filters.nguonDotGiao || undefined,
-                    capGiao: filters.capGiao || undefined,
-                    trangThai: filters.trangThai || undefined
+                    capGiao: filters.capGiao || undefined
                 }
             })
             items.value = normalizeResponseData(response)
@@ -478,30 +458,7 @@
         filters.namApDung = ''
         filters.nguonDotGiao = ''
         filters.capGiao = ''
-        filters.trangThai = ''
         await fetchDotGiaoChiTieu()
-    }
-
-    const mapTrangThai = (value) => {
-        const map = {
-            DRAFT: 'Nháp',
-            MOI_TAO: 'Mới tạo',
-            DANG_MO: 'Đang mở',
-            DA_KHOA: 'Đã khóa',
-            HOAN_TAT: 'Hoàn tất'
-        }
-        return map[value] || value || '-'
-    }
-
-    const getTrangThaiClass = (value) => {
-        const map = {
-            DRAFT: 'text-bg-secondary',
-            MOI_TAO: 'text-bg-secondary',
-            DANG_MO: 'text-bg-primary',
-            DA_KHOA: 'text-bg-warning',
-            HOAN_TAT: 'text-bg-success'
-        }
-        return map[value] || 'text-bg-light'
     }
 
     const mapNguonDotGiao = (value) => {
@@ -533,11 +490,6 @@
 </script>
 
 <style scoped>
-    .page-wrap {
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-        min-height: 100vh;
-    }
-
     .page-title {
         font-size: 1.75rem;
         font-weight: 700;
@@ -550,55 +502,16 @@
     }
 
     .custom-card {
-        border: 0;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
         overflow: hidden;
     }
 
     .btn-action {
         border-radius: 12px;
-        padding: 0.75rem 1rem;
+        padding: 0.7rem 1.1rem;
         font-weight: 600;
-    }
-
-    .form-control,
-    .form-select {
-        border-radius: 12px;
-        min-height: 44px;
-        border-color: #dbe2ea;
-        box-shadow: none;
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: #334155;
-        margin-bottom: 0.45rem;
-    }
-
-    .custom-table thead th {
-        background: #f8fafc;
-        color: #334155;
-        font-weight: 700;
-        border-bottom: 1px solid #e2e8f0;
-        white-space: nowrap;
-    }
-
-    .custom-table tbody td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: #eef2f7;
-        color: #334155;
-    }
-
-    .custom-table tbody tr:hover {
-        background-color: #f8fbff;
     }
 
     .empty-state {
@@ -608,19 +521,74 @@
         justify-content: center;
         flex-direction: column;
         color: #64748b;
-        font-weight: 500;
     }
 
-    .custom-modal {
-        background: rgba(15, 23, 42, 0.35);
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .custom-table thead th {
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 700;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        border-bottom: 1px solid #dbe3ef !important;
+        border-right: 1px solid #e5e7eb;
+        padding: 14px 16px;
+    }
+
+    .custom-table thead th:last-child {
+        border-right: none;
+    }
+
+    .custom-table tbody td {
+        padding: 14px 16px;
+        vertical-align: middle;
+        border-bottom: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
+        background: #ffffff;
+    }
+
+    .custom-table tbody td:last-child {
+        border-right: none;
+    }
+
+    .custom-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .custom-table tbody tr:hover td {
+        background: #f8fbff;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 12px;
+        border-color: #dbe3ef;
+        min-height: 44px;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
     }
 
     .modal-content {
-        border-radius: 24px;
+        overflow: hidden;
     }
 
-    textarea.form-control {
-        min-height: 100px;
-        resize: vertical;
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.4rem;
+        }
+
+        .custom-table thead th,
+        .custom-table tbody td {
+            padding: 12px 10px;
+            font-size: 0.9rem;
+        }
     }
 </style>

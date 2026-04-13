@@ -245,20 +245,8 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
-    import BaseLayout from "../BaseLayout.vue"
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import BaseLayout from '../BaseLayout.vue'
+    import { apiRequest } from '../../services/api.js'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -314,21 +302,36 @@
         }
     }
 
+    const buildQueryString = (params) => {
+        const searchParams = new URLSearchParams()
+
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                searchParams.append(key, value)
+            }
+        })
+
+        const query = searchParams.toString()
+        return query ? `?${query}` : ''
+    }
+
     const fetchDonVi = async () => {
         try {
             loading.value = true
-            const { data } = await api.get('/don-vi', {
-                params: {
-                    keyword: filters.keyword || undefined,
-                    loaiDonVi: filters.loaiDonVi || undefined,
-                    donViChaId: filters.donViChaId || undefined,
-                    trangThai: filters.trangThai || undefined
-                }
+
+            const queryString = buildQueryString({
+                keyword: filters.keyword || undefined,
+                loaiDonVi: filters.loaiDonVi || undefined,
+                donViChaId: filters.donViChaId || undefined,
+                trangThai: filters.trangThai || undefined
             })
-            items.value = data
+
+            const data = await apiRequest(`/don-vi${queryString}`)
+            items.value = Array.isArray(data) ? data : []
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Không tải được danh sách đơn vị.')
+            alert(error.message || 'Không tải được danh sách đơn vị.')
+            items.value = []
         } finally {
             loading.value = false
         }
@@ -403,7 +406,7 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`/don-vi/${editingId.value}`, {
+                await apiRequest(`/don-vi/${editingId.value}`, 'PUT', {
                     tenDonVi: payload.tenDonVi,
                     loaiDonVi: payload.loaiDonVi,
                     donViChaId: payload.donViChaId,
@@ -415,14 +418,14 @@
                     ghiChu: payload.ghiChu
                 })
             } else {
-                await api.post('/don-vi', payload)
+                await apiRequest('/don-vi', 'POST', payload)
             }
 
             closeModal()
             await fetchDonVi()
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Lưu đơn vị thất bại.')
+            alert(error.message || 'Lưu đơn vị thất bại.')
         } finally {
             saving.value = false
         }
@@ -433,11 +436,11 @@
         if (!ok) return
 
         try {
-            await api.delete(`/don-vi/${item.id}`)
+            await apiRequest(`/don-vi/${item.id}`, 'DELETE')
             await fetchDonVi()
         } catch (error) {
             console.error(error)
-            alert(error?.response?.data?.message || 'Xóa đơn vị thất bại.')
+            alert(error.message || 'Xóa đơn vị thất bại.')
         }
     }
 

@@ -556,4 +556,88 @@
             flex-direction: column;
         }
     }
+
+    .danh-gia-kpi-page {
+        padding: 24px;
+    }
+
+    .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .table-wrapper table {
+        width: max-content;
+        min-width: 100%;
+        border-collapse: collapse;
+        table-layout: auto;
+        border: 1px solid #dcdfe6;
+    }
+
+    .table-wrapper th,
+    .table-wrapper td {
+        border: 1px solid #dcdfe6;
+        padding: 10px 12px;
+        vertical-align: middle;
+        box-sizing: border-box;
+        white-space: nowrap;
+    }
+
+    .table-wrapper th {
+        background: #f5f7fa;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .table-wrapper td {
+        text-align: left;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    .empty-cell {
+        text-align: center;
+        padding: 20px;
+        color: #909399;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge-excellent {
+        background: #ecfdf3;
+        color: #067647;
+    }
+
+    .badge-good {
+        background: #eff8ff;
+        color: #175cd3;
+    }
+
+    .badge-pass {
+        background: #fffaeb;
+        color: #b54708;
+    }
+
+    .badge-fail {
+        background: #fef3f2;
+        color: #d92d20;
+    }
+
+    .badge-default {
+        background: #f2f4f7;
+        color: #344054;
+    }
 </style>

@@ -12,7 +12,7 @@
 
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
-                        Thêm theo dõi KPI
+                        Nhập số liệu báo cáo kỳ
                     </button>
                 </div>
 

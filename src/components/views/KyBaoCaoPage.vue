@@ -88,7 +88,6 @@
                                         <th>Đến ngày</th>
                                         <th>Ngày đầu kỳ</th>
                                         <th>Ngày cuối kỳ</th>
-                                        <th>Trạng thái</th>
                                         <th>Ghi chú</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
@@ -104,11 +103,6 @@
                                         <td>{{ formatDate(item.denNgay) }}</td>
                                         <td>{{ formatDate(item.ngayDauKy) }}</td>
                                         <td>{{ formatDate(item.ngayCuoiKy) }}</td>
-                                        <td>
-                                            <span class="badge rounded-pill" :class="getTrangThaiClass(item.trangThai)">
-                                                {{ mapTrangThai(item.trangThai) }}
-                                            </span>
-                                        </td>
                                         <td class="text-truncate" style="max-width: 220px">
                                             {{ item.ghiChu || '-' }}
                                         </td>
@@ -216,15 +210,6 @@
                                     </div>
 
                                     <div class="col-12 col-md-3">
-                                        <label class="form-label">Trạng thái</label>
-                                        <select v-model="form.trangThai" class="form-select">
-                                            <option value="MOI_TAO">Mới tạo</option>
-                                            <option value="DANG_MO">Đang mở</option>
-                                            <option value="DA_DONG">Đã đóng</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Người cập nhật <span class="text-danger">*</span>
                                         </label>
@@ -258,20 +243,8 @@
 
 <script setup>
     import { onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import { apiRequest } from '../../services/api.js'
 
     const API_CONTROLLER = '/KyBaoCaoKPI'
 
@@ -297,7 +270,6 @@
         denNgay: '',
         ngayDauKy: '',
         ngayCuoiKy: '',
-        trangThai: 'MOI_TAO',
         ghiChu: '',
         updatedBy:
             localStorage.getItem('username') ||
@@ -313,6 +285,7 @@
     }
 
     const normalizeList = (response) => {
+        if (Array.isArray(response)) return response
         if (Array.isArray(response?.data)) return response.data
         if (Array.isArray(response?.data?.data)) return response.data.data
         return []
@@ -338,7 +311,6 @@
         denNgay: toIsoDateEnd(form.denNgay),
         ngayDauKy: toIsoDateStart(form.ngayDauKy),
         ngayCuoiKy: toIsoDateEnd(form.ngayCuoiKy),
-        trangThai: form.trangThai,
         ghiChu: form.ghiChu?.trim() || '',
         updatedBy: form.updatedBy?.trim()
     })
@@ -348,29 +320,30 @@
             loading.value = true
 
             if (filters.nam && filters.loaiKy) {
-                const response = await api.get(`${API_CONTROLLER}/by-nam/${filters.nam}`)
-                const list = normalizeList(response)
+                const data = await apiRequest(`${API_CONTROLLER}/by-nam/${filters.nam}`)
+                const list = normalizeList(data)
                 items.value = list.filter((x) => x.loaiKy === filters.loaiKy)
                 return
             }
 
             if (filters.nam) {
-                const response = await api.get(`${API_CONTROLLER}/by-nam/${filters.nam}`)
-                items.value = normalizeList(response)
+                const data = await apiRequest(`${API_CONTROLLER}/by-nam/${filters.nam}`)
+                items.value = normalizeList(data)
                 return
             }
 
             if (filters.loaiKy) {
-                const response = await api.get(`${API_CONTROLLER}/by-loaiky/${filters.loaiKy}`)
-                items.value = normalizeList(response)
+                const data = await apiRequest(`${API_CONTROLLER}/by-loaiky/${filters.loaiKy}`)
+                items.value = normalizeList(data)
                 return
             }
 
-            const response = await api.get(API_CONTROLLER)
-            items.value = normalizeList(response)
+            const data = await apiRequest(API_CONTROLLER)
+            items.value = normalizeList(data)
         } catch (error) {
             console.error('Fetch error:', error)
-            alert(error?.response?.data?.message || 'Không tải được danh sách kỳ báo cáo KPI.')
+            alert(error.message || 'Không tải được danh sách kỳ báo cáo KPI.')
+            items.value = []
         } finally {
             loading.value = false
         }
@@ -397,7 +370,6 @@
             denNgay: toInputDate(item.denNgay),
             ngayDauKy: toInputDate(item.ngayDauKy),
             ngayCuoiKy: toInputDate(item.ngayCuoiKy),
-            trangThai: item.trangThai || 'MOI_TAO',
             ghiChu: item.ghiChu || '',
             updatedBy:
                 localStorage.getItem('username') ||
@@ -471,30 +443,16 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`${API_CONTROLLER}/${editingId.value}`, payload)
+                await apiRequest(`${API_CONTROLLER}/${editingId.value}`, 'PUT', payload)
             } else {
-                await api.post(API_CONTROLLER, payload)
+                await apiRequest(API_CONTROLLER, 'POST', payload)
             }
 
             closeModal()
             await fetchItems()
         } catch (error) {
             console.error('Submit error:', error)
-            console.error('Response data:', error?.response?.data)
-            console.error('Status:', error?.response?.status)
-
-            const responseData = error?.response?.data
-            let message = 'Lưu kỳ báo cáo KPI thất bại.'
-
-            if (responseData?.message) {
-                message = responseData.message
-            } else if (responseData?.title) {
-                message = responseData.title
-            } else if (responseData?.errors) {
-                message = Object.values(responseData.errors).flat().join('\n')
-            }
-
-            alert(message)
+            alert(error.message || 'Lưu kỳ báo cáo KPI thất bại.')
         } finally {
             saving.value = false
         }
@@ -505,11 +463,11 @@
         if (!ok) return
 
         try {
-            await api.delete(`${API_CONTROLLER}/${item.id}`)
+            await apiRequest(`${API_CONTROLLER}/${item.id}`, 'DELETE')
             await fetchItems()
         } catch (error) {
             console.error('Delete error:', error)
-            alert(error?.response?.data?.message || 'Xóa kỳ báo cáo KPI thất bại.')
+            alert(error.message || 'Xóa kỳ báo cáo KPI thất bại.')
         }
     }
 
@@ -527,24 +485,6 @@
             NAM: 'Năm'
         }
         return map[value] || value || '-'
-    }
-
-    const mapTrangThai = (value) => {
-        const map = {
-            MOI_TAO: 'Mới tạo',
-            DANG_MO: 'Đang mở',
-            DA_DONG: 'Đã đóng'
-        }
-        return map[value] || value || '-'
-    }
-
-    const getTrangThaiClass = (value) => {
-        const map = {
-            MOI_TAO: 'text-bg-secondary',
-            DANG_MO: 'text-bg-primary',
-            DA_DONG: 'text-bg-success'
-        }
-        return map[value] || 'text-bg-light'
     }
 
     const formatDate = (value) => {
