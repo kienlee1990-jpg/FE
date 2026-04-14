@@ -1,130 +1,142 @@
 <template>
     <BaseLayout>
-        <div class="xep-hang-don-vi-page">
-            <div class="page-header">
-                <h2>Xếp hạng đơn vị theo chỉ tiêu KPI</h2>
-                <p>
-                    Chọn đợt giao chỉ tiêu và danh mục chỉ tiêu để xem xếp hạng cộng dồn
-                    của các đơn vị theo toàn bộ kỳ báo cáo.
-                </p>
-            </div>
-
-            <div class="filter-card">
-                <div class="filter-grid">
-                    <div class="form-group">
-                        <label>Đợt giao chỉ tiêu</label>
-                        <select v-model="filters.dotGiaoChiTieuId" @change="handleDotGiaoChange">
-                            <option value="">-- Chọn đợt giao chỉ tiêu --</option>
-                            <option v-for="item in dotGiaoOptions" :key="item.id" :value="item.id">
-                                {{ formatDotGiaoLabel(item) }}
-                            </option>
-                        </select>
+        <div class="page-wrap">
+            <div class="container-fluid py-4">
+                <div class="gov-banner mb-4">
+                    <div class="gov-emblem">
+                        <i class="bi bi-trophy"></i>
                     </div>
-
-                    <div class="form-group">
-                        <label>Danh mục chỉ tiêu</label>
-                        <select v-model="filters.danhMucChiTieuId" :disabled="!filters.dotGiaoChiTieuId">
-                            <option value="">-- Chọn chỉ tiêu --</option>
-                            <option v-for="item in chiTieuOptions" :key="item.danhMucChiTieuId"
-                                :value="item.danhMucChiTieuId">
-                                {{ item.tenDanhMucChiTieu }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Từ khóa đơn vị</label>
-                        <input v-model.trim="filters.keyword" type="text" placeholder="Nhập tên đơn vị..." />
-                    </div>
-
-                    <div class="form-group actions">
-                        <button class="btn btn-primary" @click="fetchAllData">Tải dữ liệu</button>
-                        <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
+                    <div class="gov-text">
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="gov-title">XẾP HẠNG ĐƠN VỊ THEO CHỈ TIÊU KPI</div>
+                        <div class="gov-sub"></div>
                     </div>
                 </div>
-            </div>
 
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <span class="label">Số đơn vị</span>
-                    <strong>{{ rankedRows.length }}</strong>
-                </div>
-                <div class="summary-card">
-                    <span class="label">Chỉ tiêu đang xem</span>
-                    <strong>{{ selectedChiTieuLabel || '-' }}</strong>
-                </div>
-                <div class="summary-card">
-                    <span class="label">Số kỳ đã tổng hợp</span>
-                    <strong>{{ totalKyBaoCao }}</strong>
-                </div>
-                <div class="summary-card">
-                    <span class="label">Tỷ lệ hoàn thành TB</span>
-                    <strong>{{ formatPercent(avgTyLeHoanThanh) }}</strong>
-                </div>
-            </div>
+                <div class="xep-hang-don-vi-page">
+                    <div class="gov-banner">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
+                            class="gov-emblem" />
+                    </div>
 
-            <div class="table-card">
-                <div class="table-toolbar">
-                    <button class="btn btn-success" @click="exportCsv" :disabled="rankedRows.length === 0">
-                        Xuất CSV
-                    </button>
-                </div>
+                    <div class="filter-card">
+                        <div class="filter-grid">
+                            <div class="form-group">
+                                <label>Đợt giao chỉ tiêu</label>
+                                <select v-model="filters.dotGiaoChiTieuId" @change="handleDotGiaoChange">
+                                    <option value="">-- Chọn đợt giao chỉ tiêu --</option>
+                                    <option v-for="item in dotGiaoOptions" :key="item.id" :value="item.id">
+                                        {{ formatDotGiaoLabel(item) }}
+                                    </option>
+                                </select>
+                            </div>
 
-                <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
-                <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
-                <div v-else-if="!filters.dotGiaoChiTieuId" class="state empty">
-                    Vui lòng chọn đợt giao chỉ tiêu.
-                </div>
-                <div v-else-if="!filters.danhMucChiTieuId" class="state empty">
-                    Vui lòng chọn danh mục chỉ tiêu.
-                </div>
-                <div v-else class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Hạng</th>
-                                <th>Đơn vị</th>
-                                <th>Chỉ tiêu</th>
-                                <th>Số kỳ</th>
-                                <th>Giá trị mục tiêu</th>
-                                <th>Giá trị đầu kỳ cộng dồn</th>
-                                <th>Giá trị cuối kỳ cộng dồn</th>
-                                <th>Tỷ lệ hoàn thành</th>
-                                <th>Xếp loại</th>
-                                <th>Kết quả</th>
-                                <th>Người đánh giá</th>
-                                <th>Ngày đánh giá</th>
-                                <th>Nhận xét</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="rankedRows.length === 0">
-                                <td colspan="13" class="empty-cell">Không có dữ liệu phù hợp</td>
-                            </tr>
+                            <div class="form-group">
+                                <label>Danh mục chỉ tiêu</label>
+                                <select v-model="filters.danhMucChiTieuId" :disabled="!filters.dotGiaoChiTieuId">
+                                    <option value="">-- Chọn chỉ tiêu --</option>
+                                    <option v-for="item in chiTieuOptions" :key="item.danhMucChiTieuId"
+                                        :value="item.danhMucChiTieuId">
+                                        {{ item.tenDanhMucChiTieu }}
+                                    </option>
+                                </select>
+                            </div>
 
-                            <tr v-for="row in rankedRows" :key="row.uniqueKey">
-                                <td class="text-center">
-                                    <span class="rank-badge">{{ row.ranking }}</span>
-                                </td>
-                                <td>{{ row.tenDonViNhan }}</td>
-                                <td>{{ row.tenChiTieu }}</td>
-                                <td class="text-center">{{ row.soKyBaoCao }}</td>
-                                <td class="text-right">{{ formatNumber(row.giaTriMucTieu) }}</td>
-                                <td class="text-right">{{ formatNumber(row.giaTriDauKy) }}</td>
-                                <td class="text-right">{{ formatNumber(row.giaTriCuoiKy) }}</td>
-                                <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
-                                <td class="text-center">
-                                    <span class="badge" :class="getXepLoaiClass(row.xepLoai)">
-                                        {{ row.xepLoai || '-' }}
-                                    </span>
-                                </td>
-                                <td class="text-center">{{ row.ketQua || '-' }}</td>
-                                <td>{{ row.nguoiDanhGia || '-' }}</td>
-                                <td>{{ formatDateTime(row.ngayDanhGia) }}</td>
-                                <td>{{ row.nhanXetDanhGia || '-' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                            <div class="form-group">
+                                <label>Từ khóa đơn vị</label>
+                                <input v-model.trim="filters.keyword" type="text" placeholder="Nhập tên đơn vị..." />
+                            </div>
+
+                            <div class="form-group actions">
+                                <button class="btn btn-primary" @click="fetchAllData">Tải dữ liệu</button>
+                                <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <span class="label">Số đơn vị</span>
+                            <strong>{{ rankedRows.length }}</strong>
+                        </div>
+                        <div class="summary-card">
+                            <span class="label">Chỉ tiêu đang xem</span>
+                            <strong>{{ selectedChiTieuLabel || '-' }}</strong>
+                        </div>
+                        <div class="summary-card">
+                            <span class="label">Số kỳ đã tổng hợp</span>
+                            <strong>{{ totalKyBaoCao }}</strong>
+                        </div>
+                        <div class="summary-card">
+                            <span class="label">Tỷ lệ hoàn thành TB</span>
+                            <strong>{{ formatPercent(avgTyLeHoanThanh) }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-toolbar">
+                            <button class="btn btn-success" @click="exportCsv" :disabled="rankedRows.length === 0">
+                                Xuất CSV
+                            </button>
+                        </div>
+
+                        <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
+                        <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
+                        <div v-else-if="!filters.dotGiaoChiTieuId" class="state empty">
+                            Vui lòng chọn đợt giao chỉ tiêu.
+                        </div>
+                        <div v-else-if="!filters.danhMucChiTieuId" class="state empty">
+                            Vui lòng chọn danh mục chỉ tiêu.
+                        </div>
+                        <div v-else class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Hạng</th>
+                                        <th>Đơn vị</th>
+                                        <th>Chỉ tiêu</th>
+                                        <th>Số kỳ</th>
+                                        <th>Giá trị mục tiêu</th>
+                                        <th>Giá trị đầu kỳ cộng dồn</th>
+                                        <th>Giá trị cuối kỳ cộng dồn</th>
+                                        <th>Tỷ lệ hoàn thành</th>
+                                        <th>Xếp loại</th>
+                                        <th>Kết quả</th>
+                                        <th>Người đánh giá</th>
+                                        <th>Ngày đánh giá</th>
+                                        <th>Nhận xét</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-if="rankedRows.length === 0">
+                                        <td colspan="13" class="empty-cell">Không có dữ liệu phù hợp</td>
+                                    </tr>
+
+                                    <tr v-for="row in rankedRows" :key="row.uniqueKey">
+                                        <td class="text-center">
+                                            <span class="rank-badge">{{ row.ranking }}</span>
+                                        </td>
+                                        <td>{{ row.tenDonViNhan }}</td>
+                                        <td>{{ row.tenChiTieu }}</td>
+                                        <td class="text-center">{{ row.soKyBaoCao }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriMucTieu) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriDauKy) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKy) }}</td>
+                                        <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
+                                        <td class="text-center">
+                                            <span class="badge" :class="getXepLoaiClass(row.xepLoai)">
+                                                {{ row.xepLoai || '-' }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">{{ row.ketQua || '-' }}</td>
+                                        <td>{{ row.nguoiDanhGia || '-' }}</td>
+                                        <td>{{ formatDateTime(row.ngayDanhGia) }}</td>
+                                        <td>{{ row.nhanXetDanhGia || '-' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -567,6 +579,61 @@
 </script>
 
 <style scoped>
+    .page-wrap {
+        min-height: 100vh;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
+    }
+
+    .gov-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+    }
+
+    .gov-emblem {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+        color: #fff;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .gov-text {
+        flex: 1;
+    }
+
+    .wave-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        color: #0d6efd;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .gov-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1f2d3d;
+        line-height: 1.3;
+    }
+
+    .gov-sub {
+        color: #6b7280;
+        margin-top: 4px;
+        font-size: 0.95rem;
+    }
+
     .xep-hang-don-vi-page {
         display: flex;
         flex-direction: column;
@@ -575,6 +642,7 @@
 
     .page-header h2 {
         margin: 0 0 8px;
+        color: #1f2937;
     }
 
     .page-header p {
@@ -605,6 +673,7 @@
 
     .form-group label {
         font-weight: 600;
+        color: #374151;
     }
 
     .form-group input,
@@ -615,6 +684,12 @@
         border-radius: 8px;
         outline: none;
         font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
     .form-group.actions {
@@ -676,6 +751,7 @@
 
     .summary-card strong {
         font-size: 20px;
+        color: #111827;
     }
 
     .table-toolbar {
@@ -794,5 +870,16 @@
     .badge-default {
         background: #f3f4f6;
         color: #4b5563;
+    }
+
+    @media (max-width: 768px) {
+        .gov-banner {
+            padding: 16px;
+            align-items: flex-start;
+        }
+
+        .gov-title {
+            font-size: 1.05rem;
+        }
     }
 </style>

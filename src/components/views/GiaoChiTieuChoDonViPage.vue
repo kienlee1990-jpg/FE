@@ -2,12 +2,21 @@
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
+                <div class="gov-banner mb-4">
+                    <div class="gov-emblem">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+                    <div class="gov-text">
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="gov-title">GIAO CHỈ TIÊU CHO ĐƠN VỊ</div>
+                        <div class="gov-sub"></div>
+                    </div>
+                </div>
+
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div>
-                        <h1 class="page-title mb-1">Giao chỉ tiêu cho đơn vị</h1>
-                        <p class="page-subtitle mb-0">
-                            Quản lý giao chỉ tiêu cho các danh mục không cho phân rã
-                        </p>
+                    <div class="gov-banner">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
+                            class="gov-emblem" />
                     </div>
 
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
@@ -38,8 +47,7 @@
                                 <label class="form-label">Danh mục chỉ tiêu</label>
                                 <select v-model.number="filters.danhMucChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
-                                    <option v-for="item in danhMucKhongPhanRaOptions" :key="getId(item)"
-                                        :value="getId(item)">
+                                    <option v-for="item in danhMucOptions" :key="getId(item)" :value="getId(item)">
                                         {{ item.MaChiTieu || item.maChiTieu || '' }} -
                                         {{ item.TenChiTieu || item.tenChiTieu || '' }}
                                     </option>
@@ -69,7 +77,7 @@
                             <div class="col-12">
                                 <label class="form-label">Từ khóa</label>
                                 <input v-model="filters.keyword" type="text" class="form-control"
-                                    placeholder="Tên đợt, mã chỉ tiêu, tên chỉ tiêu, mã đơn vị, tên đơn vị, tần suất, ghi chú" />
+                                    placeholder="Tên đợt, mã chỉ tiêu, tên chỉ tiêu, đơn vị tính, mã đơn vị, tên đơn vị, tần suất, ghi chú" />
                             </div>
                         </div>
 
@@ -89,9 +97,9 @@
                 <div class="card custom-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
-                            <h5 class="mb-1">Danh sách chỉ tiêu không phân rã</h5>
+                            <h5 class="mb-1">Danh sách giao chỉ tiêu</h5>
                             <small class="text-muted">
-                                Chỉ hiển thị các danh mục chỉ tiêu không cho phân rã
+                                Hiển thị toàn bộ danh mục chỉ tiêu được giao cho đơn vị
                             </small>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ filteredItems.length }}</span>
@@ -135,6 +143,11 @@
                                             <small class="text-muted">
                                                 {{ item.MaChiTieu || item.maChiTieu || '-' }}
                                             </small>
+                                            <div class="mt-1">
+                                                <small class="text-muted">
+                                                    Đơn vị tính: {{ getDonViTinhText(item) }}
+                                                </small>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="fw-semibold">
@@ -150,12 +163,16 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <div>{{ formatNumber(item.GiaTriMucTieu ?? item.giaTriMucTieu) }}</div>
+                                            <div>
+                                                {{ formatNumberWithUnit(item.GiaTriMucTieu ?? item.giaTriMucTieu,
+                                                getDonViTinhText(item)) }}
+                                            </div>
                                             <small
                                                 v-if="(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== null && (item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== undefined"
                                                 class="text-muted">
                                                 Mặc định:
-                                                {{ formatNumber(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) }}
+                                                {{ formatNumberWithUnit(item.DieuKienHoanThanh ??
+                                                item.dieuKienHoanThanh, getDonViTinhText(item)) }}
                                             </small>
                                         </td>
                                         <td>{{ item.GhiChu || item.ghiChu || '-' }}</td>
@@ -188,8 +205,7 @@
                                         {{ isEdit ? 'Cập nhật giao chỉ tiêu' : 'Tạo giao chỉ tiêu mới' }}
                                     </h4>
                                     <p class="text-muted mb-0">
-                                        Với danh mục không cho phân rã, chọn đợt giao, chỉ tiêu, đơn vị, tần suất báo
-                                        cáo và giá trị mục tiêu
+                                        Chọn đợt giao, chỉ tiêu, đơn vị, tần suất báo cáo và giá trị mục tiêu
                                     </p>
                                 </div>
                                 <button type="button" class="btn-close" @click="closeModal"></button>
@@ -197,16 +213,6 @@
 
                             <div class="modal-body pt-3">
                                 <div class="row g-3">
-                                    <div class="col-12">
-                                        <div class="alert alert-info mb-0">
-                                            <i class="bi bi-info-circle me-2"></i>
-                                            <strong>Tần suất báo cáo</strong> được chọn trực tiếp tại đây.
-                                            <strong>Giá trị mục tiêu</strong> mặc định lấy từ
-                                            <strong>DanhMucChiTieu.DieuKienHoanThanh</strong>, nhưng vẫn có thể chỉnh
-                                            sửa tay trước khi lưu.
-                                        </div>
-                                    </div>
-
                                     <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Đợt giao chỉ tiêu <span class="text-danger">*</span>
@@ -225,7 +231,7 @@
                                         </label>
                                         <select v-model.number="form.danhMucChiTieuId" class="form-select">
                                             <option :value="null">Chọn chỉ tiêu</option>
-                                            <option v-for="item in danhMucKhongPhanRaOptions" :key="getId(item)"
+                                            <option v-for="item in danhMucOptions" :key="getId(item)"
                                                 :value="getId(item)">
                                                 {{ item.MaChiTieu || item.maChiTieu || '' }} -
                                                 {{ item.TenChiTieu || item.tenChiTieu || '' }}
@@ -260,20 +266,25 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Giá trị mục tiêu <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.giaTriMucTieu" type="number" step="any"
-                                            class="form-control" placeholder="Nhập giá trị mục tiêu" />
-                                        <small class="text-muted">
-                                            Mặc định lấy từ ĐiềuKienHoanThanh của danh mục chỉ tiêu đã chọn
-                                        </small>
+                                        <label class="form-label">Đơn vị tính</label>
+                                        <input :value="displayDonViTinh" type="text" class="form-control" readonly />
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label">Giá trị mặc định từ ĐiềuKienHoanThanh</label>
+                                        <label class="form-label">Giá trị mục tiêu gốc</label>
                                         <input :value="displayGiaTriMacDinh" type="text" class="form-control"
                                             readonly />
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">
+                                            Giá trị mục tiêu <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <input v-model="form.giaTriMucTieu" type="number" step="any"
+                                                class="form-control" placeholder="Nhập giá trị mục tiêu" />
+                                            <span class="input-group-text">{{ displayDonViTinh }}</span>
+                                        </div>
                                     </div>
 
                                     <div class="col-12">
@@ -380,15 +391,22 @@
         return item?.DieuKienHoanThanh ?? item?.dieuKienHoanThanh ?? null
     }
 
-    const danhMucKhongPhanRaOptions = computed(() => {
-        return danhMucOptions.value.filter(
-            (item) => Number(item.CoChoPhepPhanRa ?? item.coChoPhepPhanRa ?? 0) === 0
+    const getDonViTinh = (item) => {
+        return (
+            item?.DonViTinh ??
+            item?.donViTinh ??
+            item?.TenDonViTinh ??
+            item?.tenDonViTinh ??
+            item?.DVT ??
+            item?.dvt ??
+            ''
         )
-    })
+    }
 
-    const danhMucKhongPhanRaIds = computed(() => {
-        return new Set(danhMucKhongPhanRaOptions.value.map((x) => getId(x)))
-    })
+    const getDonViTinhText = (item) => {
+        const value = getDonViTinh(item)
+        return value && String(value).trim() ? String(value).trim() : '-'
+    }
 
     const enrichedItems = computed(() => {
         return items.value.map((item) => {
@@ -434,6 +452,20 @@
                     donVi?.MaDonVi ||
                     donVi?.maDonVi ||
                     '-',
+                DonViTinh:
+                    item.DonViTinh ||
+                    item.donViTinh ||
+                    item.TenDonViTinh ||
+                    item.tenDonViTinh ||
+                    item.DVT ||
+                    item.dvt ||
+                    danhMuc?.DonViTinh ||
+                    danhMuc?.donViTinh ||
+                    danhMuc?.TenDonViTinh ||
+                    danhMuc?.tenDonViTinh ||
+                    danhMuc?.DVT ||
+                    danhMuc?.dvt ||
+                    '-',
                 TanSuatBaoCao: item.TanSuatBaoCao || item.tanSuatBaoCao || '',
                 DieuKienHoanThanh:
                     item.DieuKienHoanThanh ??
@@ -455,12 +487,11 @@
             const donViId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
             const tanSuatBaoCao = (item.TanSuatBaoCao || item.tanSuatBaoCao || '').trim()
 
-            const isKhongPhanRa = danhMucKhongPhanRaIds.value.has(danhMucId)
-
             const searchText = [
                 item.TenDotGiao || '',
                 item.MaChiTieu || '',
                 item.TenChiTieu || '',
+                item.DonViTinh || '',
                 item.MaDonVi || '',
                 item.TenDonVi || '',
                 getTanSuatLabel(item.TanSuatBaoCao || item.tanSuatBaoCao || ''),
@@ -475,21 +506,23 @@
             const matchDonVi = !filters.donViId || Number(filters.donViId) === donViId
             const matchTanSuat = !filters.tanSuatBaoCao || filters.tanSuatBaoCao === tanSuatBaoCao
 
-            return (
-                isKhongPhanRa &&
-                matchKeyword &&
-                matchDot &&
-                matchDanhMuc &&
-                matchDonVi &&
-                matchTanSuat
-            )
+            return matchKeyword && matchDot && matchDanhMuc && matchDonVi && matchTanSuat
         })
     })
 
-    const defaultGiaTriMucTieu = computed(() => {
+    const selectedDanhMuc = computed(() => {
         if (!form.danhMucChiTieuId) return null
-        const danhMuc = findDanhMucById(form.danhMucChiTieuId)
-        return getGiaTriMacDinhTuDanhMuc(danhMuc)
+        return findDanhMucById(form.danhMucChiTieuId)
+    })
+
+    const defaultGiaTriMucTieu = computed(() => {
+        if (!selectedDanhMuc.value) return null
+        return getGiaTriMacDinhTuDanhMuc(selectedDanhMuc.value)
+    })
+
+    const displayDonViTinh = computed(() => {
+        if (!selectedDanhMuc.value) return '-'
+        return getDonViTinhText(selectedDanhMuc.value)
     })
 
     const displayGiaTriMacDinh = computed(() => {
@@ -500,7 +533,7 @@
         ) {
             return '-'
         }
-        return formatNumber(defaultGiaTriMucTieu.value)
+        return formatNumberWithUnit(defaultGiaTriMucTieu.value, displayDonViTinh.value)
     })
 
     watch(
@@ -628,11 +661,6 @@
             return false
         }
 
-        if (!danhMucKhongPhanRaIds.value.has(Number(form.danhMucChiTieuId))) {
-            alert('Chỉ được chọn danh mục chỉ tiêu không cho phân rã.')
-            return false
-        }
-
         if (!form.donViId || Number(form.donViId) <= 0) {
             alert('Vui lòng chọn đơn vị.')
             return false
@@ -710,6 +738,13 @@
         return numberValue.toLocaleString('vi-VN')
     }
 
+    const formatNumberWithUnit = (value, unit) => {
+        const formatted = formatNumber(value)
+        if (formatted === '-') return '-'
+        if (!unit || unit === '-') return formatted
+        return `${formatted} ${unit}`
+    }
+
     onMounted(async () => {
         await Promise.all([
             fetchItems(),
@@ -722,93 +757,217 @@
 
 <style scoped>
     .page-wrap {
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
         min-height: 100vh;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
     }
 
     .page-title {
         font-size: 1.75rem;
         font-weight: 700;
-        color: #0f172a;
+        color: #1f2d3d;
     }
 
     .page-subtitle {
-        color: #64748b;
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+
+    .wave-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        color: #0d6efd;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .gov-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+        margin-bottom: 18px;
+    }
+
+    .gov-emblem {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+        color: #fff;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .gov-text {
+        flex: 1;
+    }
+
+    .gov-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1f2d3d;
+        line-height: 1.3;
+    }
+
+    .gov-sub {
+        color: #6b7280;
+        margin-top: 4px;
         font-size: 0.95rem;
     }
 
     .custom-card {
-        border: 0;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
         overflow: hidden;
+    }
+
+    .custom-card .card-header {
+        padding: 1rem 1.25rem 0.75rem;
+    }
+
+    .custom-card .card-body {
+        padding: 1.25rem;
     }
 
     .btn-action {
         border-radius: 12px;
-        padding: 0.75rem 1rem;
         font-weight: 600;
+        padding: 0.7rem 1.1rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.45rem;
     }
 
     .form-control,
-    .form-select {
-        border-radius: 12px;
+    .form-select,
+    .input-group-text {
         min-height: 44px;
-        border-color: #dbe2ea;
+        border-radius: 12px;
+        border-color: #dbe3ef;
         box-shadow: none;
     }
 
     .form-control:focus,
     .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
-    .form-label {
-        font-weight: 600;
-        color: #334155;
-        margin-bottom: 0.45rem;
+    textarea.form-control {
+        min-height: unset;
     }
 
-    .custom-table thead th {
+    :deep(.table) {
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+
+    :deep(.table thead th) {
+        border-bottom: 2px solid #dee2e6;
         background: #f8fafc;
-        color: #334155;
+        color: #374151;
         font-weight: 700;
-        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
         white-space: nowrap;
     }
 
-    .custom-table tbody td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: #eef2f7;
-        color: #334155;
+    :deep(.table td),
+    :deep(.table th) {
+        border-right: 1px solid #eee;
+        padding: 0.9rem 0.85rem;
+        vertical-align: middle;
     }
 
-    .custom-table tbody tr:hover {
-        background-color: #f8fbff;
+    :deep(.table td:last-child),
+    :deep(.table th:last-child) {
+        border-right: none;
+    }
+
+    :deep(.table tbody tr) {
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    :deep(.table-hover tbody tr:hover) {
+        background-color: rgba(0, 0, 0, 0.03);
     }
 
     .empty-state {
         min-height: 260px;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        flex-direction: column;
-        color: #64748b;
-        font-weight: 500;
+        color: #6b7280;
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+
+    .badge.text-bg-light {
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 0.45rem 0.7rem;
     }
 
     .custom-modal {
-        background: rgba(15, 23, 42, 0.35);
+        background: rgba(137, 210, 239, 0.5);
     }
 
-    .modal-content {
-        border-radius: 24px;
+    :deep(.modal-content) {
+        animation: fadeInUp 0.3s ease;
     }
 
-    textarea.form-control {
-        min-height: 100px;
-        resize: vertical;
+    @keyframes fadeInUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-title {
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .alert-info {
+        border: none;
+        border-radius: 14px;
+        background: rgba(137, 210, 239, 0.18);
+        color: #24566b;
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.45rem;
+        }
+
+        .custom-card .card-body {
+            padding: 1rem;
+        }
+
+        .gov-banner {
+            padding: 16px;
+            align-items: flex-start;
+        }
+
+        .gov-title {
+            font-size: 1.05rem;
+        }
     }
 </style>

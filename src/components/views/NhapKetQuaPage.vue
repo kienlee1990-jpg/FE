@@ -2,12 +2,21 @@
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
+                <div class="gov-banner mb-4">
+                    <div class="gov-emblem">
+                        <i class="bi bi-clipboard-data"></i>
+                    </div>
+                    <div class="gov-text">
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="gov-title">DANH SÁCH THEO DÕI BÁO KỲ</div>
+                        <div class="gov-sub"></div>
+                    </div>
+                </div>
+
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div>
-                        <h1 class="page-title mb-1">Danh sách theo dõi báo kỳ</h1>
-                        <p class="page-subtitle mb-0">
-                            Quản lý số liệu thực hiện KPI theo kỳ báo cáo
-                        </p>
+                    <div class="gov-banner">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
+                            class="gov-emblem" />
                     </div>
 
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
@@ -226,6 +235,15 @@
                                         </small>
                                     </div>
 
+                                    <div v-if="form.chiTietGiaoChiTieuId && form.kyBaoCaoKPIId && !nopDuocTheoNgayKetThucDotGiao"
+                                        class="col-12">
+                                        <div class="alert alert-warning mb-0">
+                                            <i class="bi bi-exclamation-triangle me-2"></i>
+                                            Chỉ được nộp khi ngày kết thúc của đợt giao chỉ tiêu nhỏ hơn hoặc bằng ngày
+                                            cuối kỳ của kỳ báo cáo.
+                                        </div>
+                                    </div>
+
                                     <div class="col-12 col-md-4">
                                         <label class="form-label">
                                             Giá trị đầu kỳ <span class="text-danger" v-if="isKyDauTien">*</span>
@@ -294,7 +312,8 @@
         chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
         kyBaoCaoKPI: '/KyBaoCaoKPI',
         danhMucChiTieu: '/danh-muc-chi-tieu',
-        donVi: '/DonVi'
+        donVi: '/DonVi',
+        dotGiaoChiTieu: '/dot-giao-chi-tieu'
     }
 
     const loading = ref(false)
@@ -308,6 +327,7 @@
     const kyBaoCaoOptions = ref([])
     const danhMucChiTieuOptions = ref([])
     const donViOptions = ref([])
+    const dotGiaoChiTieuOptions = ref([])
 
     const filters = reactive({
         kyBaoCaoKPIId: null,
@@ -352,7 +372,7 @@
     }
 
     const getThuTuKy = (item) => {
-        return Number(item?.ThuTuKy ?? item?.thuTuKy ?? item?.ThuTu ?? item?.thuTu ?? 0)
+        return Number(item?.ThuTuKy ?? item?.thuTuKy ?? item?.ThuTu ?? item?.thuTu ?? item?.SoKy ?? item?.soKy ?? 0)
     }
 
     const getTrangThaiKy = (item) => {
@@ -367,12 +387,35 @@
         return Number(item?.DonViNhanId ?? item?.donViNhanId ?? 0)
     }
 
+    const getDotGiaoChiTieuId = (item) => {
+        return Number(item?.DotGiaoChiTieuId ?? item?.dotGiaoChiTieuId ?? 0)
+    }
+
+    const getNgayKetThucDotGiao = (item) => {
+        return item?.NgayKetThuc ?? item?.ngayKetThuc ?? null
+    }
+
+    const getNgayCuoiKy = (item) => {
+        return item?.NgayCuoiKy ?? item?.ngayCuoiKy ?? null
+    }
+
+    const toDateOnly = (value) => {
+        if (!value) return null
+        const d = new Date(value)
+        if (Number.isNaN(d.getTime())) return null
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    }
+
     const findDanhMucById = (id) => {
         return danhMucChiTieuOptions.value.find((x) => getId(x) === Number(id)) || null
     }
 
     const findDonViById = (id) => {
         return donViOptions.value.find((x) => getId(x) === Number(id)) || null
+    }
+
+    const findDotGiaoById = (id) => {
+        return dotGiaoChiTieuOptions.value.find((x) => getId(x) === Number(id)) || null
     }
 
     const mapTanSuat = (value) => {
@@ -402,6 +445,23 @@
         }
 
         return (map[tanSuatBaoCao] || []).includes(loaiKy)
+    }
+
+    const isChiTietHopLeTheoNgayKetThuc = (chiTiet, kyBaoCao) => {
+        if (!chiTiet || !kyBaoCao) return false
+
+        const dotGiaoId = getDotGiaoChiTieuId(chiTiet)
+        if (!dotGiaoId) return false
+
+        const dotGiao = findDotGiaoById(dotGiaoId)
+        if (!dotGiao) return false
+
+        const ngayKetThucDotGiao = toDateOnly(getNgayKetThucDotGiao(dotGiao))
+        const ngayCuoiKy = toDateOnly(getNgayCuoiKy(kyBaoCao))
+
+        if (!ngayKetThucDotGiao || !ngayCuoiKy) return false
+
+        return ngayKetThucDotGiao >= ngayCuoiKy
     }
 
     const enrichedChiTietGiaoChiTieuOptions = computed(() => {
@@ -488,12 +548,27 @@
         )
     })
 
-    const filteredKyBaoCaoOptions = computed(() => {
-        const tanSuat = getTanSuatBaoCao(selectedChiTietGiao.value)
+    const selectedDotGiao = computed(() => {
+        const chiTiet = selectedChiTietGiao.value
+        if (!chiTiet) return null
 
-        return kyBaoCaoOptions.value.filter(
-            (item) => isKyDangMo(item) && isKyPhuHopTanSuat(item, tanSuat)
-        )
+        const dotGiaoId = getDotGiaoChiTieuId(chiTiet)
+        if (!dotGiaoId) return null
+
+        return findDotGiaoById(dotGiaoId)
+    })
+
+    const filteredKyBaoCaoOptions = computed(() => {
+        const chiTiet = selectedChiTietGiao.value
+        if (!chiTiet) return []
+
+        const tanSuat = getTanSuatBaoCao(chiTiet)
+
+        return kyBaoCaoOptions.value.filter((item) => {
+            if (!isKyDangMo(item)) return false
+            if (!isKyPhuHopTanSuat(item, tanSuat)) return false
+            return isChiTietHopLeTheoNgayKetThuc(chiTiet, item)
+        })
     })
 
     const isKyDauTien = computed(() => {
@@ -506,6 +581,10 @@
         const dauKy = Number(form.giaTriDauKy ?? 0)
         const thucHien = Number(form.giaTriThucHienTrongKy ?? 0)
         return dauKy + thucHien
+    })
+
+    const nopDuocTheoNgayKetThucDotGiao = computed(() => {
+        return isChiTietHopLeTheoNgayKetThuc(selectedChiTietGiao.value, selectedKyBaoCao.value)
     })
 
     const enrichedItems = computed(() => {
@@ -643,6 +722,16 @@
         }
     }
 
+    const fetchDotGiaoChiTieuOptions = async () => {
+        try {
+            const response = await api.get(API_PATHS.dotGiaoChiTieu)
+            dotGiaoChiTieuOptions.value = normalizeList(response)
+        } catch (error) {
+            console.error('fetchDotGiaoChiTieuOptions error:', error?.response?.status, error?.config?.url, error)
+            dotGiaoChiTieuOptions.value = []
+        }
+    }
+
     const openCreateModal = () => {
         isEdit.value = false
         editingId.value = null
@@ -705,6 +794,17 @@
 
         if (!isKyPhuHopTanSuat(kyDangChon, tanSuat)) {
             alert('Kỳ báo cáo không phù hợp với tần suất báo cáo của chỉ tiêu giao.')
+            return false
+        }
+
+        const dotGiao = selectedDotGiao.value
+        if (!dotGiao) {
+            alert('Chỉ tiêu giao chưa gắn với đợt giao chỉ tiêu hợp lệ.')
+            return false
+        }
+
+        if (!nopDuocTheoNgayKetThucDotGiao.value) {
+            alert('Không được nộp vì ngày kết thúc của đợt giao chỉ tiêu phải lớn hơn hoặc bằng ngày cuối kỳ của kỳ báo cáo.')
             return false
         }
 
@@ -805,14 +905,10 @@
     watch(
         () => form.donViNhanId,
         () => {
-            if (
-                form.chiTietGiaoChiTieuId &&
-                !filteredChiTietGiaoModalOptions.value.some(
-                    (x) => getId(x) === Number(form.chiTietGiaoChiTieuId)
-                )
-            ) {
-                form.chiTietGiaoChiTieuId = null
-            }
+            form.chiTietGiaoChiTieuId = null
+            form.kyBaoCaoKPIId = null
+            form.giaTriDauKy = 0
+            form.giaTriThucHienTrongKy = 0
         }
     )
 
@@ -828,14 +924,26 @@
                 }
             }
 
-            const kyDangChon = selectedKyBaoCao.value
-            const tanSuat = getTanSuatBaoCao(selectedChiTietGiao.value)
-
             if (
                 form.kyBaoCaoKPIId &&
-                (!isKyDangMo(kyDangChon) || !isKyPhuHopTanSuat(kyDangChon, tanSuat))
+                !filteredKyBaoCaoOptions.value.some(
+                    (x) => getId(x) === Number(form.kyBaoCaoKPIId)
+                )
             ) {
                 form.kyBaoCaoKPIId = null
+            }
+
+            form.giaTriDauKy = 0
+            form.giaTriThucHienTrongKy = 0
+        }
+    )
+
+    watch(
+        () => form.kyBaoCaoKPIId,
+        () => {
+            if (!form.kyBaoCaoKPIId) {
+                form.giaTriDauKy = 0
+                form.giaTriThucHienTrongKy = 0
             }
         }
     )
@@ -843,7 +951,7 @@
     watch(
         () => [form.chiTietGiaoChiTieuId, form.kyBaoCaoKPIId],
         () => {
-            if (!form.kyBaoCaoKPIId) return
+            if (!form.chiTietGiaoChiTieuId || !form.kyBaoCaoKPIId) return
 
             if (isKyDauTien.value) {
                 return
@@ -867,38 +975,90 @@
             fetchChiTietGiaoChiTieuOptions(),
             fetchKyBaoCaoOptions(),
             fetchDanhMucChiTieuOptions(),
-            fetchDonViOptions()
+            fetchDonViOptions(),
+            fetchDotGiaoChiTieuOptions()
         ])
     })
 </script>
 
 <style scoped>
     .page-wrap {
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
         min-height: 100vh;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
     }
 
     .page-title {
         font-size: 1.75rem;
         font-weight: 700;
-        color: #0f172a;
+        color: #1f2d3d;
     }
 
     .page-subtitle {
-        color: #64748b;
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+
+    .wave-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        color: #0d6efd;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .gov-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+        margin-bottom: 18px;
+    }
+
+    .gov-emblem {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+        color: #fff;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .gov-text {
+        flex: 1;
+    }
+
+    .gov-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1f2d3d;
+        line-height: 1.3;
+    }
+
+    .gov-sub {
+        color: #6b7280;
+        margin-top: 4px;
         font-size: 0.95rem;
     }
 
     .custom-card {
         border: 0;
         border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         overflow: hidden;
     }
 
     .btn-action {
         border-radius: 12px;
-        padding: 0.75rem 1rem;
+        padding: 10px 18px;
         font-weight: 600;
     }
 
@@ -912,8 +1072,8 @@
 
     .form-control:focus,
     .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
     .form-label {
@@ -922,23 +1082,37 @@
         margin-bottom: 0.45rem;
     }
 
-    .custom-table thead th {
+    :deep(.table) {
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+
+    :deep(.table thead th) {
         background: #f8fafc;
         color: #334155;
         font-weight: 700;
-        border-bottom: 1px solid #e2e8f0;
         white-space: nowrap;
+        border-bottom: 2px solid #dee2e6;
     }
 
-    .custom-table tbody td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: #eef2f7;
-        color: #334155;
+    :deep(.table th),
+    :deep(.table td) {
+        padding: 14px 16px;
+        vertical-align: middle;
+        border-right: 1px solid #eee;
     }
 
-    .custom-table tbody tr:hover {
-        background-color: #f8fbff;
+    :deep(.table th:last-child),
+    :deep(.table td:last-child) {
+        border-right: none;
+    }
+
+    :deep(.table tbody tr) {
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    :deep(.table tbody tr:hover) {
+        background: rgba(0, 0, 0, 0.03);
     }
 
     .empty-state {
@@ -952,15 +1126,43 @@
     }
 
     .custom-modal {
-        background: rgba(15, 23, 42, 0.35);
+        background: rgba(137, 210, 239, 0.5);
     }
 
-    .modal-content {
+    :deep(.modal-content) {
+        animation: fadeInUp 0.3s ease;
         border-radius: 24px;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 20px, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
     }
 
     textarea.form-control {
         min-height: 100px;
         resize: vertical;
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.4rem;
+        }
+
+        .gov-banner {
+            padding: 16px;
+            align-items: flex-start;
+        }
+
+        .gov-title {
+            font-size: 1.05rem;
+        }
     }
 </style>

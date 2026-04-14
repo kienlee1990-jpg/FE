@@ -2,12 +2,21 @@
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
+                <div class="gov-banner mb-4">
+                    <div class="gov-emblem">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div class="gov-text">
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="gov-title">QUẢN LÝ ĐƠN VỊ</div>
+                        <div class="gov-sub"></div>
+                    </div>
+                </div>
+
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div>
-                        <h1 class="page-title mb-1">Quản lý đơn vị</h1>
-                        <p class="page-subtitle mb-0">
-                            Quản lý danh sách đơn vị trong hệ thống
-                        </p>
+                    <div class="gov-banner">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
+                            class="gov-emblem" />
                     </div>
 
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
@@ -431,31 +440,82 @@
 
 <style scoped>
     .page-wrap {
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
         min-height: 100vh;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
     }
 
     .page-title {
         font-size: 1.75rem;
         font-weight: 700;
-        color: #0f172a;
+        color: #1f2d3d;
     }
 
     .page-subtitle {
-        color: #64748b;
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+
+    .wave-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        color: #0d6efd;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .gov-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+        margin-bottom: 18px;
+    }
+
+    .gov-emblem {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+        color: #fff;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .gov-text {
+        flex: 1;
+    }
+
+    .gov-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1f2d3d;
+        line-height: 1.3;
+    }
+
+    .gov-sub {
+        color: #6b7280;
+        margin-top: 4px;
         font-size: 0.95rem;
     }
 
     .custom-card {
         border: 0;
         border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         overflow: hidden;
     }
 
     .btn-action {
         border-radius: 12px;
-        padding: 0.75rem 1rem;
+        padding: 10px 18px;
         font-weight: 600;
     }
 
@@ -469,8 +529,8 @@
 
     .form-control:focus,
     .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
     .form-label {
@@ -479,23 +539,37 @@
         margin-bottom: 0.45rem;
     }
 
-    .custom-table thead th {
+    :deep(.table) {
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+
+    :deep(.table thead th) {
         background: #f8fafc;
         color: #334155;
         font-weight: 700;
-        border-bottom: 1px solid #e2e8f0;
         white-space: nowrap;
+        border-bottom: 2px solid #dee2e6;
     }
 
-    .custom-table tbody td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: #eef2f7;
-        color: #334155;
+    :deep(.table th),
+    :deep(.table td) {
+        padding: 14px 16px;
+        vertical-align: middle;
+        border-right: 1px solid #eee;
     }
 
-    .custom-table tbody tr:hover {
-        background-color: #f8fbff;
+    :deep(.table th:last-child),
+    :deep(.table td:last-child) {
+        border-right: none;
+    }
+
+    :deep(.table tbody tr) {
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    :deep(.table tbody tr:hover) {
+        background: rgba(0, 0, 0, 0.03);
     }
 
     .empty-state {
@@ -509,15 +583,43 @@
     }
 
     .custom-modal {
-        background: rgba(15, 23, 42, 0.35);
+        background: rgba(137, 210, 239, 0.5);
     }
 
-    .modal-content {
+    :deep(.modal-content) {
+        animation: fadeInUp 0.3s ease;
         border-radius: 24px;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 20px, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
     }
 
     textarea.form-control {
         min-height: 100px;
         resize: vertical;
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.4rem;
+        }
+
+        .gov-banner {
+            padding: 16px;
+            align-items: flex-start;
+        }
+
+        .gov-title {
+            font-size: 1.05rem;
+        }
     }
 </style>

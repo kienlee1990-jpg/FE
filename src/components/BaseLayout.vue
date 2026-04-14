@@ -6,8 +6,8 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <div v-if="!isCollapsed" class="brand-text">
-                    <h1>KPI Tracker</h1>
-                    <p>Đánh giá thực hiện chỉ tiêu công tác</p>
+                    <h1>Công an TP Đà Nẵng</h1>
+                    <p>Theo dõi đánh giá kết quả thực hiện chỉ tiêu công tác</p>
                 </div>
             </div>
 
@@ -41,10 +41,10 @@
                             Danh mục chỉ tiêu
                         </RouterLink>
                         <RouterLink to="/chi-tieu-bo-giao" class="sub-item" active-class="active">
-                            Chỉ tiêu Bộ giao
+                            Chỉ tiêu cho CATP
                         </RouterLink>
                         <RouterLink to="/chi-tieu-thanh-pho-giao" class="sub-item" active-class="active">
-                            Chỉ tiêu Thành phố giao
+                            Chỉ tiêu cho các đơn vị CADP
                         </RouterLink>
                         <RouterLink to="/ky-bao-cao" class="sub-item" active-class="active">
                             Kỳ báo cáo
@@ -70,7 +70,7 @@
                             Đợt giao chỉ tiêu
                         </RouterLink>
                         <RouterLink to="/phan-ra-chi-tieu-bo-giao" class="sub-item" active-class="active">
-                            Phân rã chỉ tiêu Bộ giao
+                            Cấu hình đánh giá chỉ tiêu
                         </RouterLink>
                         <RouterLink to="/giao-chi-tieu-don-vi" class="sub-item" active-class="active">
                             Giao chỉ tiêu cho đơn vị

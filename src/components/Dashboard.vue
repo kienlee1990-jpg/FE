@@ -1,228 +1,288 @@
 <template>
   <BaseLayout>
-    <div class="dashboard-page">
-      <div class="page-header">
-        <div>
-          <h2>Dashboard đánh giá KPI</h2>
-          <p>Tổng quan kết quả KPI theo kỳ báo cáo, đơn vị và mức độ hoàn thành</p>
+    <div class="page-wrap">
+      <div class="container-fluid py-4">
+        <div class="gov-banner mb-4">
+          <div class="gov-emblem">
+            <i class="bi bi-speedometer2"></i>
+          </div>
+          <div class="gov-text">
+            <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+            <div class="gov-title">DASHBOARD ĐÁNH GIÁ KPI</div>
+            <div class="gov-sub"></div>
+          </div>
         </div>
-        <div class="header-actions">
-          <button class="btn btn-primary" @click="fetchDashboardData">Tải dữ liệu</button>
-          <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
+
+        <div class="dashboard-page">
+          <div class="page-header">
+            <div class="gov-banner">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg" class="gov-emblem" />
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-primary" @click="fetchDashboardData">Tải dữ liệu</button>
+              <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
+            </div>
+          </div>
+
+          <div class="filter-card">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label>Kỳ báo cáo</label>
+                <select v-model="filters.kyBaoCaoKPIId" @change="fetchDashboardData">
+                  <option value="">-- Tất cả kỳ báo cáo --</option>
+                  <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
+                    {{ item.tenKy }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Đơn vị</label>
+                <select v-model="filters.donVi">
+                  <option value="">-- Tất cả đơn vị --</option>
+                  <option v-for="item in donViOptions" :key="item" :value="item">
+                    {{ item }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Xếp loại</label>
+                <select v-model="filters.xepLoai">
+                  <option value="">-- Tất cả xếp loại --</option>
+                  <option value="Xuất sắc">Xuất sắc</option>
+                  <option value="Tốt">Tốt</option>
+                  <option value="Đạt">Đạt</option>
+                  <option value="Không đạt">Không đạt</option>
+                </select>
+              </div>
+
+              <div class="form-group keyword-group">
+                <label>Từ khóa</label>
+                <input v-model.trim="filters.keyword" type="text"
+                  placeholder="Nhập mã chỉ tiêu, tên chỉ tiêu, đơn vị, nhận xét..." />
+              </div>
+            </div>
+          </div>
+
+          <div v-if="loading" class="state loading">Đang tải dữ liệu dashboard...</div>
+          <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
+
+          <template v-else>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span class="stat-label">Tổng KPI</span>
+                <strong class="stat-value">{{ filteredRows.length }}</strong>
+                <span class="stat-note">Bản ghi sau khi gộp và lọc</span>
+              </div>
+
+              <div class="stat-card">
+                <span class="stat-label">Hoàn thành TB</span>
+                <strong class="stat-value">{{ formatPercent(averageCompletion) }}</strong>
+                <span class="stat-note">Theo % hoàn thành</span>
+              </div>
+
+              <div class="stat-card success">
+                <span class="stat-label">Xuất sắc</span>
+                <strong class="stat-value">{{ xepLoaiStats.xuatSac }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.xuatSac) }}</span>
+              </div>
+
+              <div class="stat-card info">
+                <span class="stat-label">Tốt</span>
+                <strong class="stat-value">{{ xepLoaiStats.tot }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.tot) }}</span>
+              </div>
+
+              <div class="stat-card warning">
+                <span class="stat-label">Đạt</span>
+                <strong class="stat-value">{{ xepLoaiStats.dat }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.dat) }}</span>
+              </div>
+
+              <div class="stat-card danger">
+                <span class="stat-label">Không đạt</span>
+                <strong class="stat-value">{{ xepLoaiStats.khongDat }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.khongDat) }}</span>
+              </div>
+            </div>
+
+            <div class="dashboard-grid two-columns">
+              <section class="panel-card">
+                <div class="panel-header">
+                  <h3>Cơ cấu xếp loại</h3>
+                  <span>{{ filteredRows.length }} KPI</span>
+                </div>
+
+                <div v-if="filteredRows.length === 0" class="empty-panel">Không có dữ liệu</div>
+                <div v-else class="chart-wrapper">
+                  <apexchart type="donut" height="320" :options="xepLoaiChartOptions" :series="xepLoaiChartSeries" />
+                </div>
+              </section>
+
+              <section class="panel-card">
+                <div class="panel-header">
+                  <h3>Insight nhanh</h3>
+                  <span>Tóm tắt nổi bật</span>
+                </div>
+
+                <div class="insight-grid">
+                  <div class="insight-card">
+                    <span class="insight-label">Đơn vị tốt nhất</span>
+                    <strong class="insight-title">{{ bestUnit?.tenDonVi || '-' }}</strong>
+                    <span class="insight-value">
+                      {{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}
+                    </span>
+                  </div>
+
+                  <div class="insight-card">
+                    <span class="insight-label">Đơn vị cần chú ý</span>
+                    <strong class="insight-title">{{ worstUnit?.tenDonVi || '-' }}</strong>
+                    <span class="insight-value">
+                      {{ worstUnit ? `${worstUnit.khongDat} KPI không đạt` : '-' }}
+                    </span>
+                  </div>
+
+                  <div class="insight-card">
+                    <span class="insight-label">KPI tốt nhất</span>
+                    <strong class="insight-title">{{ bestKpi?.tenChiTieu || bestKpi?.maChiTieu || '-' }}</strong>
+                    <span class="insight-value">
+                      {{ bestKpi ? formatPercent(bestKpi.tyLeHoanThanh) : '-' }}
+                    </span>
+                  </div>
+
+                  <div class="insight-card">
+                    <span class="insight-label">KPI thấp nhất</span>
+                    <strong class="insight-title">{{ worstKpi?.tenChiTieu || worstKpi?.maChiTieu || '-' }}</strong>
+                    <span class="insight-value">
+                      {{ worstKpi ? formatPercent(worstKpi.tyLeHoanThanh) : '-' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="trend-detail compact">
+                  <div class="trend-row">
+                    <span>Tăng so với đầu kỳ</span>
+                    <strong>{{ dauKySummary.positive }}</strong>
+                  </div>
+                  <div class="trend-row">
+                    <span>Giảm so với đầu kỳ</span>
+                    <strong>{{ dauKySummary.negative }}</strong>
+                  </div>
+                  <div class="trend-row">
+                    <span>Tăng cùng kỳ năm trước</span>
+                    <strong>{{ cungKySummary.positive }}</strong>
+                  </div>
+                  <div class="trend-row">
+                    <span>Giảm cùng kỳ năm trước</span>
+                    <strong>{{ cungKySummary.negative }}</strong>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="dashboard-grid two-columns">
+              <section class="panel-card">
+                <div class="panel-header">
+                  <h3>Top 8 đơn vị theo % hoàn thành TB</h3>
+                  <span>Xếp hạng đơn vị</span>
+                </div>
+
+                <div v-if="unitPerformance.length === 0" class="empty-panel">Không có dữ liệu đơn vị</div>
+                <div v-else class="chart-wrapper">
+                  <apexchart type="bar" height="340" :options="unitChartOptions" :series="unitChartSeries" />
+                </div>
+              </section>
+
+              <section class="panel-card">
+                <div class="panel-header">
+                  <h3>Top đơn vị có KPI không đạt</h3>
+                  <span>Ưu tiên theo dõi</span>
+                </div>
+
+                <div v-if="worstUnitsChartSeries[0].data.length === 0" class="empty-panel">Không có dữ liệu</div>
+                <div v-else class="chart-wrapper">
+                  <apexchart type="bar" height="340" :options="worstUnitsChartOptions"
+                    :series="worstUnitsChartSeries" />
+                </div>
+              </section>
+            </div>
+
+            <div class="dashboard-grid two-columns">
+              <section class="panel-card">
+                <div class="panel-header">
+                  <h3>Top 5 KPI tốt nhất</h3>
+                  <span>% hoàn thành cao nhất</span>
+                </div>
+
+                <div v-if="topPerformers.length === 0" class="empty-panel">Không có dữ liệu</div>
+                <div v-else class="chart-wrapper">
+                  <apexchart type="bar" height="340" :options="topPerformersChartOptions"
+                    :series="topPerformersChartSeries" />
+                </div>
+              </section>
+
+              <section class="panel-card">
+                <div class="panel-header">
+                  <h3>Top 5 KPI kém nhất</h3>
+                  <span>% hoàn thành thấp nhất</span>
+                </div>
+
+                <div v-if="bottomPerformers.length === 0" class="empty-panel">Không có dữ liệu</div>
+                <div v-else class="chart-wrapper">
+                  <apexchart type="bar" height="340" :options="bottomPerformersChartOptions"
+                    :series="bottomPerformersChartSeries" />
+                </div>
+              </section>
+            </div>
+
+            <section class="panel-card">
+              <div class="panel-header">
+                <h3>Bảng tổng hợp chi tiết sau khi gộp</h3>
+                <span>{{ filteredRows.length }} dòng</span>
+              </div>
+
+              <div v-if="filteredRows.length === 0" class="empty-panel">Không có dữ liệu</div>
+              <div v-else class="table-wrap">
+                <table class="summary-table">
+                  <thead>
+                    <tr>
+                      <th>Mã chỉ tiêu</th>
+                      <th>Tên chỉ tiêu</th>
+                      <th>Đơn vị</th>
+                      <th>Đợt giao</th>
+                      <th>Kỳ báo cáo</th>
+                      <th>Xếp loại</th>
+                      <th>% hoàn thành</th>
+                      <th>Tăng trưởng đầu kỳ</th>
+                      <th>Tăng trưởng cùng kỳ</th>
+                      <th>Số bản ghi gộp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in filteredRows" :key="buildGroupedRowKey(item)">
+                      <td>{{ item.maChiTieu || '-' }}</td>
+                      <td>{{ item.tenChiTieu || '-' }}</td>
+                      <td>{{ item.tenDonViNhan || '-' }}</td>
+                      <td>{{ item.tenDotGiao || item.maDotGiao || item.dotGiaoChiTieuId || '-' }}</td>
+                      <td>{{ item.tenKy || item.maKy || '-' }}</td>
+                      <td>
+                        <span class="row-badge" :class="badgeClass(item.xepLoai)">
+                          {{ item.xepLoai || '-' }}
+                        </span>
+                      </td>
+                      <td>{{ formatPercent(item.tyLeHoanThanh) }}</td>
+                      <td>{{ formatPercent(item.tyLeTangTruongSoVoiDauKy) }}</td>
+                      <td>{{ formatPercent(item.tyLeTangTruongSoVoiCungKyNamTruoc) }}</td>
+                      <td>{{ item._groupCount || 1 }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </template>
         </div>
       </div>
-
-      <div class="filter-card">
-        <div class="filter-grid">
-          <div class="form-group">
-            <label>Kỳ báo cáo</label>
-            <select v-model="filters.kyBaoCaoKPIId" @change="fetchDashboardData">
-              <option value="">-- Tất cả kỳ báo cáo --</option>
-              <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
-                {{ item.tenKy }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Đơn vị</label>
-            <select v-model="filters.donVi">
-              <option value="">-- Tất cả đơn vị --</option>
-              <option v-for="item in donViOptions" :key="item" :value="item">
-                {{ item }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Xếp loại</label>
-            <select v-model="filters.xepLoai">
-              <option value="">-- Tất cả xếp loại --</option>
-              <option value="Xuất sắc">Xuất sắc</option>
-              <option value="Tốt">Tốt</option>
-              <option value="Đạt">Đạt</option>
-              <option value="Không đạt">Không đạt</option>
-            </select>
-          </div>
-
-          <div class="form-group keyword-group">
-            <label>Từ khóa</label>
-            <input v-model.trim="filters.keyword" type="text"
-              placeholder="Nhập mã chỉ tiêu, tên chỉ tiêu, đơn vị, nhận xét..." />
-          </div>
-        </div>
-      </div>
-
-      <div v-if="loading" class="state loading">Đang tải dữ liệu dashboard...</div>
-      <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
-
-      <template v-else>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-label">Tổng KPI</span>
-            <strong class="stat-value">{{ filteredRows.length }}</strong>
-            <span class="stat-note">Bản ghi trong phạm vi lọc</span>
-          </div>
-
-          <div class="stat-card">
-            <span class="stat-label">Hoàn thành TB</span>
-            <strong class="stat-value">{{ formatPercent(averageCompletion) }}</strong>
-            <span class="stat-note">Theo % hoàn thành</span>
-          </div>
-
-          <div class="stat-card success">
-            <span class="stat-label">Xuất sắc</span>
-            <strong class="stat-value">{{ xepLoaiStats.xuatSac }}</strong>
-            <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.xuatSac) }}</span>
-          </div>
-
-          <div class="stat-card info">
-            <span class="stat-label">Tốt</span>
-            <strong class="stat-value">{{ xepLoaiStats.tot }}</strong>
-            <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.tot) }}</span>
-          </div>
-
-          <div class="stat-card warning">
-            <span class="stat-label">Đạt</span>
-            <strong class="stat-value">{{ xepLoaiStats.dat }}</strong>
-            <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.dat) }}</span>
-          </div>
-
-          <div class="stat-card danger">
-            <span class="stat-label">Không đạt</span>
-            <strong class="stat-value">{{ xepLoaiStats.khongDat }}</strong>
-            <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.khongDat) }}</span>
-          </div>
-        </div>
-
-        <div class="dashboard-grid two-columns">
-          <section class="panel-card">
-            <div class="panel-header">
-              <h3>Cơ cấu xếp loại</h3>
-              <span>{{ filteredRows.length }} KPI</span>
-            </div>
-
-            <div v-if="filteredRows.length === 0" class="empty-panel">Không có dữ liệu</div>
-            <div v-else class="chart-wrapper">
-              <apexchart type="donut" height="320" :options="xepLoaiChartOptions" :series="xepLoaiChartSeries" />
-            </div>
-          </section>
-
-          <section class="panel-card">
-            <div class="panel-header">
-              <h3>Insight nhanh</h3>
-              <span>Tóm tắt nổi bật</span>
-            </div>
-
-            <div class="insight-grid">
-              <div class="insight-card">
-                <span class="insight-label">Đơn vị tốt nhất</span>
-                <strong class="insight-title">{{ bestUnit?.tenDonVi || '-' }}</strong>
-                <span class="insight-value">
-                  {{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}
-                </span>
-              </div>
-
-              <div class="insight-card">
-                <span class="insight-label">Đơn vị cần chú ý</span>
-                <strong class="insight-title">{{ worstUnit?.tenDonVi || '-' }}</strong>
-                <span class="insight-value">
-                  {{ worstUnit ? `${worstUnit.khongDat} KPI không đạt` : '-' }}
-                </span>
-              </div>
-
-              <div class="insight-card">
-                <span class="insight-label">KPI tốt nhất</span>
-                <strong class="insight-title">{{ bestKpi?.tenChiTieu || bestKpi?.maChiTieu || '-' }}</strong>
-                <span class="insight-value">
-                  {{ bestKpi ? formatPercent(bestKpi.tyLeHoanThanh) : '-' }}
-                </span>
-              </div>
-
-              <div class="insight-card">
-                <span class="insight-label">KPI thấp nhất</span>
-                <strong class="insight-title">{{ worstKpi?.tenChiTieu || worstKpi?.maChiTieu || '-' }}</strong>
-                <span class="insight-value">
-                  {{ worstKpi ? formatPercent(worstKpi.tyLeHoanThanh) : '-' }}
-                </span>
-              </div>
-            </div>
-
-            <div class="trend-detail compact">
-              <div class="trend-row">
-                <span>Tăng so với đầu kỳ</span>
-                <strong>{{ dauKySummary.positive }}</strong>
-              </div>
-              <div class="trend-row">
-                <span>Giảm so với đầu kỳ</span>
-                <strong>{{ dauKySummary.negative }}</strong>
-              </div>
-              <div class="trend-row">
-                <span>Tăng cùng kỳ năm trước</span>
-                <strong>{{ cungKySummary.positive }}</strong>
-              </div>
-              <div class="trend-row">
-                <span>Giảm cùng kỳ năm trước</span>
-                <strong>{{ cungKySummary.negative }}</strong>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div class="dashboard-grid two-columns">
-          <section class="panel-card">
-            <div class="panel-header">
-              <h3>Top 8 đơn vị theo % hoàn thành TB</h3>
-              <span>Xếp hạng đơn vị</span>
-            </div>
-
-            <div v-if="unitPerformance.length === 0" class="empty-panel">Không có dữ liệu đơn vị</div>
-            <div v-else class="chart-wrapper">
-              <apexchart type="bar" height="340" :options="unitChartOptions" :series="unitChartSeries" />
-            </div>
-          </section>
-
-          <section class="panel-card">
-            <div class="panel-header">
-              <h3>Top đơn vị có KPI không đạt</h3>
-              <span>Ưu tiên theo dõi</span>
-            </div>
-
-            <div v-if="worstUnitsChartSeries[0].data.length === 0" class="empty-panel">Không có dữ liệu</div>
-            <div v-else class="chart-wrapper">
-              <apexchart type="bar" height="340" :options="worstUnitsChartOptions" :series="worstUnitsChartSeries" />
-            </div>
-          </section>
-        </div>
-
-        <div class="dashboard-grid two-columns">
-          <section class="panel-card">
-            <div class="panel-header">
-              <h3>Top 5 KPI tốt nhất</h3>
-              <span>% hoàn thành cao nhất</span>
-            </div>
-
-            <div v-if="topPerformers.length === 0" class="empty-panel">Không có dữ liệu</div>
-            <div v-else class="chart-wrapper">
-              <apexchart type="bar" height="340" :options="topPerformersChartOptions"
-                :series="topPerformersChartSeries" />
-            </div>
-          </section>
-
-          <section class="panel-card">
-            <div class="panel-header">
-              <h3>Top 5 KPI kém nhất</h3>
-              <span>% hoàn thành thấp nhất</span>
-            </div>
-
-            <div v-if="bottomPerformers.length === 0" class="empty-panel">Không có dữ liệu</div>
-            <div v-else class="chart-wrapper">
-              <apexchart type="bar" height="340" :options="bottomPerformersChartOptions"
-                :series="bottomPerformersChartSeries" />
-            </div>
-          </section>
-        </div>
-      </template>
     </div>
   </BaseLayout>
 </template>
@@ -234,6 +294,7 @@
   import VueApexCharts from 'vue3-apexcharts'
 
   const apexchart = VueApexCharts
+  const EXCLUDED_UNIT = 'Công an thành phố Đà Nẵng'
 
   const loading = ref(false)
   const errorMessage = ref('')
@@ -247,14 +308,109 @@
     keyword: ''
   })
 
+  const groupedRows = computed(() => {
+    const map = new Map()
+
+    rows.value.forEach(item => {
+      const tenDonVi = item.tenDonViNhan || item.tenDonViThucHien || ''
+      if (normalizeText(tenDonVi) === normalizeText(EXCLUDED_UNIT)) return
+
+      const chiTietGiaoChiTieuId =
+        item.chiTietGiaoChiTieuId ??
+        item.idChiTietGiaoChiTieu ??
+        item.chiTietId ??
+        item.idChiTiet ??
+        ''
+
+      const dotGiaoChiTieuId =
+        item.dotGiaoChiTieuId ??
+        item.idDotGiaoChiTieu ??
+        item.maDotGiao ??
+        item.dotGiaoId ??
+        ''
+
+      const key = [chiTietGiaoChiTieuId, normalizeText(tenDonVi), dotGiaoChiTieuId].join('___')
+
+      if (!map.has(key)) {
+        map.set(key, {
+          ...item,
+          _groupCount: 1,
+          _tyLeHoanThanhValues: isFiniteNumber(item.tyLeHoanThanh) ? [Number(item.tyLeHoanThanh)] : [],
+          _tangTruongDauKyValues: isFiniteNumber(item.tyLeTangTruongSoVoiDauKy)
+            ? [Number(item.tyLeTangTruongSoVoiDauKy)]
+            : [],
+          _tangTruongCungKyValues: isFiniteNumber(item.tyLeTangTruongSoVoiCungKyNamTruoc)
+            ? [Number(item.tyLeTangTruongSoVoiCungKyNamTruoc)]
+            : [],
+          _chenhLechDauKyValues: isFiniteNumber(item.chenhLechSoVoiDauKy)
+            ? [Number(item.chenhLechSoVoiDauKy)]
+            : [],
+          _chenhLechCungKyValues: isFiniteNumber(item.chenhLechSoVoiCungKyNamTruoc)
+            ? [Number(item.chenhLechSoVoiCungKyNamTruoc)]
+            : []
+        })
+        return
+      }
+
+      const current = map.get(key)
+      current._groupCount += 1
+
+      if (isFiniteNumber(item.tyLeHoanThanh)) {
+        current._tyLeHoanThanhValues.push(Number(item.tyLeHoanThanh))
+      }
+
+      if (isFiniteNumber(item.tyLeTangTruongSoVoiDauKy)) {
+        current._tangTruongDauKyValues.push(Number(item.tyLeTangTruongSoVoiDauKy))
+      }
+
+      if (isFiniteNumber(item.tyLeTangTruongSoVoiCungKyNamTruoc)) {
+        current._tangTruongCungKyValues.push(Number(item.tyLeTangTruongSoVoiCungKyNamTruoc))
+      }
+
+      if (isFiniteNumber(item.chenhLechSoVoiDauKy)) {
+        current._chenhLechDauKyValues.push(Number(item.chenhLechSoVoiDauKy))
+      }
+
+      if (isFiniteNumber(item.chenhLechSoVoiCungKyNamTruoc)) {
+        current._chenhLechCungKyValues.push(Number(item.chenhLechSoVoiCungKyNamTruoc))
+      }
+
+      const rank = {
+        'khong dat': 1,
+        dat: 2,
+        tot: 3,
+        'xuat sac': 4
+      }
+
+      const currentRank = rank[normalizeText(current.xepLoai)] || 0
+      const nextRank = rank[normalizeText(item.xepLoai)] || 0
+
+      if (nextRank > currentRank) {
+        current.xepLoai = item.xepLoai
+        current.ketQua = item.ketQua
+        current.nguoiDanhGia = item.nguoiDanhGia
+        current.nhanXetDanhGia = item.nhanXetDanhGia
+      }
+    })
+
+    return Array.from(map.values()).map(item => ({
+      ...item,
+      tyLeHoanThanh: averageArray(item._tyLeHoanThanhValues),
+      tyLeTangTruongSoVoiDauKy: averageArray(item._tangTruongDauKyValues),
+      tyLeTangTruongSoVoiCungKyNamTruoc: averageArray(item._tangTruongCungKyValues),
+      chenhLechSoVoiDauKy: averageArray(item._chenhLechDauKyValues),
+      chenhLechSoVoiCungKyNamTruoc: averageArray(item._chenhLechCungKyValues)
+    }))
+  })
+
   const donViOptions = computed(() => {
-    return [...new Set(rows.value.map(item => item.tenDonViNhan).filter(Boolean))].sort((a, b) =>
+    return [...new Set(groupedRows.value.map(item => item.tenDonViNhan).filter(Boolean))].sort((a, b) =>
       a.localeCompare(b, 'vi')
     )
   })
 
   const filteredRows = computed(() => {
-    let data = [...rows.value]
+    let data = [...groupedRows.value]
 
     if (filters.donVi) {
       data = data.filter(item => item.tenDonViNhan === filters.donVi)
@@ -278,7 +434,9 @@
           item.xepLoai,
           item.ketQua,
           item.nguoiDanhGia,
-          item.nhanXetDanhGia
+          item.nhanXetDanhGia,
+          item.tenDotGiao,
+          item.maDotGiao
         ]
           .filter(Boolean)
           .some(value => normalizeText(String(value)).includes(keyword))
@@ -308,17 +466,8 @@
   })
 
   const averageCompletion = computed(() => averageOf(filteredRows.value, 'tyLeHoanThanh'))
-  const averageGrowthDauKy = computed(() => averageOf(filteredRows.value, 'tyLeTangTruongSoVoiDauKy'))
-  const averageGrowthCungKy = computed(() =>
-    averageOf(filteredRows.value, 'tyLeTangTruongSoVoiCungKyNamTruoc')
-  )
-  const averageDiffDauKy = computed(() => averageOf(filteredRows.value, 'chenhLechSoVoiDauKy'))
-  const averageDiffCungKy = computed(() => averageOf(filteredRows.value, 'chenhLechSoVoiCungKyNamTruoc'))
-
   const dauKySummary = computed(() => buildTrendSummary(filteredRows.value, 'tyLeTangTruongSoVoiDauKy'))
-  const cungKySummary = computed(() =>
-    buildTrendSummary(filteredRows.value, 'tyLeTangTruongSoVoiCungKyNamTruoc')
-  )
+  const cungKySummary = computed(() => buildTrendSummary(filteredRows.value, 'tyLeTangTruongSoVoiCungKyNamTruoc'))
 
   const unitPerformance = computed(() => {
     const grouped = groupBy(filteredRows.value, item => item.tenDonViNhan || 'Chưa xác định')
@@ -576,6 +725,14 @@
     fetchDashboardData()
   }
 
+  function buildGroupedRowKey(item) {
+    return [
+      item.chiTietGiaoChiTieuId ?? item.idChiTietGiaoChiTieu ?? item.chiTietId ?? item.idChiTiet ?? '',
+      item.dotGiaoChiTieuId ?? item.idDotGiaoChiTieu ?? item.maDotGiao ?? item.dotGiaoId ?? '',
+      normalizeText(item.tenDonViNhan || '')
+    ].join('___')
+  }
+
   function groupBy(items, getKey) {
     return items.reduce((acc, item) => {
       const key = getKey(item)
@@ -583,6 +740,11 @@
       acc[key].push(item)
       return acc
     }, {})
+  }
+
+  function averageArray(values) {
+    if (!values || !values.length) return 0
+    return roundNumber(values.reduce((sum, value) => sum + value, 0) / values.length)
   }
 
   function averageOf(items, field) {
@@ -672,6 +834,61 @@
 </script>
 
 <style scoped>
+  .page-wrap {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
+  }
+
+  .gov-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+    box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+    border: 1px solid rgba(13, 110, 253, 0.08);
+  }
+
+  .gov-emblem {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+    color: #fff;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+
+  .gov-text {
+    flex: 1;
+  }
+
+  .wave-title {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-size: 0.8rem;
+    color: #0d6efd;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .gov-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1f2d3d;
+    line-height: 1.3;
+  }
+
+  .gov-sub {
+    color: #6b7280;
+    margin-top: 4px;
+    font-size: 0.95rem;
+  }
+
   .dashboard-page {
     display: flex;
     flex-direction: column;
@@ -912,6 +1129,71 @@
     color: #dc2626;
   }
 
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+  }
+
+  .summary-table thead th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 700;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .summary-table tbody td {
+    padding: 12px;
+    border-bottom: 1px solid #eef2f7;
+    color: #334155;
+    vertical-align: middle;
+  }
+
+  .summary-table tbody tr:hover {
+    background-color: #f8fbff;
+  }
+
+  .row-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge-excellent {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .badge-good {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  .badge-pass {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  .badge-fail {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .badge-default {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
   .btn {
     border: none;
     border-radius: 10px;
@@ -963,6 +1245,15 @@
 
     .header-actions .btn {
       flex: 1;
+    }
+
+    .gov-banner {
+      padding: 16px;
+      align-items: flex-start;
+    }
+
+    .gov-title {
+      font-size: 1.05rem;
     }
   }
 </style>

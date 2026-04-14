@@ -2,12 +2,20 @@
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
+                <div class="gov-banner mb-4">
+                    <div class="gov-emblem">
+                        <i class="bi bi-list-check"></i>
+                    </div>
+                    <div class="gov-text">
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="gov-title">QUẢN LÝ DANH MỤC CHỈ TIÊU</div>
+                    </div>
+                </div>
+
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div>
-                        <h1 class="page-title mb-1">Danh mục chỉ tiêu</h1>
-                        <p class="page-subtitle mb-0">
-                            Quản lý danh mục chỉ tiêu công tác trong hệ thống
-                        </p>
+                    <div class="gov-banner">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
+                            class="gov-emblem" />
                     </div>
 
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
@@ -30,32 +38,22 @@
                                     placeholder="Mã hoặc tên chỉ tiêu" />
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Nguồn chỉ tiêu</label>
                                 <select v-model="filters.nguonChiTieu" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="BO">Bộ</option>
-                                    <option value="THANH_PHO">Thành phố</option>
+                                    <option value="BO">Bộ công an</option>
+                                    <option value="THANH_PHO">Công an thành phố</option>
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Loại chỉ tiêu</label>
                                 <select v-model="filters.loaiChiTieu" class="form-select">
                                     <option value="">Tất cả</option>
                                     <option value="DINH_TINH">Định tính</option>
                                     <option value="DINH_LUONG_TICH_LUY">Định lượng tích lũy</option>
                                     <option value="DINH_LUONG_SO_SANH">Định lượng so sánh</option>
-                                </select>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-2">
-                                <label class="form-label">Cấp áp dụng</label>
-                                <select v-model="filters.capApDung" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option value="THANH_PHO">Thành phố</option>
-                                    <option value="PHONG">Cấp phòng</option>
-                                    <option value="XA">Cấp xã/phường</option>
                                 </select>
                             </div>
 
@@ -110,7 +108,6 @@
                                         <th>Tên chỉ tiêu</th>
                                         <th>Nguồn</th>
                                         <th>Loại</th>
-                                        <th>Cấp áp dụng</th>
                                         <th>Trạng thái</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
@@ -121,13 +118,10 @@
                                         <td>{{ item.tenChiTieu }}</td>
                                         <td>{{ mapNguon(item.nguonChiTieu) }}</td>
                                         <td>{{ mapLoai(item.loaiChiTieu) }}</td>
-                                        <td>{{ mapCap(item.capApDung) }}</td>
                                         <td>
                                             <span class="badge rounded-pill"
                                                 :class="item.trangThaiSuDung === 'DANG_AP_DUNG' ? 'text-bg-success' : 'text-bg-danger'">
-                                                {{ item.trangThaiSuDung === 'DANG_AP_DUNG'
-                                                ? 'Đang áp dụng'
-                                                : 'Ngừng áp dụng' }}
+                                                {{ getTrangThaiLabel(item.trangThaiSuDung) }}
                                             </span>
                                         </td>
                                         <td class="text-center">
@@ -165,6 +159,13 @@
 
                             <div class="modal-body pt-3">
                                 <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-info mb-0">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <strong>Cấp áp dụng</strong> được mặc định là <strong>Thành phố</strong>.
+                                        </div>
+                                    </div>
+
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">
                                             Mã chỉ tiêu <span class="text-danger">*</span>
@@ -185,8 +186,8 @@
                                             Nguồn chỉ tiêu <span class="text-danger">*</span>
                                         </label>
                                         <select v-model="form.nguonChiTieu" class="form-select">
-                                            <option value="BO">Bộ</option>
-                                            <option value="THANH_PHO">Thành phố</option>
+                                            <option value="BO">Bộ công an</option>
+                                            <option value="THANH_PHO">Công an thành phố</option>
                                         </select>
                                     </div>
 
@@ -202,34 +203,42 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Cấp áp dụng <span class="text-danger">*</span>
-                                        </label>
-                                        <select v-model="form.capApDung" class="form-select">
-                                            <option value="THANH_PHO">Thành phố</option>
-                                            <option value="PHONG">Cấp phòng</option>
-                                            <option value="XA">Cấp xã/phường</option>
+                                        <label class="form-label">Lĩnh vực nghiệp vụ</label>
+                                        <select v-model="form.linhVucNghiepVu" class="form-select">
+                                            <option value="">Chọn lĩnh vực nghiệp vụ</option>
+                                            <option v-for="option in linhVucNghiepVuOptions" :key="option"
+                                                :value="option">
+                                                {{ option }}
+                                            </option>
+                                            <option :value="NEW_LINH_VUC_VALUE">+ Thêm mới lĩnh vực</option>
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Lĩnh vực nghiệp vụ</label>
-                                        <input v-model="form.linhVucNghiepVu" type="text" class="form-control"
-                                            list="linh-vuc-nghiep-vu-options"
-                                            placeholder="Chọn hoặc nhập lĩnh vực nghiệp vụ" />
-                                        <datalist id="linh-vuc-nghiep-vu-options">
-                                            <option v-for="option in linhVucNghiepVuOptions" :key="option"
-                                                :value="option" />
-                                        </datalist>
+                                    <div v-if="form.linhVucNghiepVu === NEW_LINH_VUC_VALUE" class="col-12 col-md-6">
+                                        <label class="form-label">
+                                            Nhập lĩnh vực nghiệp vụ mới <span class="text-danger">*</span>
+                                        </label>
+                                        <input v-model="form.linhVucNghiepVuMoi" type="text" class="form-control"
+                                            placeholder="Nhập lĩnh vực nghiệp vụ mới" />
                                     </div>
 
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">Đơn vị tính</label>
-                                        <input v-model="form.donViTinh" type="text" class="form-control"
-                                            list="don-vi-tinh-options" placeholder="Chọn hoặc nhập đơn vị tính" />
-                                        <datalist id="don-vi-tinh-options">
-                                            <option v-for="option in donViTinhOptions" :key="option" :value="option" />
-                                        </datalist>
+                                        <select v-model="form.donViTinh" class="form-select">
+                                            <option value="">Chọn đơn vị tính</option>
+                                            <option v-for="option in donViTinhOptions" :key="option" :value="option">
+                                                {{ option }}
+                                            </option>
+                                            <option :value="NEW_DON_VI_TINH_VALUE">+ Thêm mới đơn vị tính</option>
+                                        </select>
+                                    </div>
+
+                                    <div v-if="form.donViTinh === NEW_DON_VI_TINH_VALUE" class="col-12 col-md-6">
+                                        <label class="form-label">
+                                            Nhập đơn vị tính mới <span class="text-danger">*</span>
+                                        </label>
+                                        <input v-model="form.donViTinhMoi" type="text" class="form-control"
+                                            placeholder="Nhập đơn vị tính mới" />
                                     </div>
 
                                     <div class="col-12 col-md-6">
@@ -248,16 +257,6 @@
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">Ngày hết hiệu lực</label>
                                         <input v-model="form.ngayHetHieuLuc" type="date" class="form-control" />
-                                    </div>
-
-                                    <div class="col-12">
-                                        <div class="form-check custom-check">
-                                            <input v-model="form.coChoPhepPhanRa" class="form-check-input"
-                                                type="checkbox" id="coChoPhepPhanRa" />
-                                            <label class="form-check-label" for="coChoPhepPhanRa">
-                                                Cho phép phân rã chỉ tiêu xuống đơn vị cấp dưới
-                                            </label>
-                                        </div>
                                     </div>
 
                                     <div class="col-12">
@@ -332,6 +331,10 @@
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
 
+    const NEW_LINH_VUC_VALUE = '__NEW_LINH_VUC__'
+    const NEW_DON_VI_TINH_VALUE = '__NEW_DON_VI_TINH__'
+    const DEFAULT_CAP_AP_DUNG = 'THANH_PHO'
+
     const loading = ref(false)
     const saving = ref(false)
     const showModal = ref(false)
@@ -359,7 +362,6 @@
         keyword: '',
         nguonChiTieu: '',
         loaiChiTieu: '',
-        capApDung: '',
         trangThaiSuDung: ''
     })
 
@@ -368,12 +370,13 @@
         tenChiTieu: '',
         nguonChiTieu: 'BO',
         loaiChiTieu: 'DINH_TINH',
-        capApDung: 'THANH_PHO',
         linhVucNghiepVu: '',
+        linhVucNghiepVuMoi: '',
         donViTinh: '',
+        donViTinhMoi: '',
         moTa: '',
         huongDanTinhToan: '',
-        coChoPhepPhanRa: true,
+        coChoPhepPhanRa: false,
         trangThaiSuDung: 'DANG_AP_DUNG',
         ngayHieuLuc: '',
         ngayHetHieuLuc: '',
@@ -390,18 +393,32 @@
         Object.assign(form, createDefaultForm())
     }
 
+    const getResolvedLinhVucNghiepVu = () => {
+        if (form.linhVucNghiepVu === NEW_LINH_VUC_VALUE) {
+            return form.linhVucNghiepVuMoi?.trim() || ''
+        }
+        return form.linhVucNghiepVu?.trim() || ''
+    }
+
+    const getResolvedDonViTinh = () => {
+        if (form.donViTinh === NEW_DON_VI_TINH_VALUE) {
+            return form.donViTinhMoi?.trim() || ''
+        }
+        return form.donViTinh?.trim() || ''
+    }
+
     const buildPayload = () => {
         return {
             maChiTieu: form.maChiTieu?.trim(),
             tenChiTieu: form.tenChiTieu?.trim(),
             nguonChiTieu: form.nguonChiTieu,
             loaiChiTieu: form.loaiChiTieu,
-            capApDung: form.capApDung,
-            linhVucNghiepVu: form.linhVucNghiepVu?.trim() || null,
-            donViTinh: form.donViTinh?.trim() || null,
+            capApDung: DEFAULT_CAP_AP_DUNG,
+            linhVucNghiepVu: getResolvedLinhVucNghiepVu() || null,
+            donViTinh: getResolvedDonViTinh() || null,
             moTa: form.moTa || null,
             huongDanTinhToan: form.huongDanTinhToan || null,
-            coChoPhepPhanRa: form.coChoPhepPhanRa,
+            coChoPhepPhanRa: false,
             trangThaiSuDung: form.trangThaiSuDung,
             ngayHieuLuc: form.ngayHieuLuc || null,
             ngayHetHieuLuc: form.ngayHetHieuLuc || null,
@@ -413,7 +430,7 @@
         }
     }
 
-    const buildQueryString = (params) => {
+    const buildQueryString = params => {
         const searchParams = new URLSearchParams()
 
         Object.entries(params).forEach(([key, value]) => {
@@ -434,7 +451,6 @@
                 keyword: filters.keyword || undefined,
                 nguonChiTieu: filters.nguonChiTieu || undefined,
                 loaiChiTieu: filters.loaiChiTieu || undefined,
-                capApDung: filters.capApDung || undefined,
                 trangThaiSuDung: filters.trangThaiSuDung || undefined
             })
 
@@ -456,21 +472,39 @@
         showModal.value = true
     }
 
-    const openEditModal = (item) => {
+    const openEditModal = item => {
         isEdit.value = true
         editingId.value = item.id
+
+        const existingLinhVuc = item.linhVucNghiepVu?.trim() || ''
+        const existingDonViTinh = item.donViTinh?.trim() || ''
+
+        const hasLinhVucInOptions =
+            existingLinhVuc && linhVucNghiepVuOptions.value.includes(existingLinhVuc)
+
+        const hasDonViTinhInOptions =
+            existingDonViTinh && donViTinhOptions.value.includes(existingDonViTinh)
 
         Object.assign(form, {
             maChiTieu: item.maChiTieu,
             tenChiTieu: item.tenChiTieu,
             nguonChiTieu: item.nguonChiTieu,
             loaiChiTieu: item.loaiChiTieu,
-            capApDung: item.capApDung,
-            linhVucNghiepVu: item.linhVucNghiepVu || '',
-            donViTinh: item.donViTinh || '',
+            linhVucNghiepVu: hasLinhVucInOptions
+                ? existingLinhVuc
+                : existingLinhVuc
+                    ? NEW_LINH_VUC_VALUE
+                    : '',
+            linhVucNghiepVuMoi: hasLinhVucInOptions ? '' : existingLinhVuc,
+            donViTinh: hasDonViTinhInOptions
+                ? existingDonViTinh
+                : existingDonViTinh
+                    ? NEW_DON_VI_TINH_VALUE
+                    : '',
+            donViTinhMoi: hasDonViTinhInOptions ? '' : existingDonViTinh,
             moTa: item.moTa || '',
             huongDanTinhToan: item.huongDanTinhToan || '',
-            coChoPhepPhanRa: item.coChoPhepPhanRa,
+            coChoPhepPhanRa: false,
             trangThaiSuDung: item.trangThaiSuDung || 'DANG_AP_DUNG',
             ngayHieuLuc: item.ngayHieuLuc ? item.ngayHieuLuc.slice(0, 10) : '',
             ngayHetHieuLuc: item.ngayHetHieuLuc ? item.ngayHetHieuLuc.slice(0, 10) : '',
@@ -495,8 +529,18 @@
             return false
         }
 
-        if (!form.tenChiTieu) {
+        if (!form.tenChiTieu?.trim()) {
             alert('Vui lòng nhập tên chỉ tiêu.')
+            return false
+        }
+
+        if (form.linhVucNghiepVu === NEW_LINH_VUC_VALUE && !form.linhVucNghiepVuMoi?.trim()) {
+            alert('Vui lòng nhập lĩnh vực nghiệp vụ mới.')
+            return false
+        }
+
+        if (form.donViTinh === NEW_DON_VI_TINH_VALUE && !form.donViTinhMoi?.trim()) {
+            alert('Vui lòng nhập đơn vị tính mới.')
             return false
         }
 
@@ -540,12 +584,11 @@
         }
     }
 
-    const handleDelete = async (item) => {
+    const handleDelete = async item => {
         const ok = window.confirm(`Bạn có chắc muốn xóa chỉ tiêu "${item.tenChiTieu}" không?`)
         if (!ok) return
 
         try {
-            console.log('Deleting id:', item.id, 'item:', item)
             await apiRequest(`/danh-muc-chi-tieu/${item.id}`, 'DELETE')
             await fetchDanhMucChiTieu()
         } catch (error) {
@@ -554,37 +597,31 @@
         }
     }
 
+    const getTrangThaiLabel = value => {
+        return value === 'DANG_AP_DUNG' ? 'Đang áp dụng' : 'Ngừng áp dụng'
+    }
+
     const resetFilters = async () => {
         filters.keyword = ''
         filters.nguonChiTieu = ''
         filters.loaiChiTieu = ''
-        filters.capApDung = ''
         filters.trangThaiSuDung = ''
         await fetchDanhMucChiTieu()
     }
 
-    const mapNguon = (value) => {
+    const mapNguon = value => {
         const map = {
-            BO: 'Bộ',
-            THANH_PHO: 'Thành phố'
+            BO: 'Bộ công an',
+            THANH_PHO: 'Công an thành phố'
         }
         return map[value] || value
     }
 
-    const mapLoai = (value) => {
+    const mapLoai = value => {
         const map = {
             DINH_TINH: 'Định tính',
             DINH_LUONG_TICH_LUY: 'Định lượng tích lũy',
             DINH_LUONG_SO_SANH: 'Định lượng so sánh'
-        }
-        return map[value] || value
-    }
-
-    const mapCap = (value) => {
-        const map = {
-            THANH_PHO: 'Thành phố',
-            PHONG: 'Cấp phòng',
-            XA: 'Cấp xã/phường'
         }
         return map[value] || value
     }
@@ -594,103 +631,221 @@
     })
 </script>
 
-
 <style scoped>
     .page-wrap {
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
         min-height: 100vh;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
     }
 
     .page-title {
         font-size: 1.75rem;
         font-weight: 700;
-        color: #0f172a;
+        color: #1f2d3d;
     }
 
     .page-subtitle {
-        color: #64748b;
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+
+    .wave-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        color: #0d6efd;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .gov-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+    }
+
+    .gov-emblem {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+        color: #fff;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .gov-text {
+        flex: 1;
+    }
+
+    .gov-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1f2d3d;
+        line-height: 1.3;
+    }
+
+    .gov-sub {
+        color: #6b7280;
+        margin-top: 4px;
         font-size: 0.95rem;
     }
 
     .custom-card {
-        border: 0;
+        border: none;
         border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         overflow: hidden;
+    }
+
+    .custom-card .card-header {
+        padding: 1rem 1.25rem 0.75rem;
+    }
+
+    .custom-card .card-body {
+        padding: 1.25rem;
     }
 
     .btn-action {
         border-radius: 12px;
-        padding: 0.75rem 1rem;
         font-weight: 600;
+        padding: 10px 18px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.45rem;
     }
 
     .form-control,
-    .form-select {
-        border-radius: 12px;
+    .form-select,
+    .input-group-text {
         min-height: 44px;
-        border-color: #dbe2ea;
+        border-radius: 12px;
+        border-color: #dbe3ef;
         box-shadow: none;
     }
 
     .form-control:focus,
     .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: #334155;
-        margin-bottom: 0.45rem;
-    }
-
-    .custom-table thead th {
-        background: #f8fafc;
-        color: #334155;
-        font-weight: 700;
-        border-bottom: 1px solid #e2e8f0;
-        white-space: nowrap;
-    }
-
-    .custom-table tbody td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: #eef2f7;
-        color: #334155;
-    }
-
-    .custom-table tbody tr:hover {
-        background-color: #f8fbff;
-    }
-
-    .empty-state {
-        min-height: 260px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        color: #64748b;
-        font-weight: 500;
-    }
-
-    .custom-modal {
-        background: rgba(15, 23, 42, 0.35);
-    }
-
-    .modal-content {
-        border-radius: 24px;
-    }
-
-    .custom-check {
-        background: #f8fafc;
-        padding: 14px 16px;
-        border-radius: 14px;
-        border: 1px solid #e2e8f0;
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
     textarea.form-control {
         min-height: 100px;
         resize: vertical;
+    }
+
+    :deep(.table) {
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+
+    :deep(.table thead th) {
+        border-bottom: 2px solid #dee2e6;
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 700;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    :deep(.table td),
+    :deep(.table th) {
+        border-right: 1px solid #eee;
+        padding: 14px 16px;
+        vertical-align: middle;
+    }
+
+    :deep(.table td:last-child),
+    :deep(.table th:last-child) {
+        border-right: none;
+    }
+
+    :deep(.table tbody tr) {
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    :deep(.table-hover tbody tr:hover) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    .empty-state {
+        min-height: 260px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+
+    .badge.text-bg-light {
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 0.45rem 0.7rem;
+    }
+
+    .custom-modal {
+        background: rgba(137, 210, 239, 0.5);
+    }
+
+    :deep(.modal-content) {
+        animation: fadeInUp 0.3s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-title {
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .alert-info {
+        border: none;
+        border-radius: 14px;
+        background: rgba(137, 210, 239, 0.18);
+        color: #24566b;
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.4rem;
+        }
+
+        .custom-card .card-body {
+            padding: 1rem;
+        }
+
+        .gov-banner {
+            padding: 16px;
+            align-items: flex-start;
+        }
+
+        .gov-title {
+            font-size: 1.05rem;
+        }
+
+
     }
 </style>

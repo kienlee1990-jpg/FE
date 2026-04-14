@@ -1,275 +1,296 @@
 <template>
     <BaseLayout>
-        <div class="risk-page">
-            <div class="page-header">
-                <div>
-                    <h2>Cảnh báo rủi ro KPI</h2>
-                    <p>Phát hiện sớm các KPI có nguy cơ không đạt để ưu tiên theo dõi và xử lý</p>
+        <div class="page-wrap">
+            <div class="container-fluid py-4">
+                <div class="gov-banner mb-4">
+                    <div class="gov-emblem">
+                        <i class="bi bi-shield-exclamation"></i>
+                    </div>
+                    <div class="gov-text">
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="gov-title">CẢNH BÁO RỦI RO KPI</div>
+                        <div class="gov-sub">
+                        </div>
+                    </div>
                 </div>
-                <div class="header-actions">
-                    <button class="btn btn-primary" @click="fetchRiskData">Tải dữ liệu</button>
-                    <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
+
+                <div class="risk-page">
+                    <div class="page-header">
+                        <div class="gov-banner">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
+                                class="gov-emblem" />
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" @click="fetchRiskData">Tải dữ liệu</button>
+                            <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
+                        </div>
+                    </div>
+
+                    <div class="filter-card">
+                        <div class="filter-grid">
+                            <div class="form-group">
+                                <label>Kỳ báo cáo</label>
+                                <select v-model="filters.kyBaoCaoKPIId" @change="fetchRiskData">
+                                    <option value="">-- Tất cả kỳ báo cáo --</option>
+                                    <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
+                                        {{ item.tenKy }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Đơn vị</label>
+                                <select v-model="filters.donVi">
+                                    <option value="">-- Tất cả đơn vị --</option>
+                                    <option v-for="item in donViOptions" :key="item" :value="item">
+                                        {{ item }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Mức rủi ro</label>
+                                <select v-model="filters.mucRuiRo">
+                                    <option value="">-- Tất cả mức --</option>
+                                    <option value="critical">Nguy cơ rất cao</option>
+                                    <option value="high">Nguy cơ cao</option>
+                                    <option value="medium">Nguy cơ trung bình</option>
+                                    <option value="low">Nguy cơ thấp</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Sắp xếp</label>
+                                <select v-model="filters.sortBy">
+                                    <option value="riskScore">Theo điểm rủi ro</option>
+                                    <option value="completionAsc">Theo % hoàn thành tăng dần</option>
+                                    <option value="growthAsc">Theo tăng trưởng đầu kỳ tăng dần</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group keyword-group">
+                                <label>Từ khóa</label>
+                                <input v-model.trim="filters.keyword" type="text"
+                                    placeholder="Mã KPI, tên KPI, đơn vị, nhận xét..." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="loading" class="state loading">Đang tải dữ liệu cảnh báo rủi ro...</div>
+                    <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
+
+                    <template v-else>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <span class="stat-label">Tổng KPI</span>
+                                <strong class="stat-value">{{ filteredRiskRows.length }}</strong>
+                                <span class="stat-note">Trong phạm vi lọc</span>
+                            </div>
+
+                            <div class="stat-card critical">
+                                <span class="stat-label">Rất cao</span>
+                                <strong class="stat-value">{{ riskStats.critical }}</strong>
+                                <span class="stat-note">{{ buildRate(riskStats.critical) }}</span>
+                            </div>
+
+                            <div class="stat-card danger">
+                                <span class="stat-label">Cao</span>
+                                <strong class="stat-value">{{ riskStats.high }}</strong>
+                                <span class="stat-note">{{ buildRate(riskStats.high) }}</span>
+                            </div>
+
+                            <div class="stat-card warning">
+                                <span class="stat-label">Trung bình</span>
+                                <strong class="stat-value">{{ riskStats.medium }}</strong>
+                                <span class="stat-note">{{ buildRate(riskStats.medium) }}</span>
+                            </div>
+
+                            <div class="stat-card success">
+                                <span class="stat-label">Thấp</span>
+                                <strong class="stat-value">{{ riskStats.low }}</strong>
+                                <span class="stat-note">{{ buildRate(riskStats.low) }}</span>
+                            </div>
+
+                            <div class="stat-card">
+                                <span class="stat-label">Điểm rủi ro TB</span>
+                                <strong class="stat-value">{{ formatNumber(avgRiskScore) }}</strong>
+                                <span class="stat-note">Toàn bộ KPI sau lọc</span>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid two-columns">
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>Cơ cấu mức rủi ro</h3>
+                                    <span>{{ filteredRiskRows.length }} KPI</span>
+                                </div>
+
+                                <div v-if="filteredRiskRows.length === 0" class="empty-panel">Không có dữ liệu</div>
+                                <div v-else class="chart-wrapper">
+                                    <apexchart type="donut" height="320" :options="riskDonutOptions"
+                                        :series="riskDonutSeries" />
+                                </div>
+                            </section>
+
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>Insight nhanh</h3>
+                                    <span>Điểm nhấn cần theo dõi</span>
+                                </div>
+
+                                <div class="insight-grid">
+                                    <div class="insight-card">
+                                        <span class="insight-label">KPI rủi ro nhất</span>
+                                        <strong class="insight-title">
+                                            {{ topRiskKpi?.tenChiTieu || topRiskKpi?.maChiTieu || '-' }}
+                                        </strong>
+                                        <span class="insight-value">
+                                            {{ topRiskKpi ? `Điểm ${formatNumber(topRiskKpi.riskScore)}` : '-' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="insight-card">
+                                        <span class="insight-label">Đơn vị nhiều rủi ro nhất</span>
+                                        <strong class="insight-title">{{ topRiskUnit?.tenDonVi || '-' }}</strong>
+                                        <span class="insight-value">
+                                            {{ topRiskUnit ? `${topRiskUnit.critical + topRiskUnit.high} KPI rủi ro cao`
+                                            : '-'
+                                            }}
+                                        </span>
+                                    </div>
+
+                                    <div class="insight-card">
+                                        <span class="insight-label">% hoàn thành thấp nhất</span>
+                                        <strong class="insight-title">
+                                            {{ lowestCompletionKpi?.tenChiTieu || lowestCompletionKpi?.maChiTieu || '-'
+                                            }}
+                                        </strong>
+                                        <span class="insight-value">
+                                            {{ lowestCompletionKpi ? formatPercent(lowestCompletionKpi.tyLeHoanThanh) :
+                                            '-' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="insight-card">
+                                        <span class="insight-label">Tăng trưởng đầu kỳ thấp nhất</span>
+                                        <strong class="insight-title">
+                                            {{ worstGrowthKpi?.tenChiTieu || worstGrowthKpi?.maChiTieu || '-' }}
+                                        </strong>
+                                        <span class="insight-value">
+                                            {{ worstGrowthKpi ? formatPercent(worstGrowthKpi.tyLeTangTruongSoVoiDauKy) :
+                                            '-' }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="trend-detail compact">
+                                    <div class="trend-row">
+                                        <span>KPI không đạt</span>
+                                        <strong>{{ failedCount }}</strong>
+                                    </div>
+                                    <div class="trend-row">
+                                        <span>KPI dưới 70%</span>
+                                        <strong>{{ lowCompletionCount }}</strong>
+                                    </div>
+                                    <div class="trend-row">
+                                        <span>Tăng trưởng âm đầu kỳ</span>
+                                        <strong>{{ negativeDauKyCount }}</strong>
+                                    </div>
+                                    <div class="trend-row">
+                                        <span>Tăng trưởng âm cùng kỳ</span>
+                                        <strong>{{ negativeCungKyCount }}</strong>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="dashboard-grid two-columns">
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>Top 10 KPI rủi ro cao nhất</h3>
+                                    <span>Ưu tiên xử lý</span>
+                                </div>
+
+                                <div v-if="topRiskRows.length === 0" class="empty-panel">Không có dữ liệu</div>
+                                <div v-else class="chart-wrapper">
+                                    <apexchart type="bar" height="340" :options="topRiskChartOptions"
+                                        :series="topRiskChartSeries" />
+                                </div>
+                            </section>
+
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>Top đơn vị có rủi ro cao</h3>
+                                    <span>Theo số KPI mức cao và rất cao</span>
+                                </div>
+
+                                <div v-if="riskUnitSummaries.length === 0" class="empty-panel">Không có dữ liệu</div>
+                                <div v-else class="chart-wrapper">
+                                    <apexchart type="bar" height="340" :options="riskUnitChartOptions"
+                                        :series="riskUnitChartSeries" />
+                                </div>
+                            </section>
+                        </div>
+
+                        <section class="panel-card">
+                            <div class="panel-header">
+                                <h3>Danh sách cảnh báo rủi ro</h3>
+                                <span>{{ filteredRiskRows.length }} bản ghi</span>
+                            </div>
+
+                            <div v-if="filteredRiskRows.length === 0" class="empty-panel">Không có dữ liệu cảnh báo
+                            </div>
+                            <div v-else class="table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Mã KPI</th>
+                                            <th>Tên KPI</th>
+                                            <th>Đơn vị</th>
+                                            <th>Kỳ báo cáo</th>
+                                            <th>% hoàn thành</th>
+                                            <th>Xếp loại</th>
+                                            <th>Tăng trưởng đầu kỳ</th>
+                                            <th>Tăng trưởng cùng kỳ</th>
+                                            <th>Điểm rủi ro</th>
+                                            <th>Mức rủi ro</th>
+                                            <th>Lý do cảnh báo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(item, index) in filteredRiskRows"
+                                            :key="item.id || `${item.maChiTieu}-${index}`">
+                                            <td>{{ index + 1 }}</td>
+                                            <td>{{ item.maChiTieu || '-' }}</td>
+                                            <td>{{ item.tenChiTieu || '-' }}</td>
+                                            <td>{{ item.tenDonViNhan || '-' }}</td>
+                                            <td>{{ item.tenKy || item.maKy || '-' }}</td>
+                                            <td>{{ formatPercent(item.tyLeHoanThanh) }}</td>
+                                            <td>
+                                                <span :class="['badge', badgeClass(item.xepLoai)]">
+                                                    {{ item.xepLoai || 'Chưa có' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ formatPercent(item.tyLeTangTruongSoVoiDauKy) }}</td>
+                                            <td>{{ formatPercent(item.tyLeTangTruongSoVoiCungKyNamTruoc) }}</td>
+                                            <td>{{ formatNumber(item.riskScore) }}</td>
+                                            <td>
+                                                <span :class="['risk-badge', `risk-${item.riskLevel}`]">
+                                                    {{ riskLabel(item.riskLevel) }}
+                                                </span>
+                                            </td>
+                                            <td class="reason-cell">
+                                                {{ item.riskReasons.join(', ') || '-' }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </template>
                 </div>
             </div>
-
-            <div class="filter-card">
-                <div class="filter-grid">
-                    <div class="form-group">
-                        <label>Kỳ báo cáo</label>
-                        <select v-model="filters.kyBaoCaoKPIId" @change="fetchRiskData">
-                            <option value="">-- Tất cả kỳ báo cáo --</option>
-                            <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
-                                {{ item.tenKy }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Đơn vị</label>
-                        <select v-model="filters.donVi">
-                            <option value="">-- Tất cả đơn vị --</option>
-                            <option v-for="item in donViOptions" :key="item" :value="item">
-                                {{ item }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Mức rủi ro</label>
-                        <select v-model="filters.mucRuiRo">
-                            <option value="">-- Tất cả mức --</option>
-                            <option value="critical">Nguy cơ rất cao</option>
-                            <option value="high">Nguy cơ cao</option>
-                            <option value="medium">Nguy cơ trung bình</option>
-                            <option value="low">Nguy cơ thấp</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Sắp xếp</label>
-                        <select v-model="filters.sortBy">
-                            <option value="riskScore">Theo điểm rủi ro</option>
-                            <option value="completionAsc">Theo % hoàn thành tăng dần</option>
-                            <option value="growthAsc">Theo tăng trưởng đầu kỳ tăng dần</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group keyword-group">
-                        <label>Từ khóa</label>
-                        <input v-model.trim="filters.keyword" type="text"
-                            placeholder="Mã KPI, tên KPI, đơn vị, nhận xét..." />
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="loading" class="state loading">Đang tải dữ liệu cảnh báo rủi ro...</div>
-            <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
-
-            <template v-else>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-label">Tổng KPI</span>
-                        <strong class="stat-value">{{ filteredRiskRows.length }}</strong>
-                        <span class="stat-note">Trong phạm vi lọc</span>
-                    </div>
-
-                    <div class="stat-card critical">
-                        <span class="stat-label">Rất cao</span>
-                        <strong class="stat-value">{{ riskStats.critical }}</strong>
-                        <span class="stat-note">{{ buildRate(riskStats.critical) }}</span>
-                    </div>
-
-                    <div class="stat-card danger">
-                        <span class="stat-label">Cao</span>
-                        <strong class="stat-value">{{ riskStats.high }}</strong>
-                        <span class="stat-note">{{ buildRate(riskStats.high) }}</span>
-                    </div>
-
-                    <div class="stat-card warning">
-                        <span class="stat-label">Trung bình</span>
-                        <strong class="stat-value">{{ riskStats.medium }}</strong>
-                        <span class="stat-note">{{ buildRate(riskStats.medium) }}</span>
-                    </div>
-
-                    <div class="stat-card success">
-                        <span class="stat-label">Thấp</span>
-                        <strong class="stat-value">{{ riskStats.low }}</strong>
-                        <span class="stat-note">{{ buildRate(riskStats.low) }}</span>
-                    </div>
-
-                    <div class="stat-card">
-                        <span class="stat-label">Điểm rủi ro TB</span>
-                        <strong class="stat-value">{{ formatNumber(avgRiskScore) }}</strong>
-                        <span class="stat-note">Toàn bộ KPI sau lọc</span>
-                    </div>
-                </div>
-
-                <div class="dashboard-grid two-columns">
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>Cơ cấu mức rủi ro</h3>
-                            <span>{{ filteredRiskRows.length }} KPI</span>
-                        </div>
-
-                        <div v-if="filteredRiskRows.length === 0" class="empty-panel">Không có dữ liệu</div>
-                        <div v-else class="chart-wrapper">
-                            <apexchart type="donut" height="320" :options="riskDonutOptions"
-                                :series="riskDonutSeries" />
-                        </div>
-                    </section>
-
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>Insight nhanh</h3>
-                            <span>Điểm nhấn cần theo dõi</span>
-                        </div>
-
-                        <div class="insight-grid">
-                            <div class="insight-card">
-                                <span class="insight-label">KPI rủi ro nhất</span>
-                                <strong class="insight-title">
-                                    {{ topRiskKpi?.tenChiTieu || topRiskKpi?.maChiTieu || '-' }}
-                                </strong>
-                                <span class="insight-value">
-                                    {{ topRiskKpi ? `Điểm ${formatNumber(topRiskKpi.riskScore)}` : '-' }}
-                                </span>
-                            </div>
-
-                            <div class="insight-card">
-                                <span class="insight-label">Đơn vị nhiều rủi ro nhất</span>
-                                <strong class="insight-title">{{ topRiskUnit?.tenDonVi || '-' }}</strong>
-                                <span class="insight-value">
-                                    {{ topRiskUnit ? `${topRiskUnit.critical + topRiskUnit.high} KPI rủi ro cao` : '-'
-                                    }}
-                                </span>
-                            </div>
-
-                            <div class="insight-card">
-                                <span class="insight-label">% hoàn thành thấp nhất</span>
-                                <strong class="insight-title">
-                                    {{ lowestCompletionKpi?.tenChiTieu || lowestCompletionKpi?.maChiTieu || '-' }}
-                                </strong>
-                                <span class="insight-value">
-                                    {{ lowestCompletionKpi ? formatPercent(lowestCompletionKpi.tyLeHoanThanh) : '-' }}
-                                </span>
-                            </div>
-
-                            <div class="insight-card">
-                                <span class="insight-label">Tăng trưởng đầu kỳ thấp nhất</span>
-                                <strong class="insight-title">
-                                    {{ worstGrowthKpi?.tenChiTieu || worstGrowthKpi?.maChiTieu || '-' }}
-                                </strong>
-                                <span class="insight-value">
-                                    {{ worstGrowthKpi ? formatPercent(worstGrowthKpi.tyLeTangTruongSoVoiDauKy) : '-' }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="trend-detail compact">
-                            <div class="trend-row">
-                                <span>KPI không đạt</span>
-                                <strong>{{ failedCount }}</strong>
-                            </div>
-                            <div class="trend-row">
-                                <span>KPI dưới 70%</span>
-                                <strong>{{ lowCompletionCount }}</strong>
-                            </div>
-                            <div class="trend-row">
-                                <span>Tăng trưởng âm đầu kỳ</span>
-                                <strong>{{ negativeDauKyCount }}</strong>
-                            </div>
-                            <div class="trend-row">
-                                <span>Tăng trưởng âm cùng kỳ</span>
-                                <strong>{{ negativeCungKyCount }}</strong>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <div class="dashboard-grid two-columns">
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>Top 10 KPI rủi ro cao nhất</h3>
-                            <span>Ưu tiên xử lý</span>
-                        </div>
-
-                        <div v-if="topRiskRows.length === 0" class="empty-panel">Không có dữ liệu</div>
-                        <div v-else class="chart-wrapper">
-                            <apexchart type="bar" height="340" :options="topRiskChartOptions"
-                                :series="topRiskChartSeries" />
-                        </div>
-                    </section>
-
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>Top đơn vị có rủi ro cao</h3>
-                            <span>Theo số KPI mức cao và rất cao</span>
-                        </div>
-
-                        <div v-if="riskUnitSummaries.length === 0" class="empty-panel">Không có dữ liệu</div>
-                        <div v-else class="chart-wrapper">
-                            <apexchart type="bar" height="340" :options="riskUnitChartOptions"
-                                :series="riskUnitChartSeries" />
-                        </div>
-                    </section>
-                </div>
-
-                <section class="panel-card">
-                    <div class="panel-header">
-                        <h3>Danh sách cảnh báo rủi ro</h3>
-                        <span>{{ filteredRiskRows.length }} bản ghi</span>
-                    </div>
-
-                    <div v-if="filteredRiskRows.length === 0" class="empty-panel">Không có dữ liệu cảnh báo</div>
-                    <div v-else class="table-wrapper">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Mã KPI</th>
-                                    <th>Tên KPI</th>
-                                    <th>Đơn vị</th>
-                                    <th>Kỳ báo cáo</th>
-                                    <th>% hoàn thành</th>
-                                    <th>Xếp loại</th>
-                                    <th>Tăng trưởng đầu kỳ</th>
-                                    <th>Tăng trưởng cùng kỳ</th>
-                                    <th>Điểm rủi ro</th>
-                                    <th>Mức rủi ro</th>
-                                    <th>Lý do cảnh báo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(item, index) in filteredRiskRows"
-                                    :key="item.id || `${item.maChiTieu}-${index}`">
-                                    <td>{{ index + 1 }}</td>
-                                    <td>{{ item.maChiTieu || '-' }}</td>
-                                    <td>{{ item.tenChiTieu || '-' }}</td>
-                                    <td>{{ item.tenDonViNhan || '-' }}</td>
-                                    <td>{{ item.tenKy || item.maKy || '-' }}</td>
-                                    <td>{{ formatPercent(item.tyLeHoanThanh) }}</td>
-                                    <td>
-                                        <span :class="['badge', badgeClass(item.xepLoai)]">
-                                            {{ item.xepLoai || 'Chưa có' }}
-                                        </span>
-                                    </td>
-                                    <td>{{ formatPercent(item.tyLeTangTruongSoVoiDauKy) }}</td>
-                                    <td>{{ formatPercent(item.tyLeTangTruongSoVoiCungKyNamTruoc) }}</td>
-                                    <td>{{ formatNumber(item.riskScore) }}</td>
-                                    <td>
-                                        <span :class="['risk-badge', `risk-${item.riskLevel}`]">
-                                            {{ riskLabel(item.riskLevel) }}
-                                        </span>
-                                    </td>
-                                    <td class="reason-cell">
-                                        {{ item.riskReasons.join(', ') || '-' }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </template>
         </div>
     </BaseLayout>
 </template>
@@ -723,11 +744,65 @@
 </script>
 
 <style scoped>
+    .page-wrap {
+        min-height: 100vh;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
+    }
+
+    .gov-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+    }
+
+    .gov-emblem {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+        color: #fff;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .gov-text {
+        flex: 1;
+    }
+
+    .wave-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        color: #0d6efd;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .gov-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1f2d3d;
+        line-height: 1.3;
+    }
+
+    .gov-sub {
+        color: #6b7280;
+        margin-top: 4px;
+        font-size: 0.95rem;
+    }
+
     .risk-page {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        padding: 20px;
     }
 
     .page-header {
@@ -810,6 +885,12 @@
         border-radius: 10px;
         padding: 0 12px;
         outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
     .state {
@@ -1061,6 +1142,21 @@
         .insight-grid,
         .trend-detail.compact {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .gov-banner {
+            padding: 16px;
+            align-items: flex-start;
+        }
+
+        .gov-title {
+            font-size: 1.05rem;
+        }
+
+        .page-header h2 {
+            font-size: 24px;
         }
     }
 </style>

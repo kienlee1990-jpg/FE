@@ -1,247 +1,262 @@
 <template>
     <BaseLayout>
-        <div class="compare-page">
-            <div class="page-header">
-                <div>
-                    <h2>So sánh đơn vị</h2>
-                    <p>So sánh hiệu quả KPI giữa các đơn vị theo kỳ báo cáo, xếp loại và mức độ hoàn thành</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-primary" @click="fetchCompareData">Tải dữ liệu</button>
-                    <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
-                </div>
-            </div>
-
-            <div class="filter-card">
-                <div class="filter-grid">
-                    <div class="form-group">
-                        <label>Kỳ báo cáo</label>
-                        <select v-model="filters.kyBaoCaoKPIId" @change="fetchCompareData">
-                            <option value="">-- Tất cả kỳ báo cáo --</option>
-                            <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
-                                {{ item.tenKy }}
-                            </option>
-                        </select>
+        <div class="page-wrap">
+            <div class="container-fluid py-4">
+                <div class="gov-banner mb-4">
+                    <div class="gov-emblem">
+                        <i class="bi bi-bar-chart-line"></i>
                     </div>
-
-                    <div class="form-group">
-                        <label>Đơn vị 1</label>
-                        <select v-model="filters.unitA">
-                            <option value="">-- Chọn đơn vị --</option>
-                            <option v-for="item in donViOptions" :key="`a-${item}`" :value="item">
-                                {{ item }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Đơn vị 2</label>
-                        <select v-model="filters.unitB">
-                            <option value="">-- Chọn đơn vị --</option>
-                            <option v-for="item in donViOptions" :key="`b-${item}`" :value="item">
-                                {{ item }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Sắp xếp</label>
-                        <select v-model="filters.sortBy">
-                            <option value="avgCompletion">Theo % hoàn thành TB</option>
-                            <option value="total">Theo số KPI</option>
-                            <option value="xuatSac">Theo số KPI xuất sắc</option>
-                            <option value="khongDat">Theo số KPI không đạt</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group keyword-group">
-                        <label>Từ khóa</label>
-                        <input v-model.trim="filters.keyword" type="text"
-                            placeholder="Nhập tên đơn vị, mã KPI, tên KPI..." />
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="loading" class="state loading">Đang tải dữ liệu so sánh đơn vị...</div>
-            <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
-
-            <template v-else>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-label">Tổng đơn vị</span>
-                        <strong class="stat-value">{{ unitSummaries.length }}</strong>
-                        <span class="stat-note">Trong phạm vi lọc</span>
-                    </div>
-
-                    <div class="stat-card">
-                        <span class="stat-label">Tổng KPI</span>
-                        <strong class="stat-value">{{ filteredRows.length }}</strong>
-                        <span class="stat-note">Bản ghi đánh giá</span>
-                    </div>
-
-                    <div class="stat-card success">
-                        <span class="stat-label">Đơn vị tốt nhất</span>
-                        <strong class="stat-value">{{ bestUnit?.tenDonVi || '-' }}</strong>
-                        <span class="stat-note">
-                            {{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}
-                        </span>
-                    </div>
-
-                    <div class="stat-card danger">
-                        <span class="stat-label">Đơn vị cần chú ý</span>
-                        <strong class="stat-value">{{ worstUnit?.tenDonVi || '-' }}</strong>
-                        <span class="stat-note">
-                            {{ worstUnit ? `${worstUnit.khongDat} KPI không đạt` : '-' }}
-                        </span>
+                    <div class="gov-text">
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="gov-title">SO SÁNH ĐƠN VỊ</div>
+                        <div class="gov-sub"></div>
                     </div>
                 </div>
 
-                <div class="dashboard-grid two-columns">
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>Xếp hạng đơn vị</h3>
-                            <span>{{ unitSummaries.length }} đơn vị</span>
+                <div class="compare-page">
+                    <div class="page-header">
+                        <div class="gov-banner">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
+                                class="gov-emblem" />
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" @click="fetchCompareData">Tải dữ liệu</button>
+                            <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
+                        </div>
+                    </div>
+
+                    <div class="filter-card">
+                        <div class="filter-grid">
+                            <div class="form-group">
+                                <label>Kỳ báo cáo</label>
+                                <select v-model="filters.kyBaoCaoKPIId" @change="fetchCompareData">
+                                    <option value="">-- Tất cả kỳ báo cáo --</option>
+                                    <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
+                                        {{ item.tenKy }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Đơn vị 1</label>
+                                <select v-model="filters.unitA">
+                                    <option value="">-- Chọn đơn vị --</option>
+                                    <option v-for="item in donViOptions" :key="`a-${item}`" :value="item">
+                                        {{ item }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Đơn vị 2</label>
+                                <select v-model="filters.unitB">
+                                    <option value="">-- Chọn đơn vị --</option>
+                                    <option v-for="item in donViOptions" :key="`b-${item}`" :value="item">
+                                        {{ item }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Sắp xếp</label>
+                                <select v-model="filters.sortBy">
+                                    <option value="avgCompletion">Theo % hoàn thành TB</option>
+                                    <option value="total">Theo số KPI</option>
+                                    <option value="xuatSac">Theo số KPI xuất sắc</option>
+                                    <option value="khongDat">Theo số KPI không đạt</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group keyword-group">
+                                <label>Từ khóa</label>
+                                <input v-model.trim="filters.keyword" type="text"
+                                    placeholder="Nhập tên đơn vị, mã KPI, tên KPI..." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="loading" class="state loading">Đang tải dữ liệu so sánh đơn vị...</div>
+                    <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
+
+                    <template v-else>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <span class="stat-label">Tổng đơn vị</span>
+                                <strong class="stat-value">{{ unitSummaries.length }}</strong>
+                                <span class="stat-note">Trong phạm vi lọc</span>
+                            </div>
+
+                            <div class="stat-card">
+                                <span class="stat-label">Tổng KPI</span>
+                                <strong class="stat-value">{{ filteredRows.length }}</strong>
+                                <span class="stat-note">Bản ghi đánh giá</span>
+                            </div>
+
+                            <div class="stat-card success">
+                                <span class="stat-label">Đơn vị tốt nhất</span>
+                                <strong class="stat-value">{{ bestUnit?.tenDonVi || '-' }}</strong>
+                                <span class="stat-note">
+                                    {{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}
+                                </span>
+                            </div>
+
+                            <div class="stat-card danger">
+                                <span class="stat-label">Đơn vị cần chú ý</span>
+                                <strong class="stat-value">{{ worstUnit?.tenDonVi || '-' }}</strong>
+                                <span class="stat-note">
+                                    {{ worstUnit ? `${worstUnit.khongDat} KPI không đạt` : '-' }}
+                                </span>
+                            </div>
                         </div>
 
-                        <div v-if="unitSummaries.length === 0" class="empty-panel">Không có dữ liệu</div>
-                        <div v-else class="chart-wrapper">
-                            <apexchart type="bar" height="360" :options="unitCompareChartOptions"
-                                :series="unitCompareChartSeries" />
-                        </div>
-                    </section>
-
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>Tỷ trọng xếp loại theo đơn vị</h3>
-                            <span>So sánh chất lượng KPI</span>
-                        </div>
-
-                        <div v-if="stackedUnitSeries.length === 0" class="empty-panel">Không có dữ liệu</div>
-                        <div v-else class="chart-wrapper">
-                            <apexchart type="bar" height="360" :options="stackedUnitChartOptions"
-                                :series="stackedUnitSeries" />
-                        </div>
-                    </section>
-                </div>
-
-                <div class="dashboard-grid two-columns" v-if="selectedUnits.length > 0">
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>So sánh trực tiếp 2 đơn vị</h3>
-                            <span>{{ selectedUnitsLabel }}</span>
-                        </div>
-
-                        <div class="compare-duo-grid">
-                            <div v-for="unit in selectedUnits" :key="unit.tenDonVi" class="compare-unit-card">
-                                <div class="compare-unit-head">
-                                    <h4>{{ unit.tenDonVi }}</h4>
-                                    <span>{{ unit.total }} KPI</span>
+                        <div class="dashboard-grid two-columns">
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>Xếp hạng đơn vị</h3>
+                                    <span>{{ unitSummaries.length }} đơn vị</span>
                                 </div>
 
-                                <div class="compare-metrics">
-                                    <div class="metric-item">
-                                        <span>% hoàn thành TB</span>
-                                        <strong>{{ formatPercent(unit.avgCompletion) }}</strong>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span>Xuất sắc</span>
-                                        <strong>{{ unit.xuatSac }}</strong>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span>Tốt</span>
-                                        <strong>{{ unit.tot }}</strong>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span>Đạt</span>
-                                        <strong>{{ unit.dat }}</strong>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span>Không đạt</span>
-                                        <strong>{{ unit.khongDat }}</strong>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span>Tăng so với đầu kỳ</span>
-                                        <strong>{{ unit.positiveDauKy }}</strong>
+                                <div v-if="unitSummaries.length === 0" class="empty-panel">Không có dữ liệu</div>
+                                <div v-else class="chart-wrapper">
+                                    <apexchart type="bar" height="360" :options="unitCompareChartOptions"
+                                        :series="unitCompareChartSeries" />
+                                </div>
+                            </section>
+
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>Tỷ trọng xếp loại theo đơn vị</h3>
+                                    <span>So sánh chất lượng KPI</span>
+                                </div>
+
+                                <div v-if="stackedUnitSeries.length === 0" class="empty-panel">Không có dữ liệu</div>
+                                <div v-else class="chart-wrapper">
+                                    <apexchart type="bar" height="360" :options="stackedUnitChartOptions"
+                                        :series="stackedUnitSeries" />
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="dashboard-grid two-columns" v-if="selectedUnits.length > 0">
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>So sánh trực tiếp 2 đơn vị</h3>
+                                    <span>{{ selectedUnitsLabel }}</span>
+                                </div>
+
+                                <div class="compare-duo-grid">
+                                    <div v-for="unit in selectedUnits" :key="unit.tenDonVi" class="compare-unit-card">
+                                        <div class="compare-unit-head">
+                                            <h4>{{ unit.tenDonVi }}</h4>
+                                            <span>{{ unit.total }} KPI</span>
+                                        </div>
+
+                                        <div class="compare-metrics">
+                                            <div class="metric-item">
+                                                <span>% hoàn thành TB</span>
+                                                <strong>{{ formatPercent(unit.avgCompletion) }}</strong>
+                                            </div>
+                                            <div class="metric-item">
+                                                <span>Xuất sắc</span>
+                                                <strong>{{ unit.xuatSac }}</strong>
+                                            </div>
+                                            <div class="metric-item">
+                                                <span>Tốt</span>
+                                                <strong>{{ unit.tot }}</strong>
+                                            </div>
+                                            <div class="metric-item">
+                                                <span>Đạt</span>
+                                                <strong>{{ unit.dat }}</strong>
+                                            </div>
+                                            <div class="metric-item">
+                                                <span>Không đạt</span>
+                                                <strong>{{ unit.khongDat }}</strong>
+                                            </div>
+                                            <div class="metric-item">
+                                                <span>Tăng so với đầu kỳ</span>
+                                                <strong>{{ unit.positiveDauKy }}</strong>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+
+                                <div class="compare-summary" v-if="selectedUnits.length === 2">
+                                    <div class="summary-row">
+                                        <span>Chênh lệch % hoàn thành TB</span>
+                                        <strong>{{ formatPercent(compareGap.avgCompletionGap) }}</strong>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>Chênh lệch KPI không đạt</span>
+                                        <strong>{{ compareGap.khongDatGap }}</strong>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>Đơn vị nhỉnh hơn</span>
+                                        <strong>{{ compareGap.betterUnit }}</strong>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="panel-card">
+                                <div class="panel-header">
+                                    <h3>Biểu đồ so sánh chi tiết</h3>
+                                    <span>Theo 2 đơn vị đã chọn</span>
+                                </div>
+
+                                <div v-if="duoCompareSeries.length === 0" class="empty-panel">Chưa chọn đủ đơn vị</div>
+                                <div v-else class="chart-wrapper">
+                                    <apexchart type="radar" height="360" :options="duoCompareChartOptions"
+                                        :series="duoCompareSeries" />
+                                </div>
+                            </section>
                         </div>
 
-                        <div class="compare-summary" v-if="selectedUnits.length === 2">
-                            <div class="summary-row">
-                                <span>Chênh lệch % hoàn thành TB</span>
-                                <strong>{{ formatPercent(compareGap.avgCompletionGap) }}</strong>
+                        <section class="panel-card">
+                            <div class="panel-header">
+                                <h3>Bảng tổng hợp đơn vị</h3>
+                                <span>{{ unitSummaries.length }} dòng</span>
                             </div>
-                            <div class="summary-row">
-                                <span>Chênh lệch KPI không đạt</span>
-                                <strong>{{ compareGap.khongDatGap }}</strong>
-                            </div>
-                            <div class="summary-row">
-                                <span>Đơn vị nhỉnh hơn</span>
-                                <strong>{{ compareGap.betterUnit }}</strong>
-                            </div>
-                        </div>
-                    </section>
 
-                    <section class="panel-card">
-                        <div class="panel-header">
-                            <h3>Biểu đồ so sánh chi tiết</h3>
-                            <span>Theo 2 đơn vị đã chọn</span>
-                        </div>
-
-                        <div v-if="duoCompareSeries.length === 0" class="empty-panel">Chưa chọn đủ đơn vị</div>
-                        <div v-else class="chart-wrapper">
-                            <apexchart type="radar" height="360" :options="duoCompareChartOptions"
-                                :series="duoCompareSeries" />
-                        </div>
-                    </section>
+                            <div v-if="unitSummaries.length === 0" class="empty-panel">Không có dữ liệu đơn vị</div>
+                            <div v-else class="table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Đơn vị</th>
+                                            <th>Số KPI</th>
+                                            <th>% hoàn thành TB</th>
+                                            <th>Xuất sắc</th>
+                                            <th>Tốt</th>
+                                            <th>Đạt</th>
+                                            <th>Không đạt</th>
+                                            <th>Tăng đầu kỳ</th>
+                                            <th>Giảm đầu kỳ</th>
+                                            <th>Tăng cùng kỳ</th>
+                                            <th>Giảm cùng kỳ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(item, index) in unitSummaries" :key="item.tenDonVi">
+                                            <td>{{ index + 1 }}</td>
+                                            <td>{{ item.tenDonVi }}</td>
+                                            <td>{{ item.total }}</td>
+                                            <td>{{ formatPercent(item.avgCompletion) }}</td>
+                                            <td>{{ item.xuatSac }}</td>
+                                            <td>{{ item.tot }}</td>
+                                            <td>{{ item.dat }}</td>
+                                            <td>{{ item.khongDat }}</td>
+                                            <td>{{ item.positiveDauKy }}</td>
+                                            <td>{{ item.negativeDauKy }}</td>
+                                            <td>{{ item.positiveCungKy }}</td>
+                                            <td>{{ item.negativeCungKy }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </template>
                 </div>
-
-                <section class="panel-card">
-                    <div class="panel-header">
-                        <h3>Bảng tổng hợp đơn vị</h3>
-                        <span>{{ unitSummaries.length }} dòng</span>
-                    </div>
-
-                    <div v-if="unitSummaries.length === 0" class="empty-panel">Không có dữ liệu đơn vị</div>
-                    <div v-else class="table-wrapper">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Đơn vị</th>
-                                    <th>Số KPI</th>
-                                    <th>% hoàn thành TB</th>
-                                    <th>Xuất sắc</th>
-                                    <th>Tốt</th>
-                                    <th>Đạt</th>
-                                    <th>Không đạt</th>
-                                    <th>Tăng đầu kỳ</th>
-                                    <th>Giảm đầu kỳ</th>
-                                    <th>Tăng cùng kỳ</th>
-                                    <th>Giảm cùng kỳ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(item, index) in unitSummaries" :key="item.tenDonVi">
-                                    <td>{{ index + 1 }}</td>
-                                    <td>{{ item.tenDonVi }}</td>
-                                    <td>{{ item.total }}</td>
-                                    <td>{{ formatPercent(item.avgCompletion) }}</td>
-                                    <td>{{ item.xuatSac }}</td>
-                                    <td>{{ item.tot }}</td>
-                                    <td>{{ item.dat }}</td>
-                                    <td>{{ item.khongDat }}</td>
-                                    <td>{{ item.positiveDauKy }}</td>
-                                    <td>{{ item.negativeDauKy }}</td>
-                                    <td>{{ item.positiveCungKy }}</td>
-                                    <td>{{ item.negativeCungKy }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </template>
+            </div>
         </div>
     </BaseLayout>
 </template>
@@ -595,11 +610,65 @@
 </script>
 
 <style scoped>
+    .page-wrap {
+        min-height: 100vh;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
+    }
+
+    .gov-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+    }
+
+    .gov-emblem {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4ea1ff);
+        color: #fff;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .gov-text {
+        flex: 1;
+    }
+
+    .wave-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        color: #0d6efd;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .gov-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1f2d3d;
+        line-height: 1.3;
+    }
+
+    .gov-sub {
+        color: #6b7280;
+        margin-top: 4px;
+        font-size: 0.95rem;
+    }
+
     .compare-page {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        padding: 20px;
     }
 
     .page-header {
@@ -686,6 +755,12 @@
         border-radius: 10px;
         padding: 0 12px;
         outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
     .state {
@@ -897,6 +972,21 @@
         .two-columns,
         .compare-duo-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .gov-banner {
+            padding: 16px;
+            align-items: flex-start;
+        }
+
+        .gov-title {
+            font-size: 1.05rem;
+        }
+
+        .page-header h2 {
+            font-size: 24px;
         }
     }
 </style>
