@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -125,7 +125,7 @@
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                         <td class="text-center">
                                             <span class="badge" :class="getXepLoaiClass(row.xepLoai)">
-                                                {{ row.xepLoai || '-' }}
+                                                {{ getDanhGiaLabel(row.xepLoai) || '-' }}
                                             </span>
                                         </td>
                                         <td class="text-center">{{ row.ketQua || '-' }}</td>
@@ -147,6 +147,11 @@
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
+    import {
+        getDanhGiaBadgeClass,
+        getDanhGiaLabel,
+        getDanhGiaRank
+    } from '../../utils/danhGiaStatusClean.js'
 
     const loading = ref(false)
     const errorMessage = ref('')
@@ -270,29 +275,11 @@
     })
 
     function getXepLoaiScore(xepLoai) {
-        const normalized = normalizeText(xepLoai)
-
-        if (normalized === 'xuat sac') return 5
-        if (normalized === 'tot') return 4
-        if (normalized === 'dat') return 3
-        if (normalized === 'khong dat') return 2
-        if (normalized === 'chua danh gia') return 1
-        if (normalized === 'chua cau hinh') return 0
-
-        return -1
+        return getDanhGiaRank(xepLoai)
     }
 
     function getXepLoaiClass(xepLoai) {
-        const normalized = normalizeText(xepLoai)
-
-        if (normalized === 'xuat sac') return 'badge-excellent'
-        if (normalized === 'tot') return 'badge-good'
-        if (normalized === 'dat') return 'badge-pass'
-        if (normalized === 'khong dat') return 'badge-fail'
-        if (normalized === 'chua danh gia') return 'badge-pending'
-        if (normalized === 'chua cau hinh') return 'badge-muted'
-
-        return 'badge-default'
+        return getDanhGiaBadgeClass(xepLoai)
     }
 
     const joinedRows = computed(() => {
@@ -420,7 +407,7 @@
             const xepLoai =
                 item.xepLoaiList.length > 0
                     ? item.xepLoaiList.sort((a, b) => getXepLoaiScore(b) - getXepLoaiScore(a))[0]
-                    : 'Chưa đánh giá'
+                    : 'CHUA_DANH_GIA'
 
             return {
                 ...item,
@@ -883,3 +870,4 @@
         }
     }
 </style>
+

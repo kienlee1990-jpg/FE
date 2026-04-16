@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <BaseLayout>
     <div class="page-wrap">
       <div class="container-fluid py-4">
@@ -8,8 +8,8 @@
           </div>
           <div class="gov-text">
             <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-            <div class="gov-title">DASHBOARD ĐÁNH GIÁ KPI</div>
-            <div class="gov-sub"></div>
+            <div class="gov-title">BẢNG ĐIỀU KHIỂN CHỈ TIÊU CÔNG AN THÀNH PHỐ</div>
+            <div class="gov-sub">Theo dõi các chỉ tiêu do Công an thành phố Đà Nẵng trực tiếp thực hiện</div>
           </div>
         </div>
 
@@ -31,15 +31,15 @@
                 <select v-model="filters.kyBaoCaoKPIId" @change="fetchDashboardData">
                   <option value="">-- Tất cả kỳ báo cáo --</option>
                   <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
-                    {{ item.tenKy }}
+                    {{ buildKyLabel(item) }}
                   </option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label>Đơn vị</label>
+                <label>Đơn vị nhận</label>
                 <select v-model="filters.donVi">
-                  <option value="">-- Tất cả đơn vị --</option>
+                  <option value="">-- Tất cả đơn vị nhận --</option>
                   <option v-for="item in donViOptions" :key="item" :value="item">
                     {{ item }}
                   </option>
@@ -50,10 +50,9 @@
                 <label>Xếp loại</label>
                 <select v-model="filters.xepLoai">
                   <option value="">-- Tất cả xếp loại --</option>
-                  <option value="Xuất sắc">Xuất sắc</option>
-                  <option value="Tốt">Tốt</option>
-                  <option value="Đạt">Đạt</option>
-                  <option value="Không đạt">Không đạt</option>
+                  <option v-for="status in trackedStatusOptions" :key="status.value" :value="status.value">
+                    {{ status.label }}
+                  </option>
                 </select>
               </div>
 
@@ -73,7 +72,7 @@
               <div class="stat-card">
                 <span class="stat-label">Tổng KPI</span>
                 <strong class="stat-value">{{ filteredRows.length }}</strong>
-                <span class="stat-note">Bản ghi sau khi gộp và lọc</span>
+                <span class="stat-note">Bản ghi CATP sau khi lọc</span>
               </div>
 
               <div class="stat-card">
@@ -83,27 +82,27 @@
               </div>
 
               <div class="stat-card success">
-                <span class="stat-label">Xuất sắc</span>
-                <strong class="stat-value">{{ xepLoaiStats.xuatSac }}</strong>
-                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.xuatSac) }}</span>
+                <span class="stat-label">Hoàn thành vượt mức</span>
+                <strong class="stat-value">{{ xepLoaiStats.HOAN_THANH_VUOT_MUC }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.HOAN_THANH_VUOT_MUC) }}</span>
               </div>
 
               <div class="stat-card info">
-                <span class="stat-label">Tốt</span>
-                <strong class="stat-value">{{ xepLoaiStats.tot }}</strong>
-                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.tot) }}</span>
+                <span class="stat-label">Hoàn thành</span>
+                <strong class="stat-value">{{ xepLoaiStats.HOAN_THANH }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.HOAN_THANH) }}</span>
               </div>
 
               <div class="stat-card warning">
-                <span class="stat-label">Đạt</span>
-                <strong class="stat-value">{{ xepLoaiStats.dat }}</strong>
-                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.dat) }}</span>
+                <span class="stat-label">Chưa hoàn thành</span>
+                <strong class="stat-value">{{ xepLoaiStats.CHUA_HOAN_THANH }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.CHUA_HOAN_THANH) }}</span>
               </div>
 
               <div class="stat-card danger">
-                <span class="stat-label">Không đạt</span>
-                <strong class="stat-value">{{ xepLoaiStats.khongDat }}</strong>
-                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.khongDat) }}</span>
+                <span class="stat-label">Không hoàn thành</span>
+                <strong class="stat-value">{{ xepLoaiStats.KHONG_HOAN_THANH }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.KHONG_HOAN_THANH) }}</span>
               </div>
             </div>
 
@@ -139,7 +138,7 @@
                     <span class="insight-label">Đơn vị cần chú ý</span>
                     <strong class="insight-title">{{ worstUnit?.tenDonVi || '-' }}</strong>
                     <span class="insight-value">
-                      {{ worstUnit ? `${worstUnit.khongDat} KPI không đạt` : '-' }}
+                      {{ worstUnit ? `${worstUnit.chuaHoanThanh + worstUnit.khongHoanThanh} KPI cần chú ý` : '-' }}
                     </span>
                   </div>
 
@@ -184,33 +183,6 @@
             <div class="dashboard-grid two-columns">
               <section class="panel-card">
                 <div class="panel-header">
-                  <h3>Top 8 đơn vị theo % hoàn thành TB</h3>
-                  <span>Xếp hạng đơn vị</span>
-                </div>
-
-                <div v-if="unitPerformance.length === 0" class="empty-panel">Không có dữ liệu đơn vị</div>
-                <div v-else class="chart-wrapper">
-                  <apexchart type="bar" height="340" :options="unitChartOptions" :series="unitChartSeries" />
-                </div>
-              </section>
-
-              <section class="panel-card">
-                <div class="panel-header">
-                  <h3>Top đơn vị có KPI không đạt</h3>
-                  <span>Ưu tiên theo dõi</span>
-                </div>
-
-                <div v-if="worstUnitsChartSeries[0].data.length === 0" class="empty-panel">Không có dữ liệu</div>
-                <div v-else class="chart-wrapper">
-                  <apexchart type="bar" height="340" :options="worstUnitsChartOptions"
-                    :series="worstUnitsChartSeries" />
-                </div>
-              </section>
-            </div>
-
-            <div class="dashboard-grid two-columns">
-              <section class="panel-card">
-                <div class="panel-header">
                   <h3>Top 5 KPI tốt nhất</h3>
                   <span>% hoàn thành cao nhất</span>
                 </div>
@@ -236,50 +208,6 @@
               </section>
             </div>
 
-            <section class="panel-card">
-              <div class="panel-header">
-                <h3>Bảng tổng hợp chi tiết sau khi gộp</h3>
-                <span>{{ filteredRows.length }} dòng</span>
-              </div>
-
-              <div v-if="filteredRows.length === 0" class="empty-panel">Không có dữ liệu</div>
-              <div v-else class="table-wrap">
-                <table class="summary-table">
-                  <thead>
-                    <tr>
-                      <th>Mã chỉ tiêu</th>
-                      <th>Tên chỉ tiêu</th>
-                      <th>Đơn vị</th>
-                      <th>Đợt giao</th>
-                      <th>Kỳ báo cáo</th>
-                      <th>Xếp loại</th>
-                      <th>% hoàn thành</th>
-                      <th>Tăng trưởng đầu kỳ</th>
-                      <th>Tăng trưởng cùng kỳ</th>
-                      <th>Số bản ghi gộp</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in filteredRows" :key="buildGroupedRowKey(item)">
-                      <td>{{ item.maChiTieu || '-' }}</td>
-                      <td>{{ item.tenChiTieu || '-' }}</td>
-                      <td>{{ item.tenDonViNhan || '-' }}</td>
-                      <td>{{ item.tenDotGiao || item.maDotGiao || item.dotGiaoChiTieuId || '-' }}</td>
-                      <td>{{ item.tenKy || item.maKy || '-' }}</td>
-                      <td>
-                        <span class="row-badge" :class="badgeClass(item.xepLoai)">
-                          {{ item.xepLoai || '-' }}
-                        </span>
-                      </td>
-                      <td>{{ formatPercent(item.tyLeHoanThanh) }}</td>
-                      <td>{{ formatPercent(item.tyLeTangTruongSoVoiDauKy) }}</td>
-                      <td>{{ formatPercent(item.tyLeTangTruongSoVoiCungKyNamTruoc) }}</td>
-                      <td>{{ item._groupCount || 1 }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
           </template>
         </div>
       </div>
@@ -288,126 +216,31 @@
 </template>
 
 <script setup>
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted } from 'vue'
   import BaseLayout from './BaseLayout.vue'
-  import { apiRequest } from '../services/api.js'
   import VueApexCharts from 'vue3-apexcharts'
+  import {
+    countTrackedStatuses,
+    DANH_GIA_TRACKED_STATUS_OPTIONS,
+    getDanhGiaStatusCode,
+    isKhongHoanThanhStatus
+  } from '../utils/danhGiaStatusClean.js'
+  import { buildKyLabel, normalizeText, useCatpKpiData } from '../composables/useCatpKpiData.js'
 
   const apexchart = VueApexCharts
-  const EXCLUDED_UNIT = 'Công an thành phố Đà Nẵng'
+  const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
+  const {
+    donViOptions,
+    errorMessage,
+    fetchData: fetchDashboardData,
+    filters,
+    kyBaoCaoOptions,
+    loading,
+    reportRows,
+    resetFilters
+  } = useCatpKpiData()
 
-  const loading = ref(false)
-  const errorMessage = ref('')
-  const rows = ref([])
-  const kyBaoCaoOptions = ref([])
-
-  const filters = reactive({
-    kyBaoCaoKPIId: '',
-    donVi: '',
-    xepLoai: '',
-    keyword: ''
-  })
-
-  const groupedRows = computed(() => {
-    const map = new Map()
-
-    rows.value.forEach(item => {
-      const tenDonVi = item.tenDonViNhan || item.tenDonViThucHien || ''
-      if (normalizeText(tenDonVi) === normalizeText(EXCLUDED_UNIT)) return
-
-      const chiTietGiaoChiTieuId =
-        item.chiTietGiaoChiTieuId ??
-        item.idChiTietGiaoChiTieu ??
-        item.chiTietId ??
-        item.idChiTiet ??
-        ''
-
-      const dotGiaoChiTieuId =
-        item.dotGiaoChiTieuId ??
-        item.idDotGiaoChiTieu ??
-        item.maDotGiao ??
-        item.dotGiaoId ??
-        ''
-
-      const key = [chiTietGiaoChiTieuId, normalizeText(tenDonVi), dotGiaoChiTieuId].join('___')
-
-      if (!map.has(key)) {
-        map.set(key, {
-          ...item,
-          _groupCount: 1,
-          _tyLeHoanThanhValues: isFiniteNumber(item.tyLeHoanThanh) ? [Number(item.tyLeHoanThanh)] : [],
-          _tangTruongDauKyValues: isFiniteNumber(item.tyLeTangTruongSoVoiDauKy)
-            ? [Number(item.tyLeTangTruongSoVoiDauKy)]
-            : [],
-          _tangTruongCungKyValues: isFiniteNumber(item.tyLeTangTruongSoVoiCungKyNamTruoc)
-            ? [Number(item.tyLeTangTruongSoVoiCungKyNamTruoc)]
-            : [],
-          _chenhLechDauKyValues: isFiniteNumber(item.chenhLechSoVoiDauKy)
-            ? [Number(item.chenhLechSoVoiDauKy)]
-            : [],
-          _chenhLechCungKyValues: isFiniteNumber(item.chenhLechSoVoiCungKyNamTruoc)
-            ? [Number(item.chenhLechSoVoiCungKyNamTruoc)]
-            : []
-        })
-        return
-      }
-
-      const current = map.get(key)
-      current._groupCount += 1
-
-      if (isFiniteNumber(item.tyLeHoanThanh)) {
-        current._tyLeHoanThanhValues.push(Number(item.tyLeHoanThanh))
-      }
-
-      if (isFiniteNumber(item.tyLeTangTruongSoVoiDauKy)) {
-        current._tangTruongDauKyValues.push(Number(item.tyLeTangTruongSoVoiDauKy))
-      }
-
-      if (isFiniteNumber(item.tyLeTangTruongSoVoiCungKyNamTruoc)) {
-        current._tangTruongCungKyValues.push(Number(item.tyLeTangTruongSoVoiCungKyNamTruoc))
-      }
-
-      if (isFiniteNumber(item.chenhLechSoVoiDauKy)) {
-        current._chenhLechDauKyValues.push(Number(item.chenhLechSoVoiDauKy))
-      }
-
-      if (isFiniteNumber(item.chenhLechSoVoiCungKyNamTruoc)) {
-        current._chenhLechCungKyValues.push(Number(item.chenhLechSoVoiCungKyNamTruoc))
-      }
-
-      const rank = {
-        'khong dat': 1,
-        dat: 2,
-        tot: 3,
-        'xuat sac': 4
-      }
-
-      const currentRank = rank[normalizeText(current.xepLoai)] || 0
-      const nextRank = rank[normalizeText(item.xepLoai)] || 0
-
-      if (nextRank > currentRank) {
-        current.xepLoai = item.xepLoai
-        current.ketQua = item.ketQua
-        current.nguoiDanhGia = item.nguoiDanhGia
-        current.nhanXetDanhGia = item.nhanXetDanhGia
-      }
-    })
-
-    return Array.from(map.values()).map(item => ({
-      ...item,
-      tyLeHoanThanh: averageArray(item._tyLeHoanThanhValues),
-      tyLeTangTruongSoVoiDauKy: averageArray(item._tangTruongDauKyValues),
-      tyLeTangTruongSoVoiCungKyNamTruoc: averageArray(item._tangTruongCungKyValues),
-      chenhLechSoVoiDauKy: averageArray(item._chenhLechDauKyValues),
-      chenhLechSoVoiCungKyNamTruoc: averageArray(item._chenhLechCungKyValues)
-    }))
-  })
-
-  const donViOptions = computed(() => {
-    return [...new Set(groupedRows.value.map(item => item.tenDonViNhan).filter(Boolean))].sort((a, b) =>
-      a.localeCompare(b, 'vi')
-    )
-  })
+  const groupedRows = computed(() => reportRows.value)
 
   const filteredRows = computed(() => {
     let data = [...groupedRows.value]
@@ -417,8 +250,7 @@
     }
 
     if (filters.xepLoai) {
-      const normalized = normalizeText(filters.xepLoai)
-      data = data.filter(item => normalizeText(item.xepLoai) === normalized)
+      data = data.filter(item => getDanhGiaStatusCode(item.xepLoai) === filters.xepLoai)
     }
 
     if (filters.keyword) {
@@ -435,7 +267,7 @@
           item.ketQua,
           item.nguoiDanhGia,
           item.nhanXetDanhGia,
-          item.tenDotGiao,
+          item.tenDotGiaoChiTieu,
           item.maDotGiao
         ]
           .filter(Boolean)
@@ -446,24 +278,7 @@
     return data
   })
 
-  const xepLoaiStats = computed(() => {
-    const result = {
-      xuatSac: 0,
-      tot: 0,
-      dat: 0,
-      khongDat: 0
-    }
-
-    filteredRows.value.forEach(item => {
-      const xepLoai = normalizeText(item.xepLoai)
-      if (xepLoai === 'xuat sac') result.xuatSac++
-      else if (xepLoai === 'tot') result.tot++
-      else if (xepLoai === 'dat') result.dat++
-      else if (xepLoai === 'khong dat') result.khongDat++
-    })
-
-    return result
-  })
+  const xepLoaiStats = computed(() => countTrackedStatuses(filteredRows.value))
 
   const averageCompletion = computed(() => averageOf(filteredRows.value, 'tyLeHoanThanh'))
   const dauKySummary = computed(() => buildTrendSummary(filteredRows.value, 'tyLeTangTruongSoVoiDauKy'))
@@ -477,7 +292,8 @@
         tenDonVi,
         total: items.length,
         avgCompletion: averageOf(items, 'tyLeHoanThanh'),
-        khongDat: items.filter(item => normalizeText(item.xepLoai) === 'khong dat').length
+        chuaHoanThanh: items.filter(item => getDanhGiaStatusCode(item.xepLoai) === 'CHUA_HOAN_THANH').length,
+        khongHoanThanh: items.filter(item => getDanhGiaStatusCode(item.xepLoai) === 'KHONG_HOAN_THANH').length
       }))
       .sort((a, b) => b.avgCompletion - a.avgCompletion)
       .slice(0, 8)
@@ -489,12 +305,12 @@
     return Object.entries(grouped)
       .map(([tenDonVi, items]) => ({
         tenDonVi,
-        khongDat: items.filter(item => normalizeText(item.xepLoai) === 'khong dat').length,
+        canChuY: items.filter(item => isKhongHoanThanhStatus(item.xepLoai)).length,
         total: items.length,
         avgCompletion: averageOf(items, 'tyLeHoanThanh')
       }))
-      .filter(item => item.khongDat > 0)
-      .sort((a, b) => b.khongDat - a.khongDat || a.avgCompletion - b.avgCompletion)
+      .filter(item => item.canChuY > 0)
+      .sort((a, b) => b.canChuY - a.canChuY || a.avgCompletion - b.avgCompletion)
       .slice(0, 8)
   })
 
@@ -518,17 +334,17 @@
   const worstKpi = computed(() => bottomPerformers.value[0] || null)
 
   const xepLoaiChartSeries = computed(() => [
-    xepLoaiStats.value.xuatSac,
-    xepLoaiStats.value.tot,
-    xepLoaiStats.value.dat,
-    xepLoaiStats.value.khongDat
+    xepLoaiStats.value.HOAN_THANH_VUOT_MUC,
+    xepLoaiStats.value.HOAN_THANH,
+    xepLoaiStats.value.CHUA_HOAN_THANH,
+    xepLoaiStats.value.KHONG_HOAN_THANH
   ])
 
   const xepLoaiChartOptions = computed(() => ({
     chart: {
       toolbar: { show: false }
     },
-    labels: ['Xuất sắc', 'Tốt', 'Đạt', 'Không đạt'],
+    labels: trackedStatusOptions.map(item => item.label),
     legend: {
       position: 'bottom'
     },
@@ -542,74 +358,6 @@
       }
     },
     colors: ['#16a34a', '#2563eb', '#f59e0b', '#dc2626']
-  }))
-
-  const unitChartSeries = computed(() => [
-    {
-      name: '% hoàn thành TB',
-      data: unitPerformance.value.map(item => roundNumber(item.avgCompletion))
-    }
-  ])
-
-  const unitChartOptions = computed(() => ({
-    chart: {
-      type: 'bar',
-      toolbar: { show: false }
-    },
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        borderRadius: 4
-      }
-    },
-    dataLabels: {
-      enabled: true,
-      formatter: value => `${value}%`
-    },
-    xaxis: {
-      categories: unitPerformance.value.map(item => item.tenDonVi),
-      labels: {
-        formatter: value => `${value}%`
-      }
-    },
-    tooltip: {
-      y: {
-        formatter: value => `${value}%`
-      }
-    },
-    colors: ['#2563eb']
-  }))
-
-  const worstUnitsChartSeries = computed(() => [
-    {
-      name: 'KPI không đạt',
-      data: unitsByKhongDat.value.map(item => item.khongDat)
-    }
-  ])
-
-  const worstUnitsChartOptions = computed(() => ({
-    chart: {
-      type: 'bar',
-      toolbar: { show: false }
-    },
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        borderRadius: 4
-      }
-    },
-    dataLabels: {
-      enabled: true
-    },
-    xaxis: {
-      categories: unitsByKhongDat.value.map(item => item.tenDonVi)
-    },
-    tooltip: {
-      y: {
-        formatter: value => `${value} KPI không đạt`
-      }
-    },
-    colors: ['#dc2626']
   }))
 
   const topPerformersChartSeries = computed(() => [
@@ -684,54 +432,7 @@
     colors: ['#f97316']
   }))
 
-  onMounted(async () => {
-    await Promise.all([fetchKyBaoCao(), fetchDashboardData()])
-  })
-
-  async function fetchKyBaoCao() {
-    try {
-      const data = await apiRequest('/KyBaoCaoKPI')
-      kyBaoCaoOptions.value = Array.isArray(data) ? data : []
-    } catch (error) {
-      console.error('Lỗi tải kỳ báo cáo:', error)
-      kyBaoCaoOptions.value = []
-    }
-  }
-
-  async function fetchDashboardData() {
-    loading.value = true
-    errorMessage.value = ''
-
-    try {
-      const data = filters.kyBaoCaoKPIId
-        ? await apiRequest(`/DanhGiaKPI/by-ky-bao-cao/${filters.kyBaoCaoKPIId}`)
-        : await apiRequest('/DanhGiaKPI')
-
-      rows.value = Array.isArray(data) ? data : []
-    } catch (error) {
-      console.error(error)
-      errorMessage.value = error.message || 'Không thể tải dữ liệu dashboard KPI.'
-      rows.value = []
-    } finally {
-      loading.value = false
-    }
-  }
-
-  function resetFilters() {
-    filters.kyBaoCaoKPIId = ''
-    filters.donVi = ''
-    filters.xepLoai = ''
-    filters.keyword = ''
-    fetchDashboardData()
-  }
-
-  function buildGroupedRowKey(item) {
-    return [
-      item.chiTietGiaoChiTieuId ?? item.idChiTietGiaoChiTieu ?? item.chiTietId ?? item.idChiTiet ?? '',
-      item.dotGiaoChiTieuId ?? item.idDotGiaoChiTieu ?? item.maDotGiao ?? item.dotGiaoId ?? '',
-      normalizeText(item.tenDonViNhan || '')
-    ].join('___')
-  }
+  onMounted(fetchDashboardData)
 
   function groupBy(items, getKey) {
     return items.reduce((acc, item) => {
@@ -740,11 +441,6 @@
       acc[key].push(item)
       return acc
     }, {})
-  }
-
-  function averageArray(values) {
-    if (!values || !values.length) return 0
-    return roundNumber(values.reduce((sum, value) => sum + value, 0) / values.length)
   }
 
   function averageOf(items, field) {
@@ -787,14 +483,6 @@
     return `${roundNumber((value / filteredRows.value.length) * 100)}% tổng KPI`
   }
 
-  function normalizeText(value) {
-    return String(value || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim()
-  }
-
   function isFiniteNumber(value) {
     return Number.isFinite(Number(value))
   }
@@ -823,14 +511,6 @@
     })}%`
   }
 
-  function badgeClass(xepLoai) {
-    const value = normalizeText(xepLoai)
-    if (value === 'xuat sac') return 'badge-excellent'
-    if (value === 'tot') return 'badge-good'
-    if (value === 'dat') return 'badge-pass'
-    if (value === 'khong dat') return 'badge-fail'
-    return 'badge-default'
-  }
 </script>
 
 <style scoped>
@@ -1127,46 +807,6 @@
   .state.error {
     background: #fef2f2;
     color: #dc2626;
-  }
-
-  .table-wrap {
-    overflow-x: auto;
-  }
-
-  .summary-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1200px;
-  }
-
-  .summary-table thead th {
-    background: #f8fafc;
-    color: #334155;
-    font-weight: 700;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 12px;
-    text-align: left;
-    white-space: nowrap;
-  }
-
-  .summary-table tbody td {
-    padding: 12px;
-    border-bottom: 1px solid #eef2f7;
-    color: #334155;
-    vertical-align: middle;
-  }
-
-  .summary-table tbody tr:hover {
-    background-color: #f8fbff;
-  }
-
-  .row-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
   }
 
   .badge-excellent {

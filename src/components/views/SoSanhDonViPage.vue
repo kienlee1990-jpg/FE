@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -62,8 +62,8 @@
                                 <select v-model="filters.sortBy">
                                     <option value="avgCompletion">Theo % hoàn thành TB</option>
                                     <option value="total">Theo số KPI</option>
-                                    <option value="xuatSac">Theo số KPI xuất sắc</option>
-                                    <option value="khongDat">Theo số KPI không đạt</option>
+                                    <option value="vuotMuc">Theo số KPI hoàn thành vượt mức</option>
+                                    <option value="canChuY">Theo số KPI chưa/không hoàn thành</option>
                                 </select>
                             </div>
 
@@ -104,7 +104,7 @@
                                 <span class="stat-label">Đơn vị cần chú ý</span>
                                 <strong class="stat-value">{{ worstUnit?.tenDonVi || '-' }}</strong>
                                 <span class="stat-note">
-                                    {{ worstUnit ? `${worstUnit.khongDat} KPI không đạt` : '-' }}
+                                    {{ worstUnit ? `${worstUnit.canChuY} KPI cần chú ý` : '-' }}
                                 </span>
                             </div>
                         </div>
@@ -157,20 +157,20 @@
                                                 <strong>{{ formatPercent(unit.avgCompletion) }}</strong>
                                             </div>
                                             <div class="metric-item">
-                                                <span>Xuất sắc</span>
-                                                <strong>{{ unit.xuatSac }}</strong>
+                                                <span>Hoàn thành vượt mức</span>
+                                                <strong>{{ unit.HOAN_THANH_VUOT_MUC }}</strong>
                                             </div>
                                             <div class="metric-item">
-                                                <span>Tốt</span>
-                                                <strong>{{ unit.tot }}</strong>
+                                                <span>Hoàn thành</span>
+                                                <strong>{{ unit.HOAN_THANH }}</strong>
                                             </div>
                                             <div class="metric-item">
-                                                <span>Đạt</span>
-                                                <strong>{{ unit.dat }}</strong>
+                                                <span>Chưa hoàn thành</span>
+                                                <strong>{{ unit.CHUA_HOAN_THANH }}</strong>
                                             </div>
                                             <div class="metric-item">
-                                                <span>Không đạt</span>
-                                                <strong>{{ unit.khongDat }}</strong>
+                                                <span>Không hoàn thành</span>
+                                                <strong>{{ unit.KHONG_HOAN_THANH }}</strong>
                                             </div>
                                             <div class="metric-item">
                                                 <span>Tăng so với đầu kỳ</span>
@@ -186,8 +186,8 @@
                                         <strong>{{ formatPercent(compareGap.avgCompletionGap) }}</strong>
                                     </div>
                                     <div class="summary-row">
-                                        <span>Chênh lệch KPI không đạt</span>
-                                        <strong>{{ compareGap.khongDatGap }}</strong>
+                                        <span>Chênh lệch KPI cần chú ý</span>
+                                        <strong>{{ compareGap.canChuYGap }}</strong>
                                     </div>
                                     <div class="summary-row">
                                         <span>Đơn vị nhỉnh hơn</span>
@@ -225,10 +225,10 @@
                                             <th>Đơn vị</th>
                                             <th>Số KPI</th>
                                             <th>% hoàn thành TB</th>
-                                            <th>Xuất sắc</th>
-                                            <th>Tốt</th>
-                                            <th>Đạt</th>
-                                            <th>Không đạt</th>
+                                            <th>Hoàn thành vượt mức</th>
+                                            <th>Hoàn thành</th>
+                                            <th>Chưa hoàn thành</th>
+                                            <th>Không hoàn thành</th>
                                             <th>Tăng đầu kỳ</th>
                                             <th>Giảm đầu kỳ</th>
                                             <th>Tăng cùng kỳ</th>
@@ -241,10 +241,10 @@
                                             <td>{{ item.tenDonVi }}</td>
                                             <td>{{ item.total }}</td>
                                             <td>{{ formatPercent(item.avgCompletion) }}</td>
-                                            <td>{{ item.xuatSac }}</td>
-                                            <td>{{ item.tot }}</td>
-                                            <td>{{ item.dat }}</td>
-                                            <td>{{ item.khongDat }}</td>
+                                            <td>{{ item.HOAN_THANH_VUOT_MUC }}</td>
+                                            <td>{{ item.HOAN_THANH }}</td>
+                                            <td>{{ item.CHUA_HOAN_THANH }}</td>
+                                            <td>{{ item.KHONG_HOAN_THANH }}</td>
                                             <td>{{ item.positiveDauKy }}</td>
                                             <td>{{ item.negativeDauKy }}</td>
                                             <td>{{ item.positiveCungKy }}</td>
@@ -266,6 +266,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
     import VueApexCharts from 'vue3-apexcharts'
+    import { countTrackedStatuses, getDanhGiaStatusCode, isKhongHoanThanhStatus } from '../../utils/danhGiaStatusClean.js'
 
     const apexchart = VueApexCharts
 
@@ -314,22 +315,16 @@
         const grouped = groupBy(filteredRows.value, item => item.tenDonViNhan || 'Chưa xác định')
 
         const result = Object.entries(grouped).map(([tenDonVi, items]) => {
-            const xuatSac = items.filter(item => normalizeText(item.xepLoai) === 'xuat sac').length
-            const tot = items.filter(item => normalizeText(item.xepLoai) === 'tot').length
-            const dat = items.filter(item => normalizeText(item.xepLoai) === 'dat').length
-            const khongDat = items.filter(item => normalizeText(item.xepLoai) === 'khong dat').length
-
             const dauKySummary = buildTrendSummary(items, 'tyLeTangTruongSoVoiDauKy')
             const cungKySummary = buildTrendSummary(items, 'tyLeTangTruongSoVoiCungKyNamTruoc')
+            const trackedCounts = countTrackedStatuses(items)
 
             return {
                 tenDonVi,
                 total: items.length,
                 avgCompletion: averageOf(items, 'tyLeHoanThanh'),
-                xuatSac,
-                tot,
-                dat,
-                khongDat,
+                ...trackedCounts,
+                canChuY: items.filter(item => isKhongHoanThanhStatus(item.xepLoai)).length,
                 positiveDauKy: dauKySummary.positive,
                 negativeDauKy: dauKySummary.negative,
                 positiveCungKy: cungKySummary.positive,
@@ -344,7 +339,7 @@
 
     const worstUnit = computed(() => {
         return [...unitSummaries.value]
-            .sort((a, b) => b.khongDat - a.khongDat || a.avgCompletion - b.avgCompletion)[0] || null
+            .sort((a, b) => b.canChuY - a.canChuY || a.avgCompletion - b.avgCompletion)[0] || null
     })
 
     const selectedUnits = computed(() => {
@@ -362,7 +357,7 @@
         if (selectedUnits.value.length < 2) {
             return {
                 avgCompletionGap: 0,
-                khongDatGap: 0,
+                canChuYGap: 0,
                 betterUnit: '-'
             }
         }
@@ -372,7 +367,7 @@
 
         return {
             avgCompletionGap: roundNumber(Math.abs(a.avgCompletion - b.avgCompletion)),
-            khongDatGap: Math.abs(a.khongDat - b.khongDat),
+            canChuYGap: Math.abs(a.canChuY - b.canChuY),
             betterUnit
         }
     })
@@ -418,20 +413,20 @@
 
         return [
             {
-                name: 'Xuất sắc',
-                data: unitSummaries.value.map(item => item.xuatSac)
+                name: 'Hoàn thành vượt mức',
+                data: unitSummaries.value.map(item => item.HOAN_THANH_VUOT_MUC)
             },
             {
-                name: 'Tốt',
-                data: unitSummaries.value.map(item => item.tot)
+                name: 'Hoàn thành',
+                data: unitSummaries.value.map(item => item.HOAN_THANH)
             },
             {
-                name: 'Đạt',
-                data: unitSummaries.value.map(item => item.dat)
+                name: 'Chưa hoàn thành',
+                data: unitSummaries.value.map(item => item.CHUA_HOAN_THANH)
             },
             {
-                name: 'Không đạt',
-                data: unitSummaries.value.map(item => item.khongDat)
+                name: 'Không hoàn thành',
+                data: unitSummaries.value.map(item => item.KHONG_HOAN_THANH)
             }
         ]
     })
@@ -467,10 +462,10 @@
             name: item.tenDonVi,
             data: [
                 roundNumber(item.avgCompletion),
-                item.xuatSac,
-                item.tot,
-                item.dat,
-                item.khongDat
+                item.HOAN_THANH_VUOT_MUC,
+                item.HOAN_THANH,
+                item.CHUA_HOAN_THANH,
+                item.KHONG_HOAN_THANH
             ]
         }))
     })
@@ -480,7 +475,7 @@
             toolbar: { show: false }
         },
         xaxis: {
-            categories: ['% HT TB', 'Xuất sắc', 'Tốt', 'Đạt', 'Không đạt']
+            categories: ['% HT TB', 'Hoàn thành vượt mức', 'Hoàn thành', 'Chưa hoàn thành', 'Không hoàn thành']
         },
         yaxis: {
             show: true
@@ -543,8 +538,10 @@
 
     function compareUnits(a, b, sortBy) {
         if (sortBy === 'total') return b.total - a.total
-        if (sortBy === 'xuatSac') return b.xuatSac - a.xuatSac || b.avgCompletion - a.avgCompletion
-        if (sortBy === 'khongDat') return b.khongDat - a.khongDat || a.avgCompletion - b.avgCompletion
+        if (sortBy === 'vuotMuc') {
+            return b.HOAN_THANH_VUOT_MUC - a.HOAN_THANH_VUOT_MUC || b.avgCompletion - a.avgCompletion
+        }
+        if (sortBy === 'canChuY') return b.canChuY - a.canChuY || a.avgCompletion - b.avgCompletion
         return b.avgCompletion - a.avgCompletion
     }
 
@@ -990,3 +987,4 @@
         }
     }
 </style>
+

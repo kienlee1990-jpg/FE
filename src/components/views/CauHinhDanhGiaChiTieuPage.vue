@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -87,6 +87,7 @@
                                         <th>Danh mục chỉ tiêu ID</th>
                                         <th>Từ tỷ lệ</th>
                                         <th>Đến tỷ lệ</th>
+                                        <th>Điều kiện thời hạn</th>
                                         <th>Xếp loại</th>
                                         <th>Điểm</th>
                                         <th>Ghi chú</th>
@@ -99,9 +100,10 @@
                                         <td>{{ item.danhMucChiTieuId ?? '-' }}</td>
                                         <td>{{ formatNumber(item.tuTyLe) }}</td>
                                         <td>{{ formatNumber(item.denTyLe) }}</td>
+                                        <td>{{ getThoiHanLabel(item.dieuKienThoiHan) }}</td>
                                         <td>
-                                            <span :class="['rank-badge', getXepLoaiClass(item.xepLoai)]">
-                                                {{ mapXepLoai(item.xepLoai) }}
+                                            <span :class="['rank-badge', getRankClass(item.xepLoai)]">
+                                                {{ getDanhGiaLabel(item.xepLoai) }}
                                             </span>
                                         </td>
                                         <td>{{ formatNumber(item.diem) }}</td>
@@ -148,14 +150,27 @@
 
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">
+                                            Điều kiện thời hạn <span class="text-danger">*</span>
+                                        </label>
+                                        <select v-model="form.dieuKienThoiHan" class="form-select">
+                                            <option value="">Chọn điều kiện thời hạn</option>
+                                            <option v-for="item in DIEU_KIEN_THOI_HAN_OPTIONS" :key="item.value"
+                                                :value="item.value">
+                                                {{ item.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">
                                             Xếp loại <span class="text-danger">*</span>
                                         </label>
                                         <select v-model="form.xepLoai" class="form-select">
                                             <option value="">Chọn xếp loại</option>
-                                            <option value="XUAT_SAC">Xuất sắc</option>
-                                            <option value="TOT">Tốt</option>
-                                            <option value="DAT">Đạt</option>
-                                            <option value="KHONG_DAT">Không đạt</option>
+                                            <option v-for="item in DANH_GIA_TRACKED_STATUS_OPTIONS" :key="item.value"
+                                                :value="item.value">
+                                                {{ item.label }}
+                                            </option>
                                         </select>
                                     </div>
 
@@ -208,20 +223,15 @@
 
 <script setup>
     import { onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import httpClient from '../../services/httpClient'
+    import {
+        DANH_GIA_TRACKED_STATUS_OPTIONS,
+        DIEU_KIEN_THOI_HAN_OPTIONS,
+        getDanhGiaBadgeClass,
+        getDanhGiaLabel,
+        getThoiHanLabel
+    } from '../../utils/danhGiaStatusClean.js'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -239,6 +249,7 @@
         danhMucChiTieuId: '',
         tuTyLe: '',
         denTyLe: '',
+        dieuKienThoiHan: '',
         xepLoai: '',
         diem: '',
         ghiChu: ''
@@ -260,6 +271,7 @@
         danhMucChiTieuId: form.danhMucChiTieuId ? Number(form.danhMucChiTieuId) : null,
         tuTyLe: Number(form.tuTyLe),
         denTyLe: Number(form.denTyLe),
+        dieuKienThoiHan: form.dieuKienThoiHan,
         xepLoai: form.xepLoai,
         diem: form.diem === '' || form.diem === null ? null : Number(form.diem),
         ghiChu: form.ghiChu?.trim() || null
@@ -268,7 +280,7 @@
     const fetchData = async () => {
         try {
             loading.value = true
-            const response = await api.get('/cau-hinh-nguong-danh-gia-kpi', {
+            const response = await httpClient.get('/cau-hinh-nguong-danh-gia-kpi', {
                 params: {
                     danhMucChiTieuId: filters.danhMucChiTieuId ? Number(filters.danhMucChiTieuId) : undefined,
                     keyword: filters.keyword || undefined
@@ -298,6 +310,7 @@
             danhMucChiTieuId: item.danhMucChiTieuId ?? '',
             tuTyLe: item.tuTyLe ?? '',
             denTyLe: item.denTyLe ?? '',
+            dieuKienThoiHan: item.dieuKienThoiHan || '',
             xepLoai: item.xepLoai || '',
             diem: item.diem ?? '',
             ghiChu: item.ghiChu || ''
@@ -340,6 +353,11 @@
             return false
         }
 
+        if (!form.dieuKienThoiHan?.trim()) {
+            alert('Vui lòng chọn điều kiện thời hạn.')
+            return false
+        }
+
         if (!form.xepLoai?.trim()) {
             alert('Vui lòng chọn xếp loại.')
             return false
@@ -361,9 +379,9 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`/cau-hinh-nguong-danh-gia-kpi/${editingId.value}`, payload)
+                await httpClient.put(`/cau-hinh-nguong-danh-gia-kpi/${editingId.value}`, payload)
             } else {
-                await api.post('/cau-hinh-nguong-danh-gia-kpi', payload)
+                await httpClient.post('/cau-hinh-nguong-danh-gia-kpi', payload)
             }
 
             closeModal()
@@ -377,11 +395,11 @@
     }
 
     const handleDelete = async (item) => {
-        const ok = window.confirm(`Bạn có chắc muốn xóa cấu hình xếp loại "${mapXepLoai(item.xepLoai)}" không?`)
+        const ok = window.confirm(`Bạn có chắc muốn xóa cấu hình xếp loại "${getDanhGiaLabel(item.xepLoai)}" không?`)
         if (!ok) return
 
         try {
-            await api.delete(`/cau-hinh-nguong-danh-gia-kpi/${item.id}`)
+            await httpClient.delete(`/cau-hinh-nguong-danh-gia-kpi/${item.id}`)
             await fetchData()
         } catch (error) {
             console.error(error)
@@ -395,30 +413,12 @@
         await fetchData()
     }
 
-    const mapXepLoai = (value) => {
-        const map = {
-            XUAT_SAC: 'Xuất sắc',
-            TOT: 'Tốt',
-            DAT: 'Đạt',
-            KHONG_DAT: 'Không đạt'
-        }
-        return map[value] || value || '-'
-    }
-
-    const getXepLoaiClass = (value) => {
-        const map = {
-            XUAT_SAC: 'rank-excellent',
-            TOT: 'rank-good',
-            DAT: 'rank-pass',
-            KHONG_DAT: 'rank-fail'
-        }
-        return map[value] || 'rank-default'
-    }
-
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '-'
         return Number(value).toLocaleString('vi-VN')
     }
+
+    const getRankClass = (value) => getDanhGiaBadgeClass(value).replace('badge-', 'rank-')
 
     onMounted(() => {
         fetchData()
@@ -618,3 +618,5 @@
         }
     }
 </style>
+
+

@@ -1,15 +1,14 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
                 <div class="gov-banner mb-4">
                     <div class="gov-emblem">
-                        <i class="bi bi-diagram-3-fill"></i>
+                        <i :class="scopeMeta.icon"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-                        <div class="gov-title">GIAO CHỈ TIÊU CHO ĐƠN VỊ</div>
-                        <div class="gov-sub"></div>
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU</div>
+                        <div class="gov-title">{{ scopeMeta.pageTitle }}</div>
                     </div>
                 </div>
 
@@ -28,61 +27,51 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Tra cứu nhanh theo nhiều tiêu chí</small>
+                        <small class="text-muted">{{ scopeMeta.filterHint }}</small>
                     </div>
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Đợt giao chỉ tiêu</label>
+                            <div class="col-12 col-md-6 col-xl-4">
+                                <label class="form-label">Đợt giao</label>
                                 <select v-model.number="filters.dotGiaoChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
-                                    <option v-for="item in dotOptions" :key="getId(item)" :value="getId(item)">
-                                        {{ item.TenDotGiao || item.tenDotGiao || '-' }}
-                                    </option>
+                                    <option v-for="item in dotOptions" :key="item.id" :value="item.id">{{
+                                        item.tenDotGiao }}</option>
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-3">
+                            <div class="col-12 col-md-6 col-xl-4">
                                 <label class="form-label">Danh mục chỉ tiêu</label>
                                 <select v-model.number="filters.danhMucChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
-                                    <option v-for="item in danhMucOptions" :key="getId(item)" :value="getId(item)">
-                                        {{ item.MaChiTieu || item.maChiTieu || '' }} -
-                                        {{ item.TenChiTieu || item.tenChiTieu || '' }}
+                                    <option v-for="item in assignableDanhMucOptions" :key="item.id" :value="item.id">
+                                        {{ item.maChiTieu }} - {{ item.tenChiTieu }}
                                     </option>
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Đơn vị</label>
+                            <div class="col-12 col-md-6 col-xl-4">
+                                <label class="form-label">{{ scopeMeta.receiverLabel }}</label>
                                 <select v-model.number="filters.donViId" class="form-select">
                                     <option :value="null">Tất cả</option>
-                                    <option v-for="item in donViOptions" :key="getId(item)" :value="getId(item)">
-                                        {{ item.TenDonVi || item.tenDonVi || '-' }}
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Tần suất báo cáo</label>
-                                <select v-model="filters.tanSuatBaoCao" class="form-select">
-                                    <option value="">Tất cả</option>
-                                    <option v-for="item in tanSuatBaoCaoOptions" :key="item.value" :value="item.value">
-                                        {{ item.label }}
-                                    </option>
+                                    <optgroup v-for="group in groupedDonViOptions" :key="group.key" :label="group.label">
+                                        <option v-for="item in group.items" :key="item.id" :value="item.id">
+                                            {{ item.maDonVi ? `${item.maDonVi} - ` : '' }}{{ item.tenDonVi }}
+                                        </option>
+                                    </optgroup>
                                 </select>
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label">Từ khóa</label>
                                 <input v-model="filters.keyword" type="text" class="form-control"
-                                    placeholder="Tên đợt, mã chỉ tiêu, tên chỉ tiêu, đơn vị tính, mã đơn vị, tên đơn vị, tần suất, ghi chú" />
+                                    placeholder="Nhập tên đợt, mã chỉ tiêu, tên chỉ tiêu, tên tiêu chí con hoặc tên đơn vị" />
                             </div>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 mt-4">
-                            <button class="btn btn-primary" @click="fetchItems">
+                            <button class="btn btn-primary" @click="loadData">
                                 <i class="bi bi-arrow-repeat me-1"></i>
                                 Tải lại dữ liệu
                             </button>
@@ -97,10 +86,8 @@
                 <div class="card custom-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
-                            <h5 class="mb-1">Danh sách giao chỉ tiêu</h5>
-                            <small class="text-muted">
-                                Hiển thị toàn bộ danh mục chỉ tiêu được giao cho đơn vị
-                            </small>
+                            <h5 class="mb-1">{{ scopeMeta.listTitle }}</h5>
+                            <small class="text-muted">{{ scopeMeta.listHint }}</small>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ filteredItems.length }}</span>
                     </div>
@@ -119,63 +106,133 @@
                         <div v-else class="table-responsive">
                             <table class="table table-hover align-middle mb-0 custom-table">
                                 <thead>
-                                    <tr>
+                                    <tr v-if="isCatpScope">
                                         <th>Đợt giao</th>
-                                        <th>Chỉ tiêu</th>
-                                        <th>Đơn vị</th>
-                                        <th>Tần suất báo cáo</th>
-                                        <th>Giá trị mục tiêu</th>
+                                        <th>Mã chỉ tiêu</th>
+                                        <th>Chỉ tiêu giao</th>
+                                        <th>Tiêu chí giao</th>
+                                        <th>Kỳ báo cáo</th>
+                                        <th>Mục tiêu giao</th>
+                                        <th>Đầu kỳ cố định</th>
+                                        <th>Ghi chú</th>
+                                        <th class="text-center" style="width: 180px">Thao tác</th>
+                                    </tr>
+                                    <tr v-else>
+                                        <th>Đợt giao</th>
+                                        <th>Chỉ tiêu giao</th>
+                                        <th>{{ scopeMeta.receiverLabel }}</th>
+                                        <th>Kỳ báo cáo</th>
+                                        <th>Mục tiêu giao</th>
                                         <th>Ghi chú</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr v-for="item in filteredItems" :key="getId(item)">
+                                <tbody v-if="isCatpScope">
+                                    <tr v-for="item in filteredItems" :key="item.id">
                                         <td>
-                                            <div class="fw-semibold">
-                                                {{ item.TenDotGiao || item.tenDotGiao || '-' }}
-                                            </div>
+                                            <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
+                                            <small class="text-muted">{{ formatDotRangeFromAssignment(item) || 'Chưa khai báo thời gian' }}</small>
                                         </td>
                                         <td>
-                                            <div class="fw-semibold text-primary">
-                                                {{ item.TenChiTieu || item.tenChiTieu || '-' }}
-                                            </div>
-                                            <small class="text-muted">
-                                                {{ item.MaChiTieu || item.maChiTieu || '-' }}
-                                            </small>
-                                            <div class="mt-1">
-                                                <small class="text-muted">
-                                                    Đơn vị tính: {{ getDonViTinhText(item) }}
-                                                </small>
-                                            </div>
+                                            <div class="fw-semibold">{{ item.maDanhMucChiTieu || '-' }}</div>
+                                            <small class="text-muted">{{ mapLoai(item.loaiChiTieu) }}</small>
                                         </td>
                                         <td>
-                                            <div class="fw-semibold">
-                                                {{ item.TenDonVi || item.tenDonVi || '-' }}
-                                            </div>
-                                            <small class="text-muted">
-                                                {{ item.MaDonVi || item.maDonVi || '-' }}
+                                            <div class="fw-semibold text-primary">{{ item.tenDanhMucChiTieu || '-' }}</div>
+                                            <small class="text-muted d-block">{{ item.tenDonViNhan || CATP_TEN_DON_VI }}</small>
+                                            <small v-if="item.tenDonViThucHienChinh && item.tenDonViThucHienChinh !== item.tenDonViNhan" class="text-muted">
+                                                Thực hiện: {{ item.tenDonViThucHienChinh }}
                                             </small>
+                                        </td>
+                                        <td>
+                                            <div v-if="item.tieuChiCon.length" class="table-stack">
+                                                <div v-for="child in item.tieuChiCon" :key="child.id" class="table-stack-line">
+                                                    <div class="fw-semibold">{{ child.tenDanhMucChiTieu || '-' }}</div>
+                                                    <small class="text-muted">{{ child.maDanhMucChiTieu || '-' }}</small>
+                                                </div>
+                                            </div>
+                                            <span v-else class="text-muted">Giao trực tiếp</span>
                                         </td>
                                         <td>
                                             <span class="badge text-bg-light border">
-                                                {{ getTanSuatLabel(item.TanSuatBaoCao || item.tanSuatBaoCao) }}
+                                                {{ getKyBaoCaoLabel(item.tanSuatBaoCao) }}
                                             </span>
                                         </td>
                                         <td>
-                                            <div>
-                                                {{ formatNumberWithUnit(item.GiaTriMucTieu ?? item.giaTriMucTieu,
-                                                getDonViTinhText(item)) }}
+                                            <div v-if="item.tieuChiCon.length" class="table-stack">
+                                                <div v-for="child in item.tieuChiCon" :key="`${child.id}-target`" class="table-stack-line">
+                                                    <div>{{ formatAssignmentTarget(child) }}</div>
+                                                </div>
                                             </div>
-                                            <small
-                                                v-if="(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== null && (item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== undefined"
-                                                class="text-muted">
-                                                Mặc định:
-                                                {{ formatNumberWithUnit(item.DieuKienHoanThanh ??
-                                                item.dieuKienHoanThanh, getDonViTinhText(item)) }}
-                                            </small>
+                                            <div v-else>{{ formatAssignmentTarget(item) }}</div>
                                         </td>
-                                        <td>{{ item.GhiChu || item.ghiChu || '-' }}</td>
+                                        <td>
+                                            <div v-if="item.tieuChiCon.length" class="table-stack">
+                                                <div v-for="child in item.tieuChiCon" :key="`${child.id}-baseline`" class="table-stack-line">
+                                                    <div>{{ formatAssignmentBaseline(child) }}</div>
+                                                </div>
+                                            </div>
+                                            <div v-else>{{ formatAssignmentBaseline(item) }}</div>
+                                        </td>
+                                        <td>{{ item.ghiChu || '-' }}</td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <button class="btn btn-sm btn-outline-primary" @click="openEditModal(item)">
+                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" @click="handleDelete(item)">
+                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tbody v-else>
+                                    <tr v-for="item in filteredItems" :key="`${item.id}-default`">
+                                        <td>
+                                            <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
+                                            <small class="text-muted">{{ formatDotRangeFromAssignment(item) || 'Chưa khai báo thời gian' }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-primary">{{ item.tenDanhMucChiTieu || '-' }}
+                                            </div>
+                                            <small class="text-muted">{{ item.maDanhMucChiTieu || '-' }}</small>
+                                            <div class="small text-muted mt-1">{{ mapLoai(item.loaiChiTieu) }}</div>
+                                            <div v-if="item.tieuChiCon.length" class="criteria-tags mt-2">
+                                                <span v-for="child in item.tieuChiCon" :key="child.id"
+                                                    class="badge text-bg-light border">{{ child.tenDanhMucChiTieu
+                                                    }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ item.tenDonViNhan || '-' }}</div>
+                                            <small class="text-muted d-block">{{ getDonViGroupLabelById(item.donViNhanId) }}</small>
+                                            <small class="text-muted">{{ item.tenDonViThucHienChinh || item.tenDonViNhan || '-' }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge text-bg-light border">{{
+                                                getKyBaoCaoLabel(item.tanSuatBaoCao) }}</span>
+                                        </td>
+                                        <td>
+                                            <div v-if="!item.tieuChiCon.length">
+                                                <div>{{ formatAssignmentTarget(item) }}</div>
+                                                <small v-if="showGiaTriDauKyCoDinh(item)" class="text-muted d-block">
+                                                    Đầu kỳ cố định: {{ formatAssignmentBaseline(item) }}
+                                                </small>
+                                            </div>
+                                            <div v-else class="d-flex flex-column gap-2">
+                                                <div v-for="child in item.tieuChiCon" :key="child.id"
+                                                    class="target-line">
+                                                    <div class="fw-semibold">{{ child.tenDanhMucChiTieu }}</div>
+                                                    <div class="text-muted small">{{ formatAssignmentTarget(child) }}
+                                                    </div>
+                                                    <div v-if="showGiaTriDauKyCoDinh(child)" class="text-muted small">
+                                                        Đầu kỳ cố định: {{ formatAssignmentBaseline(child) }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ item.ghiChu || '-' }}</td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
                                                 <button class="btn btn-sm btn-outline-primary"
@@ -201,12 +258,8 @@
                         <div class="modal-content border-0 shadow-lg rounded-4">
                             <div class="modal-header border-0 pb-0">
                                 <div>
-                                    <h4 class="modal-title mb-1">
-                                        {{ isEdit ? 'Cập nhật giao chỉ tiêu' : 'Tạo giao chỉ tiêu mới' }}
-                                    </h4>
-                                    <p class="text-muted mb-0">
-                                        Chọn đợt giao, chỉ tiêu, đơn vị, tần suất báo cáo và giá trị mục tiêu
-                                    </p>
+                                    <h4 class="modal-title mb-1">{{ isEdit ? 'Cập nhật giao chỉ tiêu' : 'Tạo giao chỉ tiêu' }}</h4>
+                                    <p class="text-muted mb-0">{{ scopeMeta.modalHint }}</p>
                                 </div>
                                 <button type="button" class="btn-close" @click="closeModal"></button>
                             </div>
@@ -214,82 +267,201 @@
                             <div class="modal-body pt-3">
                                 <div class="row g-3">
                                     <div class="col-12 col-md-3">
-                                        <label class="form-label">
-                                            Đợt giao chỉ tiêu <span class="text-danger">*</span>
-                                        </label>
+                                        <label class="form-label">Đợt giao <span class="text-danger">*</span></label>
                                         <select v-model.number="form.dotGiaoChiTieuId" class="form-select">
                                             <option :value="null">Chọn đợt giao</option>
-                                            <option v-for="item in dotOptions" :key="getId(item)" :value="getId(item)">
-                                                {{ item.TenDotGiao || item.tenDotGiao || '-' }}
+                                            <option v-for="item in dotOptions" :key="item.id" :value="item.id">
+                                                {{ item.tenDotGiao }}{{ formatDotRange(item) ? ` • ${formatDotRange(item)}` : '' }}
                                             </option>
                                         </select>
                                     </div>
 
                                     <div class="col-12 col-md-3">
-                                        <label class="form-label">
-                                            Danh mục chỉ tiêu <span class="text-danger">*</span>
-                                        </label>
+                                        <label class="form-label">Danh mục chỉ tiêu <span
+                                                class="text-danger">*</span></label>
                                         <select v-model.number="form.danhMucChiTieuId" class="form-select">
                                             <option :value="null">Chọn chỉ tiêu</option>
-                                            <option v-for="item in danhMucOptions" :key="getId(item)"
-                                                :value="getId(item)">
-                                                {{ item.MaChiTieu || item.maChiTieu || '' }} -
-                                                {{ item.TenChiTieu || item.tenChiTieu || '' }}
+                                            <option v-for="item in assignableDanhMucOptions" :key="item.id" :value="item.id">
+                                                {{ item.maChiTieu }} - {{ item.tenChiTieu }}{{ item.tieuChiDanhGias.length ? ` (${item.tieuChiDanhGias.length} tiêu chí con)` : '' }}
                                             </option>
                                         </select>
                                     </div>
 
                                     <div class="col-12 col-md-3">
-                                        <label class="form-label">
-                                            Đơn vị <span class="text-danger">*</span>
-                                        </label>
+                                        <label class="form-label">{{ scopeMeta.receiverLabel }} <span class="text-danger">*</span></label>
                                         <select v-model.number="form.donViId" class="form-select">
                                             <option :value="null">Chọn đơn vị</option>
-                                            <option v-for="item in donViOptions" :key="getId(item)"
-                                                :value="getId(item)">
-                                                {{ item.TenDonVi || item.tenDonVi || '-' }}
-                                            </option>
+                                            <optgroup v-for="group in groupedDonViOptions" :key="group.key" :label="group.label">
+                                                <option v-for="item in group.items" :key="item.id" :value="item.id">
+                                                    {{ item.maDonVi ? `${item.maDonVi} - ` : '' }}{{ item.tenDonVi }}
+                                                </option>
+                                            </optgroup>
                                         </select>
                                     </div>
 
                                     <div class="col-12 col-md-3">
-                                        <label class="form-label">
-                                            Tần suất báo cáo <span class="text-danger">*</span>
-                                        </label>
+                                        <label class="form-label">Kỳ báo cáo <span
+                                                class="text-danger">*</span></label>
                                         <select v-model="form.tanSuatBaoCao" class="form-select">
-                                            <option value="">Chọn tần suất</option>
+                                            <option value="">Chọn kỳ báo cáo</option>
                                             <option v-for="item in tanSuatBaoCaoOptions" :key="item.value"
-                                                :value="item.value">
-                                                {{ item.label }}
-                                            </option>
+                                                :value="item.value">{{ item.label }}</option>
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
+                                    <div v-if="selectedDot || selectedDanhMuc || selectedDonVi" class="col-12">
+                                        <div class="selection-summary">
+                                            <div v-if="selectedDot" class="selection-card">
+                                                <div class="selection-label">Đợt giao đã chọn</div>
+                                                <div class="selection-value">{{ selectedDot.tenDotGiao }}</div>
+                                                <div class="selection-meta">{{ formatDotRange(selectedDot) || 'Chưa khai báo thời gian áp dụng' }}</div>
+                                            </div>
+                                            <div v-if="selectedDanhMuc" class="selection-card">
+                                                <div class="selection-label">Chỉ tiêu được giao</div>
+                                                <div class="selection-value">{{ selectedDanhMuc.maChiTieu }} - {{ selectedDanhMuc.tenChiTieu }}</div>
+                                                <div class="selection-meta">
+                                                    {{ mapLoai(selectedDanhMuc.loaiChiTieu) }}{{ selectedDanhMuc.tieuChiDanhGias.length ? ` • ${selectedDanhMuc.tieuChiDanhGias.length} tiêu chí con` : '' }}
+                                                </div>
+                                            </div>
+                                            <div v-if="selectedDonVi" class="selection-card">
+                                                <div class="selection-label">{{ scopeMeta.receiverLabel }}</div>
+                                                <div class="selection-value">{{ selectedDonVi.tenDonVi }}</div>
+                                                <div class="selection-meta">{{ selectedDonVi.maDonVi || 'Chưa khai báo mã đơn vị' }} • {{ getDonViGroupLabel(selectedDonVi.loaiDonVi, selectedDonVi.tenDonVi) }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Loại đánh giá</label>
+                                        <input :value="selectedDanhMuc ? mapLoai(selectedDanhMuc.loaiChiTieu) : '-'"
+                                            type="text" class="form-control" readonly />
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
                                         <label class="form-label">Đơn vị tính</label>
-                                        <input :value="displayDonViTinh" type="text" class="form-control" readonly />
+                                        <input :value="selectedDanhMuc ? (selectedDanhMuc.donViTinh || '-') : '-'"
+                                            type="text" class="form-control" readonly />
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Giá trị mục tiêu gốc</label>
-                                        <input :value="displayGiaTriMacDinh" type="text" class="form-control"
-                                            readonly />
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Phương thức giao</label>
+                                        <input
+                                            :value="selectedDanhMuc && selectedDanhMuc.tieuChiDanhGias.length ? 'Giao theo tiêu chí con' : 'Giao trực tiếp cho chỉ tiêu'"
+                                            type="text" class="form-control" readonly />
                                     </div>
 
-                                    <div class="col-12">
-                                        <label class="form-label">
-                                            Giá trị mục tiêu <span class="text-danger">*</span>
-                                        </label>
-                                        <div class="input-group">
-                                            <input v-model="form.giaTriMucTieu" type="number" step="any"
-                                                class="form-control" placeholder="Nhập giá trị mục tiêu" />
-                                            <span class="input-group-text">{{ displayDonViTinh }}</span>
+                                    <div v-if="selectedDanhMuc && !selectedDanhMuc.tieuChiDanhGias.length"
+                                        class="col-12">
+                                        <div class="criteria-block">
+                                            <div class="section-title mb-2">Mục tiêu giao</div>
+                                            <div class="text-muted small mb-3">{{ buildCatalogHint(selectedDanhMuc) }}
+                                            </div>
+
+                                            <div v-if="isQualitative(selectedDanhMuc.loaiChiTieu)" class="row g-3">
+                                                <div class="col-12">
+                                                    <label class="form-label">Mô tả mục tiêu <span
+                                                            class="text-danger">*</span></label>
+                                                    <textarea v-model="form.giaTriMucTieuText" rows="3"
+                                                        class="form-control"
+                                                        placeholder="Nhập mô tả mục tiêu cần đạt"></textarea>
+                                                </div>
+                                            </div>
+
+                                            <div v-else class="row g-3">
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label">Giá trị mục tiêu <span
+                                                            class="text-danger">*</span></label>
+                                                    <input v-model="form.giaTriMucTieu" type="number" step="any"
+                                                        class="form-control" placeholder="Nhập giá trị mục tiêu" />
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label">Giá trị đầu kỳ cố định <span
+                                                            class="text-danger">*</span></label>
+                                                    <input v-model="form.giaTriDauKyCoDinh" type="number" step="any"
+                                                        class="form-control" placeholder="Nhập giá trị đầu kỳ cố định" />
+                                                    <small class="text-muted d-block mt-1">
+                                                        Giá trị này được giữ cố định cho mọi kỳ báo cáo của chỉ tiêu đã giao.
+                                                    </small>
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label">Đơn vị tính</label>
+                                                    <input :value="selectedDanhMuc.donViTinh || '-'" type="text"
+                                                        class="form-control" readonly />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="selectedDanhMuc && selectedDanhMuc.tieuChiDanhGias.length"
+                                        class="col-12">
+                                        <div class="criteria-block">
+                                            <div class="section-title mb-1">Mục tiêu theo tiêu chí con</div>
+                                            <div class="text-muted small mb-3">
+                                                {{ selectedDanhMuc.batBuocDatTatCaTieuChiCon
+                                                    ? 'Chỉ tiêu cha chỉ đạt khi tất cả tiêu chí con đều đạt.'
+                                                    : 'Chỉ tiêu cha được đánh giá theo tập tiêu chí con.' }}
+                                            </div>
+
+                                            <div v-for="(child, index) in form.tieuChiCon" :key="child.localKey"
+                                                class="criteria-card mb-3">
+                                                <div
+                                                    class="d-flex justify-content-between align-items-center gap-3 mb-2">
+                                                    <div>
+                                                        <div class="fw-semibold">{{ index + 1 }}. {{ child.tenChiTieu }}
+                                                        </div>
+                                                        <div class="small text-muted">{{ mapLoai(child.loaiChiTieu) }} |
+                                                            {{ child.donViTinh || '-' }}</div>
+                                                    </div>
+                                                    <span class="badge text-bg-light border">{{ child.maChiTieu
+                                                        }}</span>
+                                                </div>
+
+                                                <div class="small text-muted mb-3">{{ buildCatalogHint(child) }}</div>
+
+                                                <div class="row g-3">
+                                                    <div v-if="isQualitative(child.loaiChiTieu)" class="col-12">
+                                                        <label class="form-label">Mô tả mục tiêu <span
+                                                                class="text-danger">*</span></label>
+                                                        <textarea v-model="child.giaTriMucTieuText" rows="3"
+                                                            class="form-control"
+                                                            placeholder="Nhập mô tả mục tiêu cho tiêu chí con"></textarea>
+                                                    </div>
+
+                                                    <div v-else class="col-12 col-md-8">
+                                                        <label class="form-label">Giá trị mục tiêu <span
+                                                                class="text-danger">*</span></label>
+                                                        <input v-model="child.giaTriMucTieu" type="number" step="any"
+                                                            class="form-control" placeholder="Nhập giá trị mục tiêu" />
+                                                    </div>
+
+                                                    <div v-if="!isQualitative(child.loaiChiTieu)"
+                                                        class="col-12 col-md-4">
+                                                        <label class="form-label">Đầu kỳ cố định <span
+                                                                class="text-danger">*</span></label>
+                                                        <input v-model="child.giaTriDauKyCoDinh" type="number" step="any"
+                                                            class="form-control" placeholder="Nhập đầu kỳ cố định" />
+                                                    </div>
+
+                                                    <div v-if="!isQualitative(child.loaiChiTieu)"
+                                                        class="col-12 col-md-4">
+                                                        <label class="form-label">Đơn vị tính</label>
+                                                        <input :value="child.donViTinh || '-'" type="text"
+                                                            class="form-control" readonly />
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label">Ghi chú cho tiêu chí con</label>
+                                                        <input v-model="child.ghiChu" type="text" class="form-control"
+                                                            placeholder="Nhập ghi chú nếu có" />
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div class="col-12">
-                                        <label class="form-label">Ghi chú</label>
-                                        <textarea v-model="form.ghiChu" rows="4" class="form-control"
+                                        <label class="form-label">Ghi chú giao chỉ tiêu</label>
+                                        <textarea v-model="form.ghiChu" rows="3" class="form-control"
                                             placeholder="Nhập ghi chú nếu có"></textarea>
                                     </div>
                                 </div>
@@ -317,6 +489,13 @@
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
 
+    const props = defineProps({
+        scope: {
+            type: String,
+            default: 'CADP_PHUONG_XA'
+        }
+    })
+
     const API_PATHS = {
         chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
         dotGiaoChiTieu: '/dot-giao-chi-tieu',
@@ -324,31 +503,61 @@
         donVi: '/DonVi'
     }
 
+    const CATP_TEN_DON_VI = 'Công an thành phố Đà Nẵng'
+
+    const SCOPE_CONFIGS = {
+        CATP: {
+            icon: 'bi bi-buildings-fill',
+            pageTitle: 'GIAO CHỈ TIÊU CHO CATP',
+            filterHint: 'Tra cứu các bản giao chỉ tiêu cho Công an thành phố Đà Nẵng',
+            listTitle: 'Danh sách giao cho CATP',
+            listHint: 'Theo dõi các chỉ tiêu được giao trực tiếp cho Công an thành phố Đà Nẵng',
+            modalHint: 'Chọn đợt giao, chỉ tiêu và khai báo mục tiêu, đầu kỳ cố định cho Công an thành phố Đà Nẵng.',
+            receiverLabel: 'Đơn vị nhận'
+        },
+        PHONG: {
+            icon: 'bi bi-building-fill-gear',
+            pageTitle: 'GIAO CHỈ TIÊU CHO PHÒNG',
+            filterHint: 'Tra cứu các bản giao chỉ tiêu cho khối phòng nghiệp vụ',
+            listTitle: 'Danh sách giao cho Phòng',
+            listHint: 'Hỗ trợ giao chỉ tiêu đơn và chỉ tiêu phân rã cho các phòng nghiệp vụ',
+            modalHint: 'Chọn đợt giao, chỉ tiêu, phòng nhận chỉ tiêu và khai báo mục tiêu, đầu kỳ cố định.',
+            receiverLabel: 'Phòng nhận chỉ tiêu'
+        },
+        CADP_PHUONG_XA: {
+            icon: 'bi bi-diagram-3-fill',
+            pageTitle: 'GIAO CHỈ TIÊU CHO CADP PHƯỜNG/XÃ',
+            filterHint: 'Tra cứu các bản giao chỉ tiêu cho Công an cấp xã, phường',
+            listTitle: 'Danh sách giao cho CADP phường/xã',
+            listHint: 'Hỗ trợ giao chỉ tiêu đơn và chỉ tiêu phân rã cho Công an cấp xã, phường',
+            modalHint: 'Chọn đợt giao, chỉ tiêu, đơn vị nhận và khai báo mục tiêu, đầu kỳ cố định.',
+            receiverLabel: 'Đơn vị nhận'
+        }
+    }
+
+    const tanSuatBaoCaoOptions = [
+        { value: 'THANG', label: 'Tháng' },
+        { value: 'QUY', label: 'Quý' },
+        { value: '6THANG', label: '6 tháng' },
+        { value: 'NAM', label: 'Năm' }
+    ]
+
     const loading = ref(false)
     const saving = ref(false)
     const showModal = ref(false)
     const isEdit = ref(false)
     const editingId = ref(null)
+    const syncingForm = ref(false)
 
     const items = ref([])
     const dotOptions = ref([])
     const danhMucOptions = ref([])
     const donViOptions = ref([])
 
-    const tanSuatBaoCaoOptions = [
-        { value: 'NGAY', label: 'Ngày' },
-        { value: 'TUAN', label: 'Tuần' },
-        { value: 'THANG', label: 'Tháng' },
-        { value: 'QUY', label: 'Quý' },
-        { value: '6_THANG', label: '6 tháng' },
-        { value: 'NAM', label: 'Năm' }
-    ]
-
     const filters = reactive({
         dotGiaoChiTieuId: null,
         danhMucChiTieuId: null,
         donViId: null,
-        tanSuatBaoCao: '',
         keyword: ''
     })
 
@@ -357,8 +566,11 @@
         danhMucChiTieuId: null,
         donViId: null,
         tanSuatBaoCao: '',
-        giaTriMucTieu: null,
-        ghiChu: ''
+        giaTriMucTieu: '',
+        giaTriDauKyCoDinh: '',
+        giaTriMucTieuText: '',
+        ghiChu: '',
+        tieuChiCon: []
     })
 
     const form = reactive(createDefaultForm())
@@ -367,311 +579,558 @@
         Object.assign(form, createDefaultForm())
     }
 
-    const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
-
     const normalizeList = (response) => {
         if (Array.isArray(response)) return response
         if (Array.isArray(response?.data)) return response.data
         if (Array.isArray(response?.data?.data)) return response.data.data
-        if (Array.isArray(response?.data?.items)) return response.data.items
         if (Array.isArray(response?.items)) return response.items
         return []
     }
 
-    const getTanSuatLabel = (value) => {
-        const found = tanSuatBaoCaoOptions.find((x) => x.value === value)
-        return found?.label || value || '-'
+    const pick = (item, ...keys) => {
+        for (const key of keys) {
+            if (item?.[key] !== undefined && item?.[key] !== null) return item[key]
+        }
+        return null
     }
 
-    const findDanhMucById = (id) => {
-        return danhMucOptions.value.find((x) => getId(x) === Number(id)) || null
-    }
-
-    const getGiaTriMacDinhTuDanhMuc = (item) => {
-        return item?.DieuKienHoanThanh ?? item?.dieuKienHoanThanh ?? null
-    }
-
-    const getDonViTinh = (item) => {
-        return (
-            item?.DonViTinh ??
-            item?.donViTinh ??
-            item?.TenDonViTinh ??
-            item?.tenDonViTinh ??
-            item?.DVT ??
-            item?.dvt ??
-            ''
-        )
-    }
-
-    const getDonViTinhText = (item) => {
-        const value = getDonViTinh(item)
-        return value && String(value).trim() ? String(value).trim() : '-'
-    }
-
-    const enrichedItems = computed(() => {
-        return items.value.map((item) => {
-            const dotId = Number(item.DotGiaoChiTieuId ?? item.dotGiaoChiTieuId ?? 0)
-            const danhMucId = Number(item.DanhMucChiTieuId ?? item.danhMucChiTieuId ?? 0)
-            const donViId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
-
-            const dot = dotOptions.value.find((x) => getId(x) === dotId)
-            const danhMuc = danhMucOptions.value.find((x) => getId(x) === danhMucId)
-            const donVi = donViOptions.value.find((x) => getId(x) === donViId)
-
-            return {
-                ...item,
-                TenDotGiao:
-                    item.TenDotGiao ||
-                    item.tenDotGiao ||
-                    dot?.TenDotGiao ||
-                    dot?.tenDotGiao ||
-                    '-',
-                TenChiTieu:
-                    item.TenChiTieu ||
-                    item.tenChiTieu ||
-                    danhMuc?.TenChiTieu ||
-                    danhMuc?.tenChiTieu ||
-                    '-',
-                MaChiTieu:
-                    item.MaChiTieu ||
-                    item.maChiTieu ||
-                    danhMuc?.MaChiTieu ||
-                    danhMuc?.maChiTieu ||
-                    '-',
-                TenDonVi:
-                    item.TenDonViNhan ||
-                    item.tenDonViNhan ||
-                    item.TenDonVi ||
-                    item.tenDonVi ||
-                    donVi?.TenDonVi ||
-                    donVi?.tenDonVi ||
-                    '-',
-                MaDonVi:
-                    item.MaDonVi ||
-                    item.maDonVi ||
-                    donVi?.MaDonVi ||
-                    donVi?.maDonVi ||
-                    '-',
-                DonViTinh:
-                    item.DonViTinh ||
-                    item.donViTinh ||
-                    item.TenDonViTinh ||
-                    item.tenDonViTinh ||
-                    item.DVT ||
-                    item.dvt ||
-                    danhMuc?.DonViTinh ||
-                    danhMuc?.donViTinh ||
-                    danhMuc?.TenDonViTinh ||
-                    danhMuc?.tenDonViTinh ||
-                    danhMuc?.DVT ||
-                    danhMuc?.dvt ||
-                    '-',
-                TanSuatBaoCao: item.TanSuatBaoCao || item.tanSuatBaoCao || '',
-                DieuKienHoanThanh:
-                    item.DieuKienHoanThanh ??
-                    item.dieuKienHoanThanh ??
-                    getGiaTriMacDinhTuDanhMuc(danhMuc),
-                GiaTriMucTieu:
-                    item.GiaTriMucTieu ??
-                    item.giaTriMucTieu ??
-                    getGiaTriMacDinhTuDanhMuc(danhMuc)
-            }
-        })
+    const normalizeDot = (item) => ({
+        id: Number(pick(item, 'id', 'Id') || 0),
+        maDotGiao: String(pick(item, 'maDotGiao', 'MaDotGiao') || ''),
+        tenDotGiao: String(pick(item, 'tenDotGiao', 'TenDotGiao') || ''),
+        ngayBatDau: pick(item, 'ngayBatDau', 'NgayBatDau'),
+        ngayKetThuc: pick(item, 'ngayKetThuc', 'NgayKetThuc')
     })
 
-    const filteredItems = computed(() => {
-        return enrichedItems.value.filter((item) => {
-            const keyword = filters.keyword.trim().toLowerCase()
-            const dotId = Number(item.DotGiaoChiTieuId ?? item.dotGiaoChiTieuId ?? 0)
-            const danhMucId = Number(item.DanhMucChiTieuId ?? item.danhMucChiTieuId ?? 0)
-            const donViId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
-            const tanSuatBaoCao = (item.TanSuatBaoCao || item.tanSuatBaoCao || '').trim()
-
-            const searchText = [
-                item.TenDotGiao || '',
-                item.MaChiTieu || '',
-                item.TenChiTieu || '',
-                item.DonViTinh || '',
-                item.MaDonVi || '',
-                item.TenDonVi || '',
-                getTanSuatLabel(item.TanSuatBaoCao || item.tanSuatBaoCao || ''),
-                item.GhiChu || item.ghiChu || ''
-            ]
-                .join(' ')
-                .toLowerCase()
-
-            const matchKeyword = !keyword || searchText.includes(keyword)
-            const matchDot = !filters.dotGiaoChiTieuId || Number(filters.dotGiaoChiTieuId) === dotId
-            const matchDanhMuc = !filters.danhMucChiTieuId || Number(filters.danhMucChiTieuId) === danhMucId
-            const matchDonVi = !filters.donViId || Number(filters.donViId) === donViId
-            const matchTanSuat = !filters.tanSuatBaoCao || filters.tanSuatBaoCao === tanSuatBaoCao
-
-            return matchKeyword && matchDot && matchDanhMuc && matchDonVi && matchTanSuat
-        })
+    const normalizeDonVi = (item) => ({
+        id: Number(pick(item, 'id', 'Id') || 0),
+        maDonVi: String(pick(item, 'maDonVi', 'MaDonVi') || ''),
+        tenDonVi: String(pick(item, 'tenDonVi', 'TenDonVi') || ''),
+        loaiDonVi: String(pick(item, 'loaiDonVi', 'LoaiDonVi') || ''),
+        tenDonViCha: String(pick(item, 'tenDonViCha', 'TenDonViCha') || '')
     })
+
+    const normalizeCatalogChild = (item, index = 1) => ({
+        id: Number(pick(item, 'id', 'Id') || 0),
+        maChiTieu: String(pick(item, 'maChiTieu', 'MaChiTieu') || ''),
+        tenChiTieu: String(pick(item, 'tenChiTieu', 'TenChiTieu') || ''),
+        loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || 'DINH_TINH'),
+        donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
+        dieuKienHoanThanh: String(pick(item, 'dieuKienHoanThanh', 'DieuKienHoanThanh') || ''),
+        dieuKienKhongHoanThanh: String(pick(item, 'dieuKienKhongHoanThanh', 'DieuKienKhongHoanThanh') || ''),
+        tyLePhanTramMucTieu: pick(item, 'tyLePhanTramMucTieu', 'TyLePhanTramMucTieu'),
+        loaiMocSoSanh: String(pick(item, 'loaiMocSoSanh', 'LoaiMocSoSanh') || ''),
+        chieuSoSanh: String(pick(item, 'chieuSoSanh', 'ChieuSoSanh') || ''),
+        thuTuHienThi: Number(pick(item, 'thuTuHienThi', 'ThuTuHienThi') || index)
+    })
+
+    const normalizeDanhMuc = (item) => ({
+        id: Number(pick(item, 'id', 'Id') || 0),
+        maChiTieu: String(pick(item, 'maChiTieu', 'MaChiTieu') || ''),
+        tenChiTieu: String(pick(item, 'tenChiTieu', 'TenChiTieu') || ''),
+        loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || ''),
+        chiTieuChaId: pick(item, 'chiTieuChaId', 'ChiTieuChaId'),
+        thuTuHienThi: Number(pick(item, 'thuTuHienThi', 'ThuTuHienThi') || 0),
+        donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
+        dieuKienHoanThanh: String(pick(item, 'dieuKienHoanThanh', 'DieuKienHoanThanh') || ''),
+        dieuKienKhongHoanThanh: String(pick(item, 'dieuKienKhongHoanThanh', 'DieuKienKhongHoanThanh') || ''),
+        tyLePhanTramMucTieu: pick(item, 'tyLePhanTramMucTieu', 'TyLePhanTramMucTieu'),
+        loaiMocSoSanh: String(pick(item, 'loaiMocSoSanh', 'LoaiMocSoSanh') || ''),
+        chieuSoSanh: String(pick(item, 'chieuSoSanh', 'ChieuSoSanh') || ''),
+        batBuocDatTatCaTieuChiCon: pick(item, 'batBuocDatTatCaTieuChiCon', 'BatBuocDatTatCaTieuChiCon') !== false,
+        tieuChiDanhGias: normalizeList(pick(item, 'tieuChiDanhGias', 'TieuChiDanhGias')).map((child, index) => normalizeCatalogChild(child, index + 1))
+    })
+
+    const normalizeAssignmentChild = (item) => ({
+        id: Number(pick(item, 'id', 'Id') || 0),
+        danhMucChiTieuId: Number(pick(item, 'danhMucChiTieuId', 'DanhMucChiTieuId') || 0),
+        tenDanhMucChiTieu: String(pick(item, 'tenDanhMucChiTieu', 'TenDanhMucChiTieu') || ''),
+        maDanhMucChiTieu: String(pick(item, 'maDanhMucChiTieu', 'MaDanhMucChiTieu') || ''),
+        loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || 'DINH_TINH'),
+        donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
+        giaTriMucTieu: pick(item, 'giaTriMucTieu', 'GiaTriMucTieu'),
+        giaTriDauKyCoDinh: pick(item, 'giaTriDauKyCoDinh', 'GiaTriDauKyCoDinh'),
+        giaTriMucTieuText: String(pick(item, 'giaTriMucTieuText', 'GiaTriMucTieuText') || ''),
+        ghiChu: String(pick(item, 'ghiChu', 'GhiChu') || ''),
+        thuTuHienThi: Number(pick(item, 'thuTuHienThi', 'ThuTuHienThi') || 0)
+    })
+
+    const normalizeAssignment = (item) => ({
+        id: Number(pick(item, 'id', 'Id') || 0),
+        dotGiaoChiTieuId: Number(pick(item, 'dotGiaoChiTieuId', 'DotGiaoChiTieuId') || 0),
+        maDotGiaoChiTieu: String(pick(item, 'maDotGiaoChiTieu', 'MaDotGiaoChiTieu', 'maDotGiao', 'MaDotGiao') || ''),
+        tenDotGiaoChiTieu: String(pick(item, 'tenDotGiaoChiTieu', 'TenDotGiaoChiTieu') || ''),
+        danhMucChiTieuId: Number(pick(item, 'danhMucChiTieuId', 'DanhMucChiTieuId') || 0),
+        maDanhMucChiTieu: String(pick(item, 'maDanhMucChiTieu', 'MaDanhMucChiTieu') || ''),
+        tenDanhMucChiTieu: String(pick(item, 'tenDanhMucChiTieu', 'TenDanhMucChiTieu') || ''),
+        loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || ''),
+        donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
+        tanSuatBaoCao: String(pick(item, 'tanSuatBaoCao', 'TanSuatBaoCao') || ''),
+        donViNhanId: Number(pick(item, 'donViNhanId', 'DonViNhanId') || 0),
+        tenDonViNhan: String(pick(item, 'tenDonViNhan', 'TenDonViNhan') || ''),
+        donViThucHienChinhId: Number(pick(item, 'donViThucHienChinhId', 'DonViThucHienChinhId') || 0),
+        tenDonViThucHienChinh: String(pick(item, 'tenDonViThucHienChinh', 'TenDonViThucHienChinh') || ''),
+        giaTriMucTieu: pick(item, 'giaTriMucTieu', 'GiaTriMucTieu'),
+        giaTriDauKyCoDinh: pick(item, 'giaTriDauKyCoDinh', 'GiaTriDauKyCoDinh'),
+        giaTriMucTieuText: String(pick(item, 'giaTriMucTieuText', 'GiaTriMucTieuText') || ''),
+        ghiChu: String(pick(item, 'ghiChu', 'GhiChu') || ''),
+        tieuChiCon: normalizeList(pick(item, 'tieuChiCon', 'TieuChiCon')).map(normalizeAssignmentChild)
+    })
+
+    const getKyBaoCaoLabel = (value) => tanSuatBaoCaoOptions.find(x => x.value === value)?.label || value || '-'
+
+    const mapLoai = (value) => {
+        const map = {
+            DINH_TINH: 'Định tính',
+            DINH_LUONG_TICH_LUY: 'Định lượng tích lũy',
+            DINH_LUONG_SO_SANH: 'Định lượng so sánh',
+            PHAN_RA: 'Phân rã'
+        }
+        return map[value] || value || '-'
+    }
+
+    const isQualitative = (loaiChiTieu) => loaiChiTieu === 'DINH_TINH'
+
+    const scopeMeta = computed(() => SCOPE_CONFIGS[props.scope] || SCOPE_CONFIGS.CADP_PHUONG_XA)
+    const isCatpScope = computed(() => props.scope === 'CATP')
+
+    const normalizeLoaiDonVi = (value) => String(value || '').trim().toUpperCase()
+    const normalizeSearch = (value) =>
+        String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toUpperCase()
+
+    const getDonViScopeKey = (item) => {
+        const normalizedLoai = normalizeLoaiDonVi(item?.loaiDonVi)
+        const normalizedTen = normalizeSearch(item?.tenDonVi)
+
+        if (normalizedLoai.includes('CATP') || normalizedTen.includes(normalizeSearch(CATP_TEN_DON_VI))) {
+            return 'CATP'
+        }
+
+        if (
+            normalizedLoai.includes('PHUONG') ||
+            normalizedLoai.includes('XA') ||
+            normalizedLoai.includes('CAP_XA') ||
+            normalizedLoai.includes('CAPXA')
+        ) {
+            return 'CADP_PHUONG_XA'
+        }
+
+        if (normalizedLoai.includes('PHONG')) {
+            return 'PHONG'
+        }
+
+        return 'KHAC'
+    }
+
+    const matchesScopeForDonVi = (item) => {
+        if (!item) return false
+
+        const scopeKey = getDonViScopeKey(item)
+        if (props.scope === 'CATP') return scopeKey === 'CATP'
+        if (props.scope === 'PHONG') return scopeKey === 'PHONG'
+        if (props.scope === 'CADP_PHUONG_XA') return scopeKey === 'CADP_PHUONG_XA'
+        return scopeKey !== 'KHAC'
+    }
+
+    const getDonViGroupKey = (value, tenDonVi = '') => {
+        return getDonViScopeKey({ loaiDonVi: value, tenDonVi })
+    }
+
+    const getDonViGroupLabel = (value, tenDonVi = '') => {
+        const map = {
+            CATP: 'Công an thành phố',
+            PHONG: 'Khối phòng',
+            CADP_PHUONG_XA: 'CADP phường/xã',
+            KHAC: 'Đơn vị khác'
+        }
+
+        return map[getDonViGroupKey(value, tenDonVi)] || 'Đơn vị khác'
+    }
+
+    const getDonViGroupOrder = (value, tenDonVi = '') => {
+        const orderMap = {
+            CATP: 1,
+            PHONG: 2,
+            CADP_PHUONG_XA: 3,
+            KHAC: 3
+        }
+
+        return orderMap[getDonViGroupKey(value, tenDonVi)] || 99
+    }
+
+    const getMocSoSanhLabel = (value) => {
+        const map = {
+            DAU_KY: 'đầu kỳ',
+            CUNG_KY: 'cùng kỳ',
+            KY_TRUOC: 'kỳ trước'
+        }
+
+        return map[value] || value || 'mốc so sánh'
+    }
+
+    const formatDate = (value) => {
+        if (!value) return ''
+        const date = new Date(value)
+        if (Number.isNaN(date.getTime())) return ''
+        return date.toLocaleDateString('vi-VN')
+    }
+
+    const formatDotRange = (item) => {
+        if (!item) return ''
+
+        const start = formatDate(item.ngayBatDau)
+        const end = formatDate(item.ngayKetThuc)
+
+        if (start && end) return `${start} - ${end}`
+        return start || end || ''
+    }
+
+    const findDotById = (id) => dotOptions.value.find(item => item.id === Number(id)) || null
+
+    const findDonViById = (id) => donViOptions.value.find(item => item.id === Number(id)) || null
+
+    const formatDotRangeFromAssignment = (item) => {
+        const dot = findDotById(item?.dotGiaoChiTieuId)
+        return formatDotRange(dot)
+    }
+
+    const getDonViGroupLabelById = (donViId) => {
+        const donVi = findDonViById(donViId)
+        return getDonViGroupLabel(donVi?.loaiDonVi, donVi?.tenDonVi)
+    }
+
+    const formatNumber = (value) => {
+        if (value === null || value === undefined || value === '') return '-'
+        const numberValue = Number(value)
+        if (Number.isNaN(numberValue)) return String(value)
+        return numberValue.toLocaleString('vi-VN')
+    }
+
+    const formatAssignmentTarget = (item) => {
+        if (isQualitative(item.loaiChiTieu)) {
+            return item.giaTriMucTieuText || 'Chưa nhập mô tả mục tiêu'
+        }
+
+        if (item.giaTriMucTieu === null || item.giaTriMucTieu === undefined || item.giaTriMucTieu === '') {
+            return 'Chưa nhập giá trị mục tiêu'
+        }
+
+        return `${formatNumber(item.giaTriMucTieu)}${item.donViTinh ? ` ${item.donViTinh}` : ''}`
+    }
+
+    const showGiaTriDauKyCoDinh = (item) => {
+        return !isQualitative(item?.loaiChiTieu)
+    }
+
+    const formatAssignmentBaseline = (item) => {
+        if (!showGiaTriDauKyCoDinh(item)) {
+            return '-'
+        }
+
+        const value = item?.giaTriDauKyCoDinh
+        if (value === null || value === undefined || value === '') {
+            return 'Chưa nhập'
+        }
+
+        return `${formatNumber(value)}${item?.donViTinh ? ` ${item.donViTinh}` : ''}`
+    }
+
+    const buildCatalogHint = (item) => {
+        if (!item) return ''
+
+        if (item.loaiChiTieu === 'DINH_TINH') {
+            return `Điều kiện hoàn thành: ${item.dieuKienHoanThanh || 'chưa khai báo'}`
+        }
+
+        if (item.loaiChiTieu === 'DINH_LUONG_SO_SANH') {
+            return `Mục tiêu ${item.chieuSoSanh === 'GIAM' ? 'giảm' : 'tăng'} ${item.tyLePhanTramMucTieu || 0}% so với ${getMocSoSanhLabel(item.loaiMocSoSanh)}`
+        }
+
+        return `Đánh giá theo giá trị định lượng${item.donViTinh ? ` (${item.donViTinh})` : ''}`
+    }
 
     const selectedDanhMuc = computed(() => {
         if (!form.danhMucChiTieuId) return null
-        return findDanhMucById(form.danhMucChiTieuId)
+        return danhMucOptions.value.find(item => item.id === Number(form.danhMucChiTieuId)) || null
     })
 
-    const defaultGiaTriMucTieu = computed(() => {
-        if (!selectedDanhMuc.value) return null
-        return getGiaTriMacDinhTuDanhMuc(selectedDanhMuc.value)
+    const selectedDot = computed(() => {
+        if (!form.dotGiaoChiTieuId) return null
+        return dotOptions.value.find(item => item.id === Number(form.dotGiaoChiTieuId)) || null
     })
 
-    const displayDonViTinh = computed(() => {
-        if (!selectedDanhMuc.value) return '-'
-        return getDonViTinhText(selectedDanhMuc.value)
+    const selectedDonVi = computed(() => {
+        if (!form.donViId) return null
+        return scopedDonViOptions.value.find(item => item.id === Number(form.donViId)) || null
     })
 
-    const displayGiaTriMacDinh = computed(() => {
-        if (
-            defaultGiaTriMucTieu.value === null ||
-            defaultGiaTriMucTieu.value === undefined ||
-            defaultGiaTriMucTieu.value === ''
-        ) {
-            return '-'
+    const scopedDonViOptions = computed(() => {
+        return donViOptions.value.filter(matchesScopeForDonVi)
+    })
+
+    const defaultScopedDonVi = computed(() => {
+        if (props.scope !== 'CATP') return null
+        return scopedDonViOptions.value[0] || null
+    })
+
+    const groupedDonViOptions = computed(() => {
+        const groups = new Map()
+
+        ;['CATP', 'PHONG', 'CADP_PHUONG_XA', 'KHAC'].forEach((key) => {
+            groups.set(key, {
+                key,
+                label: getDonViGroupLabel(key),
+                items: []
+            })
+        })
+
+        scopedDonViOptions.value.forEach((item) => {
+            const key = getDonViGroupKey(item.loaiDonVi, item.tenDonVi)
+            groups.get(key)?.items.push(item)
+        })
+
+        return Array.from(groups.values())
+            .map(group => ({
+                ...group,
+                items: [...group.items].sort((left, right) =>
+                    `${left.maDonVi} ${left.tenDonVi}`.localeCompare(`${right.maDonVi} ${right.tenDonVi}`, 'vi')
+                )
+            }))
+            .filter(group => group.items.length > 0)
+    })
+
+    const assignableDanhMucOptions = computed(() => {
+        return [...danhMucOptions.value]
+            .filter(item => !item.chiTieuChaId)
+            .sort((left, right) => {
+                const orderDiff = (left.thuTuHienThi || Number.MAX_SAFE_INTEGER) - (right.thuTuHienThi || Number.MAX_SAFE_INTEGER)
+                if (orderDiff !== 0) return orderDiff
+                return `${left.maChiTieu} ${left.tenChiTieu}`.localeCompare(`${right.maChiTieu} ${right.tenChiTieu}`, 'vi')
+            })
+    })
+
+    const filteredItems = computed(() => {
+        const filtered = items.value.filter(item => {
+            const donViNhan = findDonViById(item.donViNhanId)
+            if (!matchesScopeForDonVi(donViNhan)) {
+                return false
+            }
+
+            const keyword = filters.keyword.trim().toLowerCase()
+            const searchText = [
+                item.tenDotGiaoChiTieu,
+                item.maDotGiaoChiTieu,
+                item.maDanhMucChiTieu,
+                item.tenDanhMucChiTieu,
+                item.tenDonViNhan,
+                item.tenDonViThucHienChinh,
+                item.ghiChu,
+                ...item.tieuChiCon.flatMap(child => [
+                    child.maDanhMucChiTieu,
+                    child.tenDanhMucChiTieu,
+                    child.ghiChu
+                ])
+            ].join(' ').toLowerCase()
+
+            const matchKeyword = !keyword || searchText.includes(keyword)
+            const matchDot = !filters.dotGiaoChiTieuId || item.dotGiaoChiTieuId === Number(filters.dotGiaoChiTieuId)
+            const matchDanhMuc = !filters.danhMucChiTieuId || item.danhMucChiTieuId === Number(filters.danhMucChiTieuId)
+            const matchDonVi = !filters.donViId || item.donViNhanId === Number(filters.donViId)
+
+            return matchKeyword && matchDot && matchDanhMuc && matchDonVi
+        })
+
+        return filtered.sort((left, right) => {
+            const donViLeft = findDonViById(left.donViNhanId)
+            const donViRight = findDonViById(right.donViNhanId)
+
+            const groupOrderDiff =
+                getDonViGroupOrder(donViLeft?.loaiDonVi, donViLeft?.tenDonVi) -
+                getDonViGroupOrder(donViRight?.loaiDonVi, donViRight?.tenDonVi)
+            if (groupOrderDiff !== 0) return groupOrderDiff
+
+            const donViDiff = `${donViLeft?.maDonVi || ''} ${left.tenDonViNhan || ''}`.localeCompare(
+                `${donViRight?.maDonVi || ''} ${right.tenDonViNhan || ''}`,
+                'vi'
+            )
+            if (donViDiff !== 0) return donViDiff
+
+            const dotDiff = `${left.tenDotGiaoChiTieu || ''} ${left.maDotGiaoChiTieu || ''}`.localeCompare(
+                `${right.tenDotGiaoChiTieu || ''} ${right.maDotGiaoChiTieu || ''}`,
+                'vi'
+            )
+            if (dotDiff !== 0) return dotDiff
+
+            return `${left.maDanhMucChiTieu || ''} ${left.tenDanhMucChiTieu || ''}`.localeCompare(
+                `${right.maDanhMucChiTieu || ''} ${right.tenDanhMucChiTieu || ''}`,
+                'vi'
+            )
+        })
+    })
+
+    const hydrateTargetsFromDanhMuc = (existingAssignment = null) => {
+        const danhMuc = selectedDanhMuc.value
+
+        if (!danhMuc) {
+            form.giaTriMucTieu = ''
+            form.giaTriDauKyCoDinh = ''
+            form.giaTriMucTieuText = ''
+            form.tieuChiCon = []
+            return
         }
-        return formatNumberWithUnit(defaultGiaTriMucTieu.value, displayDonViTinh.value)
+
+        if (danhMuc.tieuChiDanhGias.length > 0) {
+            const assignmentByCatalogId = new Map((existingAssignment?.tieuChiCon || []).map(child => [child.danhMucChiTieuId, child]))
+            form.giaTriMucTieu = ''
+            form.giaTriMucTieuText = ''
+            form.tieuChiCon = danhMuc.tieuChiDanhGias.map((criterion, index) => {
+                const assigned = assignmentByCatalogId.get(criterion.id)
+                return {
+                    localKey: `${criterion.id}-${index}-${Math.random()}`,
+                    danhMucChiTieuId: criterion.id,
+                    maChiTieu: criterion.maChiTieu,
+                    tenChiTieu: criterion.tenChiTieu,
+                    loaiChiTieu: criterion.loaiChiTieu,
+                    donViTinh: criterion.donViTinh || danhMuc.donViTinh,
+                    giaTriMucTieu: assigned?.giaTriMucTieu ?? '',
+                    giaTriDauKyCoDinh: assigned?.giaTriDauKyCoDinh ?? 0,
+                    giaTriMucTieuText: assigned?.giaTriMucTieuText || '',
+                    ghiChu: assigned?.ghiChu || '',
+                    thuTuHienThi: assigned?.thuTuHienThi || criterion.thuTuHienThi || index + 1,
+                    dieuKienHoanThanh: criterion.dieuKienHoanThanh,
+                    dieuKienKhongHoanThanh: criterion.dieuKienKhongHoanThanh,
+                    tyLePhanTramMucTieu: criterion.tyLePhanTramMucTieu,
+                    loaiMocSoSanh: criterion.loaiMocSoSanh,
+                    chieuSoSanh: criterion.chieuSoSanh
+                }
+            })
+            return
+        }
+
+        form.tieuChiCon = []
+        form.giaTriMucTieu = existingAssignment?.giaTriMucTieu ?? ''
+        form.giaTriDauKyCoDinh = existingAssignment?.giaTriDauKyCoDinh ?? 0
+        form.giaTriMucTieuText = existingAssignment?.giaTriMucTieuText || ''
+    }
+
+    watch(() => form.danhMucChiTieuId, () => {
+        if (syncingForm.value) return
+        hydrateTargetsFromDanhMuc()
     })
 
-    watch(
-        () => form.danhMucChiTieuId,
-        (newValue, oldValue) => {
-            if (!newValue) {
-                form.giaTriMucTieu = null
-                return
-            }
+    const getResolvedDonViId = () => {
+        if (form.donViId) {
+            return Number(form.donViId)
+        }
 
-            const danhMuc = findDanhMucById(newValue)
-            const giaTriMacDinh = getGiaTriMacDinhTuDanhMuc(danhMuc)
+        if (defaultScopedDonVi.value) {
+            return Number(defaultScopedDonVi.value.id)
+        }
 
-            if (!isEdit.value) {
-                form.giaTriMucTieu = giaTriMacDinh
-                return
-            }
+        return null
+    }
 
-            if (newValue !== oldValue) {
-                form.giaTriMucTieu = giaTriMacDinh
-            }
-        },
-        { immediate: true }
-    )
+    const applyScopeDefaultDonVi = () => {
+        if (props.scope === 'CATP' && defaultScopedDonVi.value) {
+            form.donViId = Number(defaultScopedDonVi.value.id)
+        }
+    }
 
     const buildPayload = () => ({
         dotGiaoChiTieuId: form.dotGiaoChiTieuId,
         danhMucChiTieuId: form.danhMucChiTieuId,
-        donViNhanId: form.donViId,
-        donViThucHienChinhId: form.donViId,
+        donViNhanId: getResolvedDonViId(),
+        donViThucHienChinhId: getResolvedDonViId(),
         tanSuatBaoCao: form.tanSuatBaoCao || null,
-        giaTriMucTieu:
-            form.giaTriMucTieu === '' || form.giaTriMucTieu === null || form.giaTriMucTieu === undefined
-                ? null
-                : Number(form.giaTriMucTieu),
-        ghiChu: form.ghiChu?.trim() || null
+        giaTriMucTieu: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && !isQualitative(selectedDanhMuc.value.loaiChiTieu)
+            ? Number(form.giaTriMucTieu)
+            : null,
+        giaTriDauKyCoDinh: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && !isQualitative(selectedDanhMuc.value.loaiChiTieu)
+            ? Number(form.giaTriDauKyCoDinh)
+            : null,
+        giaTriMucTieuText: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && isQualitative(selectedDanhMuc.value.loaiChiTieu)
+            ? form.giaTriMucTieuText?.trim() || null
+            : null,
+        ghiChu: form.ghiChu?.trim() || null,
+        tieuChiCon: form.tieuChiCon.map((child) => ({
+            danhMucChiTieuId: child.danhMucChiTieuId,
+            giaTriMucTieu: isQualitative(child.loaiChiTieu) ? null : Number(child.giaTriMucTieu),
+            giaTriDauKyCoDinh: isQualitative(child.loaiChiTieu) ? null : Number(child.giaTriDauKyCoDinh),
+            giaTriMucTieuText: isQualitative(child.loaiChiTieu) ? child.giaTriMucTieuText?.trim() || null : null,
+            ghiChu: child.ghiChu?.trim() || null,
+            thuTuHienThi: child.thuTuHienThi || null
+        }))
     })
 
-    const fetchItems = async () => {
-        try {
-            loading.value = true
-            const data = await apiRequest(API_PATHS.chiTietGiaoChiTieu)
-            items.value = normalizeList(data)
-        } catch (error) {
-            console.error('fetchItems error:', error)
-            alert(error.message || 'Không tải được danh sách giao chỉ tiêu.')
-            items.value = []
-        } finally {
-            loading.value = false
-        }
-    }
-
-    const fetchDotOptions = async () => {
-        try {
-            const data = await apiRequest(API_PATHS.dotGiaoChiTieu)
-            dotOptions.value = normalizeList(data)
-        } catch (error) {
-            console.error('fetchDotOptions error:', error)
-            dotOptions.value = []
-        }
-    }
-
-    const fetchDanhMucOptions = async () => {
-        try {
-            const data = await apiRequest(API_PATHS.danhMucChiTieu)
-            danhMucOptions.value = normalizeList(data)
-        } catch (error) {
-            console.error('fetchDanhMucOptions error:', error)
-            danhMucOptions.value = []
-        }
-    }
-
-    const fetchDonViOptions = async () => {
-        try {
-            const data = await apiRequest(API_PATHS.donVi)
-            donViOptions.value = normalizeList(data)
-        } catch (error) {
-            console.error('fetchDonViOptions error:', error)
-            donViOptions.value = []
-        }
-    }
-
-    const openCreateModal = () => {
-        isEdit.value = false
-        editingId.value = null
-        resetForm()
-        showModal.value = true
-    }
-
-    const openEditModal = (item) => {
-        isEdit.value = true
-        editingId.value = getId(item)
-
-        const danhMucId = item.DanhMucChiTieuId ?? item.danhMucChiTieuId ?? null
-        const danhMuc = findDanhMucById(danhMucId)
-
-        Object.assign(form, {
-            dotGiaoChiTieuId: item.DotGiaoChiTieuId ?? item.dotGiaoChiTieuId ?? null,
-            danhMucChiTieuId: danhMucId,
-            donViId: item.DonViNhanId ?? item.donViNhanId ?? null,
-            tanSuatBaoCao: item.TanSuatBaoCao || item.tanSuatBaoCao || '',
-            giaTriMucTieu:
-                item.GiaTriMucTieu ??
-                item.giaTriMucTieu ??
-                getGiaTriMacDinhTuDanhMuc(danhMuc),
-            ghiChu: item.GhiChu || item.ghiChu || ''
-        })
-
-        showModal.value = true
-    }
-
-    const closeModal = () => {
-        showModal.value = false
-        resetForm()
-    }
-
     const validateForm = () => {
-        if (!form.dotGiaoChiTieuId || Number(form.dotGiaoChiTieuId) <= 0) {
+        if (!form.dotGiaoChiTieuId) {
             alert('Vui lòng chọn đợt giao chỉ tiêu.')
             return false
         }
 
-        if (!form.danhMucChiTieuId || Number(form.danhMucChiTieuId) <= 0) {
+        if (!form.danhMucChiTieuId) {
             alert('Vui lòng chọn danh mục chỉ tiêu.')
             return false
         }
 
-        if (!form.donViId || Number(form.donViId) <= 0) {
-            alert('Vui lòng chọn đơn vị.')
+        if (!getResolvedDonViId()) {
+            alert(`Vui lòng chọn ${scopeMeta.value.receiverLabel.toLowerCase()}.`)
             return false
         }
 
         if (!form.tanSuatBaoCao) {
-            alert('Vui lòng chọn tần suất báo cáo.')
+            alert('Vui lòng chọn kỳ báo cáo.')
             return false
         }
 
-        if (form.giaTriMucTieu === null || form.giaTriMucTieu === undefined || form.giaTriMucTieu === '') {
+        if (!selectedDanhMuc.value) {
+            alert('Không tìm thấy danh mục chỉ tiêu đã chọn.')
+            return false
+        }
+
+        if (selectedDanhMuc.value.tieuChiDanhGias.length > 0) {
+            for (let i = 0; i < form.tieuChiCon.length; i += 1) {
+                const child = form.tieuChiCon[i]
+                if (isQualitative(child.loaiChiTieu)) {
+                    if (!child.giaTriMucTieuText?.trim()) {
+                        alert(`Vui lòng nhập mô tả mục tiêu cho tiêu chí con ${i + 1}.`)
+                        return false
+                    }
+                } else {
+                    if (child.giaTriMucTieu === '' || child.giaTriMucTieu === null || child.giaTriMucTieu === undefined) {
+                        alert(`Vui lòng nhập giá trị mục tiêu cho tiêu chí con ${i + 1}.`)
+                        return false
+                    }
+                    if (Number.isNaN(Number(child.giaTriMucTieu))) {
+                        alert(`Giá trị mục tiêu của tiêu chí con ${i + 1} không hợp lệ.`)
+                        return false
+                    }
+                    if (child.giaTriDauKyCoDinh === '' || child.giaTriDauKyCoDinh === null || child.giaTriDauKyCoDinh === undefined) {
+                        alert(`Vui lòng nhập đầu kỳ cố định cho tiêu chí con ${i + 1}.`)
+                        return false
+                    }
+                    if (Number.isNaN(Number(child.giaTriDauKyCoDinh)) || Number(child.giaTriDauKyCoDinh) < 0) {
+                        alert(`Đầu kỳ cố định của tiêu chí con ${i + 1} không hợp lệ.`)
+                        return false
+                    }
+                }
+            }
+            return true
+        }
+
+        if (isQualitative(selectedDanhMuc.value.loaiChiTieu)) {
+            if (!form.giaTriMucTieuText?.trim()) {
+                alert('Vui lòng nhập mô tả mục tiêu.')
+                return false
+            }
+            return true
+        }
+
+        if (form.giaTriMucTieu === '' || form.giaTriMucTieu === null || form.giaTriMucTieu === undefined) {
             alert('Vui lòng nhập giá trị mục tiêu.')
             return false
         }
@@ -681,7 +1140,78 @@
             return false
         }
 
+        if (form.giaTriDauKyCoDinh === '' || form.giaTriDauKyCoDinh === null || form.giaTriDauKyCoDinh === undefined) {
+            alert('Vui lòng nhập giá trị đầu kỳ cố định.')
+            return false
+        }
+
+        if (Number.isNaN(Number(form.giaTriDauKyCoDinh)) || Number(form.giaTriDauKyCoDinh) < 0) {
+            alert('Giá trị đầu kỳ cố định không hợp lệ.')
+            return false
+        }
+
         return true
+    }
+
+    const loadData = async () => {
+        try {
+            loading.value = true
+            const [chiTietData, dotData, danhMucData, donViData] = await Promise.all([
+                apiRequest(API_PATHS.chiTietGiaoChiTieu),
+                apiRequest(API_PATHS.dotGiaoChiTieu),
+                apiRequest(API_PATHS.danhMucChiTieu),
+                apiRequest(API_PATHS.donVi)
+            ])
+
+            items.value = normalizeList(chiTietData).map(normalizeAssignment)
+            dotOptions.value = normalizeList(dotData).map(normalizeDot)
+            danhMucOptions.value = normalizeList(danhMucData).map(normalizeDanhMuc)
+            donViOptions.value = normalizeList(donViData).map(normalizeDonVi)
+            applyScopeDefaultDonVi()
+        } catch (error) {
+            console.error(error)
+            alert(error.message || 'Không tải được dữ liệu giao chỉ tiêu.')
+            items.value = []
+            dotOptions.value = []
+            danhMucOptions.value = []
+            donViOptions.value = []
+        } finally {
+            loading.value = false
+        }
+    }
+
+    const openCreateModal = () => {
+        isEdit.value = false
+        editingId.value = null
+        resetForm()
+        applyScopeDefaultDonVi()
+        showModal.value = true
+    }
+
+    const openEditModal = (item) => {
+        isEdit.value = true
+        editingId.value = item.id
+        syncingForm.value = true
+        Object.assign(form, {
+            dotGiaoChiTieuId: item.dotGiaoChiTieuId,
+            danhMucChiTieuId: item.danhMucChiTieuId,
+            donViId: item.donViNhanId,
+            tanSuatBaoCao: item.tanSuatBaoCao,
+            giaTriMucTieu: item.giaTriMucTieu ?? '',
+            giaTriDauKyCoDinh: item.giaTriDauKyCoDinh ?? 0,
+            giaTriMucTieuText: item.giaTriMucTieuText || '',
+            ghiChu: item.ghiChu || '',
+            tieuChiCon: []
+        })
+        syncingForm.value = false
+        hydrateTargetsFromDanhMuc(item)
+        showModal.value = true
+    }
+
+    const closeModal = () => {
+        showModal.value = false
+        resetForm()
+        applyScopeDefaultDonVi()
     }
 
     const handleSubmit = async () => {
@@ -698,9 +1228,9 @@
             }
 
             closeModal()
-            await fetchItems()
+            await loadData()
         } catch (error) {
-            console.error('handleSubmit error:', error)
+            console.error(error)
             alert(error.message || 'Lưu giao chỉ tiêu thất bại.')
         } finally {
             saving.value = false
@@ -708,15 +1238,14 @@
     }
 
     const handleDelete = async (item) => {
-        const tenDonVi = item.TenDonVi || item.tenDonVi || ''
-        const ok = window.confirm(`Bạn có chắc muốn xóa giao chỉ tiêu cho đơn vị "${tenDonVi}" không?`)
+        const ok = window.confirm(`Bạn có chắc muốn xóa giao chỉ tiêu "${item.tenDanhMucChiTieu}" của đơn vị "${item.tenDonViNhan}" không?`)
         if (!ok) return
 
         try {
-            await apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/${getId(item)}`, 'DELETE')
-            await fetchItems()
+            await apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/${item.id}`, 'DELETE')
+            await loadData()
         } catch (error) {
-            console.error('handleDelete error:', error)
+            console.error(error)
             alert(error.message || 'Xóa giao chỉ tiêu thất bại.')
         }
     }
@@ -725,33 +1254,34 @@
         filters.dotGiaoChiTieuId = null
         filters.danhMucChiTieuId = null
         filters.donViId = null
-        filters.tanSuatBaoCao = ''
         filters.keyword = ''
+
+        if (props.scope === 'CATP' && defaultScopedDonVi.value) {
+            filters.donViId = Number(defaultScopedDonVi.value.id)
+        }
     }
 
-    const formatNumber = (value) => {
-        if (value === null || value === undefined || value === '') return '-'
+    watch(
+        () => props.scope,
+        () => {
+            resetForm()
+            resetFilters()
+            applyScopeDefaultDonVi()
+        }
+    )
 
-        const numberValue = Number(value)
-        if (Number.isNaN(numberValue)) return value
+    watch(
+        scopedDonViOptions,
+        () => {
+            if (props.scope === 'CATP' && defaultScopedDonVi.value) {
+                form.donViId = Number(defaultScopedDonVi.value.id)
+            }
+        },
+        { immediate: true }
+    )
 
-        return numberValue.toLocaleString('vi-VN')
-    }
-
-    const formatNumberWithUnit = (value, unit) => {
-        const formatted = formatNumber(value)
-        if (formatted === '-') return '-'
-        if (!unit || unit === '-') return formatted
-        return `${formatted} ${unit}`
-    }
-
-    onMounted(async () => {
-        await Promise.all([
-            fetchItems(),
-            fetchDotOptions(),
-            fetchDanhMucOptions(),
-            fetchDonViOptions()
-        ])
+    onMounted(() => {
+        loadData()
     })
 </script>
 
@@ -759,17 +1289,6 @@
     .page-wrap {
         min-height: 100vh;
         background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
-    }
-
-    .page-title {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #1f2d3d;
-    }
-
-    .page-subtitle {
-        color: #6b7280;
-        font-size: 0.95rem;
     }
 
     .wave-title {
@@ -790,7 +1309,6 @@
         background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
         box-shadow: 0 10px 30px rgba(13, 110, 253, 0.08);
         border: 1px solid rgba(13, 110, 253, 0.08);
-        margin-bottom: 18px;
     }
 
     .gov-emblem {
@@ -806,10 +1324,6 @@
         flex-shrink: 0;
     }
 
-    .gov-text {
-        flex: 1;
-    }
-
     .gov-title {
         font-size: 1.3rem;
         font-weight: 800;
@@ -817,23 +1331,14 @@
         line-height: 1.3;
     }
 
-    .gov-sub {
-        color: #6b7280;
-        margin-top: 4px;
-        font-size: 0.95rem;
-    }
-
     .custom-card {
         border: none;
-        border-radius: 16px;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+        border-radius: 20px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         overflow: hidden;
     }
 
-    .custom-card .card-header {
-        padding: 1rem 1.25rem 0.75rem;
-    }
-
+    .custom-card .card-header,
     .custom-card .card-body {
         padding: 1.25rem;
     }
@@ -841,7 +1346,7 @@
     .btn-action {
         border-radius: 12px;
         font-weight: 600;
-        padding: 0.7rem 1.1rem;
+        padding: 10px 18px;
     }
 
     .form-label {
@@ -851,123 +1356,86 @@
     }
 
     .form-control,
-    .form-select,
-    .input-group-text {
+    .form-select {
         min-height: 44px;
         border-radius: 12px;
         border-color: #dbe3ef;
-        box-shadow: none;
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: #89d2ef;
-        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
-    }
-
-    textarea.form-control {
-        min-height: unset;
-    }
-
-    :deep(.table) {
-        margin-bottom: 0;
-        border-collapse: collapse;
-    }
-
-    :deep(.table thead th) {
-        border-bottom: 2px solid #dee2e6;
-        background: #f8fafc;
-        color: #374151;
-        font-weight: 700;
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-
-    :deep(.table td),
-    :deep(.table th) {
-        border-right: 1px solid #eee;
-        padding: 0.9rem 0.85rem;
-        vertical-align: middle;
-    }
-
-    :deep(.table td:last-child),
-    :deep(.table th:last-child) {
-        border-right: none;
-    }
-
-    :deep(.table tbody tr) {
-        border-bottom: 1px solid #f1f1f1;
-    }
-
-    :deep(.table-hover tbody tr:hover) {
-        background-color: rgba(0, 0, 0, 0.03);
     }
 
     .empty-state {
-        min-height: 260px;
+        padding: 48px 20px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .criteria-block,
+    .criteria-card,
+    .target-line {
+        border: 1px solid #dbeafe;
+        background: #f8fbff;
+        border-radius: 18px;
+        padding: 16px;
+    }
+
+    .section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1f2d3d;
+    }
+
+    .criteria-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .table-stack {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #6b7280;
-        text-align: center;
-        padding: 2rem 1rem;
+        gap: 8px;
     }
 
-    .badge.text-bg-light {
-        font-weight: 600;
-        border-radius: 999px;
-        padding: 0.45rem 0.7rem;
+    .table-stack-line {
+        padding-bottom: 8px;
+        border-bottom: 1px dashed #dbe3ef;
     }
 
-    .custom-modal {
-        background: rgba(137, 210, 239, 0.5);
+    .table-stack-line:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
     }
 
-    :deep(.modal-content) {
-        animation: fadeInUp 0.3s ease;
+    .selection-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
     }
 
-    @keyframes fadeInUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
+    .selection-card {
+        border: 1px solid #dbeafe;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-radius: 18px;
+        padding: 14px 16px;
     }
 
-    .modal-title {
+    .selection-label {
+        font-size: 0.75rem;
         font-weight: 700;
-        color: #1f2937;
+        color: #2563eb;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
     }
 
-    .alert-info {
-        border: none;
-        border-radius: 14px;
-        background: rgba(137, 210, 239, 0.18);
-        color: #24566b;
+    .selection-value {
+        color: #1f2d3d;
+        font-weight: 700;
+        line-height: 1.4;
     }
 
-    @media (max-width: 768px) {
-        .page-title {
-            font-size: 1.45rem;
-        }
-
-        .custom-card .card-body {
-            padding: 1rem;
-        }
-
-        .gov-banner {
-            padding: 16px;
-            align-items: flex-start;
-        }
-
-        .gov-title {
-            font-size: 1.05rem;
-        }
+    .selection-meta {
+        color: #64748b;
+        font-size: 0.875rem;
+        margin-top: 4px;
     }
 </style>

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
   import dashboard from './components/Dashboard.vue'
   import login from './components/login.vue'
 </script>
@@ -8,3 +8,4 @@
     <router-view />
   </div>
 </template>
+

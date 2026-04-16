@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="app-shell">
         <aside :class="['sidebar', { collapsed: isCollapsed }]">
             <div class="brand">
@@ -6,12 +6,11 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <div v-if="!isCollapsed" class="brand-text">
-                    <h1>Công an TP Đà Nẵng</h1>
-                    <p>Theo dõi đánh giá kết quả thực hiện chỉ tiêu công tác</p>
+                    <h1>Công an Thành phố Đà Nẵng</h1>
+                    <p></p>
                 </div>
             </div>
 
-            <!-- Tổng quan -->
             <nav class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Tổng quan</p>
                 <RouterLink to="/dashboard" class="nav-item" active-class="active">
@@ -20,77 +19,81 @@
                         <span v-if="!isCollapsed">Bảng điều khiển</span>
                     </span>
                 </RouterLink>
+                <RouterLink to="/bao-cao-chi-tieu-cong-an-thanh-pho" class="nav-item" active-class="active">
+                    <span class="nav-left">
+                        <i class="bi bi-clipboard2-data"></i>
+                        <span v-if="!isCollapsed">Báo cáo chỉ tiêu CATP</span>
+                    </span>
+                </RouterLink>
             </nav>
 
-            <!-- Nghiệp vụ -->
             <nav class="nav-section">
-                <p v-if="!isCollapsed" class="section-label">Nghiệp vụ</p>
-
-                <!-- Quản lý chỉ tiêu -->
+                <p v-if="!isCollapsed" class="section-label">Thiết lập nền</p>
                 <div class="nav-group">
-                    <button class="nav-item nav-toggle" @click="toggleMenu('quanLyChiTieu')">
+                    <button class="nav-item nav-toggle" @click="toggleMenu('thietLapNen')">
                         <span class="nav-left">
-                            <i class="bi bi-journal-text"></i>
-                            <span v-if="!isCollapsed">Quản lý chỉ tiêu</span>
+                            <i class="bi bi-journal-bookmark"></i>
+                            <span v-if="!isCollapsed">Danh mục và kỳ báo cáo</span>
                         </span>
                         <i v-if="!isCollapsed"
-                            :class="['bi', menus.quanLyChiTieu ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
+                            :class="['bi', menus.thietLapNen ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
-                    <div v-show="menus.quanLyChiTieu && !isCollapsed" class="sub-menu">
+                    <div v-show="menus.thietLapNen && !isCollapsed" class="sub-menu">
                         <RouterLink to="/danh-muc-chi-tieu" class="sub-item" active-class="active">
                             Danh mục chỉ tiêu
-                        </RouterLink>
-                        <RouterLink to="/chi-tieu-bo-giao" class="sub-item" active-class="active">
-                            Chỉ tiêu cho CATP
-                        </RouterLink>
-                        <RouterLink to="/chi-tieu-thanh-pho-giao" class="sub-item" active-class="active">
-                            Chỉ tiêu cho các đơn vị CADP
-                        </RouterLink>
-                        <RouterLink to="/ky-bao-cao" class="sub-item" active-class="active">
-                            Kỳ báo cáo
                         </RouterLink>
                         <RouterLink to="/don-vi" class="sub-item" active-class="active">
                             Danh mục đơn vị
                         </RouterLink>
+                        <RouterLink to="/ky-bao-cao" class="sub-item" active-class="active">
+                            Kỳ báo cáo
+                        </RouterLink>
                     </div>
                 </div>
+            </nav>
 
-                <!-- Giao chỉ tiêu -->
+            <nav class="nav-section">
+                <p v-if="!isCollapsed" class="section-label">Giao và phân bổ</p>
                 <div class="nav-group">
-                    <button class="nav-item nav-toggle" @click="toggleMenu('giaoChiTieu')">
+                    <button class="nav-item nav-toggle" @click="toggleMenu('giaoVaPhanBo')">
                         <span class="nav-left">
-                            <i class="bi bi-send-check"></i>
-                            <span v-if="!isCollapsed">Giao chỉ tiêu</span>
+                            <i class="bi bi-diagram-3"></i>
+                            <span v-if="!isCollapsed">Phân bổ chỉ tiêu</span>
                         </span>
                         <i v-if="!isCollapsed"
-                            :class="['bi', menus.giaoChiTieu ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
+                            :class="['bi', menus.giaoVaPhanBo ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
-                    <div v-show="menus.giaoChiTieu && !isCollapsed" class="sub-menu">
+                    <div v-show="menus.giaoVaPhanBo && !isCollapsed" class="sub-menu">
                         <RouterLink to="/dot-giao-chi-tieu" class="sub-item" active-class="active">
                             Đợt giao chỉ tiêu
                         </RouterLink>
-                        <RouterLink to="/phan-ra-chi-tieu-bo-giao" class="sub-item" active-class="active">
-                            Cấu hình đánh giá chỉ tiêu
+                        <RouterLink to="/giao-cho-catp" class="sub-item" active-class="active">
+                            Giao cho CATP
                         </RouterLink>
-                        <RouterLink to="/giao-chi-tieu-don-vi" class="sub-item" active-class="active">
-                            Giao chỉ tiêu cho đơn vị
+                        <RouterLink to="/giao-cho-phong" class="sub-item" active-class="active">
+                            Giao cho Phòng
+                        </RouterLink>
+                        <RouterLink to="/giao-cho-cadp-phuong-xa" class="sub-item" active-class="active">
+                            Giao cho CADP phường/xã
                         </RouterLink>
                     </div>
                 </div>
+            </nav>
 
-                <!-- Theo dõi và giám sát -->
+            <nav class="nav-section">
+                <p v-if="!isCollapsed" class="section-label">Theo dõi thực hiện</p>
                 <div class="nav-group">
-                    <button class="nav-item nav-toggle" @click="toggleMenu('theoDoiGiamSat')">
+                    <button class="nav-item nav-toggle" @click="toggleMenu('theoDoiThucHien')">
                         <span class="nav-left">
                             <i class="bi bi-clipboard-data"></i>
-                            <span v-if="!isCollapsed">Theo dõi và giám sát</span>
+                            <span v-if="!isCollapsed">Theo dõi kết quả</span>
                         </span>
                         <i v-if="!isCollapsed"
-                            :class="['bi', menus.theoDoiGiamSat ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
+                            :class="['bi', menus.theoDoiThucHien ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
-                    <div v-show="menus.theoDoiGiamSat && !isCollapsed" class="sub-menu">
+                    <div v-show="menus.theoDoiThucHien && !isCollapsed" class="sub-menu">
                         <RouterLink to="/nhap-ket-qua" class="sub-item" active-class="active">
-                            Nhập kết quả
+                            Nhập báo cáo định kỳ
                         </RouterLink>
                         <RouterLink to="/tien-do-thuc-hien" class="sub-item" active-class="active">
                             Tiến độ thực hiện
@@ -98,32 +101,53 @@
                         <RouterLink to="/don-vi-chua-cap-nhat" class="sub-item" active-class="active">
                             Đơn vị chưa cập nhật
                         </RouterLink>
+                    </div>
+                </div>
+            </nav>
+
+            <nav class="nav-section">
+                <p v-if="!isCollapsed" class="section-label">Đánh giá</p>
+                <div class="nav-group">
+                    <button class="nav-item nav-toggle" @click="toggleMenu('danhGia')">
+                        <span class="nav-left">
+                            <i class="bi bi-bar-chart-line"></i>
+                            <span v-if="!isCollapsed">Đánh giá và so sánh</span>
+                        </span>
+                        <i v-if="!isCollapsed"
+                            :class="['bi', menus.danhGia ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
+                    </button>
+                    <div v-show="menus.danhGia && !isCollapsed" class="sub-menu">
+                        <RouterLink to="/cau-hinh-danh-gia-chi-tieu" class="sub-item" active-class="active">
+                            Cấu hình ngưỡng đánh giá
+                        </RouterLink>
+                        <RouterLink to="/tong-hop-danh-gia-luy-ke" class="sub-item" active-class="active">
+                            Tổng hợp đánh giá lũy kế
+                        </RouterLink>
                         <RouterLink to="/canh-bao-rui-ro" class="sub-item" active-class="active">
                             Cảnh báo rủi ro
                         </RouterLink>
                         <RouterLink to="/so-sanh-don-vi" class="sub-item" active-class="active">
                             So sánh đơn vị
                         </RouterLink>
-                    </div>
-                </div>
-
-                <!-- Đánh giá và báo cáo -->
-                <div class="nav-group">
-                    <button class="nav-item nav-toggle" @click="toggleMenu('danhGiaBaoCao')">
-                        <span class="nav-left">
-                            <i class="bi bi-bar-chart-line"></i>
-                            <span v-if="!isCollapsed">Đánh giá và báo cáo</span>
-                        </span>
-                        <i v-if="!isCollapsed"
-                            :class="['bi', menus.danhGiaBaoCao ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
-                    </button>
-                    <div v-show="menus.danhGiaBaoCao && !isCollapsed" class="sub-menu">
-                        <RouterLink to="/tong-hop-danh-gia" class="sub-item" active-class="active">
-                            Tổng hợp đánh giá
-                        </RouterLink>
                         <RouterLink to="/xep-hang-don-vi" class="sub-item" active-class="active">
                             Xếp hạng đơn vị
                         </RouterLink>
+                    </div>
+                </div>
+            </nav>
+
+            <nav class="nav-section">
+                <p v-if="!isCollapsed" class="section-label">Báo cáo</p>
+                <div class="nav-group">
+                    <button class="nav-item nav-toggle" @click="toggleMenu('baoCao')">
+                        <span class="nav-left">
+                            <i class="bi bi-file-earmark-bar-graph"></i>
+                            <span v-if="!isCollapsed">Báo cáo tổng hợp</span>
+                        </span>
+                        <i v-if="!isCollapsed"
+                            :class="['bi', menus.baoCao ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
+                    </button>
+                    <div v-show="menus.baoCao && !isCollapsed" class="sub-menu">
                         <RouterLink to="/bao-cao-tong-hop" class="sub-item" active-class="active">
                             Báo cáo tổng hợp
                         </RouterLink>
@@ -140,7 +164,6 @@
                 </div>
             </nav>
 
-            <!-- Quản trị -->
             <nav class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Quản trị</p>
                 <div class="nav-group">
@@ -173,7 +196,7 @@
                     <div class="vn-header">
                         <img src="https://flagcdn.com/w40/vn.png" alt="VN" class="vn-flag" />
                         <div>
-                            <h2>Việt Nam</h2>
+                            <h2>Theo dõi đánh giá kết quả thực hiện chỉ tiêu công tác</h2>
                             <p>{{ currentDateTime }}</p>
                         </div>
                     </div>
@@ -182,12 +205,12 @@
                 <div class="topbar-right">
                     <div class="context-badge">
                         <span class="label">Đơn vị</span>
-                        <strong>{{ user?.tenDonVi || 'Chưa xác định' }}</strong>
+                        <strong>{{ user?.email || '---' }}</strong>
                     </div>
 
                     <div class="context-badge">
                         <span class="label">Vai trò</span>
-                        <strong>{{ user?.vaiTro || 'Người dùng' }}</strong>
+                        <strong>{{ userRoleLabel }}</strong>
                     </div>
 
                     <div class="user-menu-wrapper">
@@ -221,13 +244,11 @@
 
 <script setup>
     import { computed, onMounted, onUnmounted, ref, reactive, watch } from 'vue'
-    import { RouterLink, useRoute, useRouter } from 'vue-router'
+    import { RouterLink, useRouter } from 'vue-router'
     import { useAuth } from '../composables/useAuth'
-    import { RouterView } from 'vue-router'
 
     const router = useRouter()
-    const route = useRoute()
-    const { getMe, user } = useAuth()
+    const { getMe, logout: authLogout, user } = useAuth()
 
     const dropdownOpen = ref(false)
     const isCollapsed = ref(false)
@@ -235,15 +256,19 @@
     let timer = null
 
     const defaultMenus = {
-        quanLyChiTieu: false,
-        giaoChiTieu: false,
-        theoDoiGiamSat: false,
-        danhGiaBaoCao: false,
+        thietLapNen: true,
+        giaoVaPhanBo: true,
+        theoDoiThucHien: true,
+        danhGia: true,
+        baoCao: false,
         heThong: false
     }
 
     const savedMenus = localStorage.getItem('sidebar_menus')
-    const menus = reactive(savedMenus ? JSON.parse(savedMenus) : defaultMenus)
+    const menus = reactive({
+        ...defaultMenus,
+        ...(savedMenus ? JSON.parse(savedMenus) : {})
+    })
 
     watch(
         menus,
@@ -253,40 +278,13 @@
         { deep: true }
     )
 
-    const routeTitleMap = {
-        '/dashboard': 'Bảng điều khiển',
+    const userRoleLabel = computed(() => {
+        if (!Array.isArray(user.value?.roles) || user.value.roles.length === 0) {
+            return 'Người dùng'
+        }
 
-        '/chi-tieu': 'Danh mục chỉ tiêu',
-        '/tao-chi-tieu': 'Tạo chỉ tiêu',
-        '/ky-bao-cao': 'Kỳ báo cáo',
-        '/don-vi': 'Danh mục đơn vị',
-
-        '/dot-giao-chi-tieu': 'Đợt giao chỉ tiêu',
-        '/giao-chi-tieu-don-vi': 'Giao chỉ tiêu cho đơn vị',
-        '/chi-tieu-bo-giao': 'Chỉ tiêu Bộ giao',
-        '/chi-tieu-thanh-pho-giao': 'Chỉ tiêu Thành phố giao',
-
-        '/nhap-ket-qua': 'Nhập kết quả',
-        '/tien-do-thuc-hien': 'Tiến độ thực hiện',
-        '/lich-su-cap-nhat': 'Lịch sử cập nhật',
-        '/khoa-ky': 'Khóa kỳ báo cáo',
-
-        '/tong-hop-danh-gia': 'Tổng hợp đánh giá',
-        '/xep-hang-don-vi': 'Xếp hạng đơn vị',
-        '/so-sanh-don-vi': 'So sánh đơn vị',
-        '/canh-bao-rui-ro': 'Cảnh báo rủi ro',
-
-        '/bao-cao-tong-hop': 'Báo cáo tổng hợp',
-        '/bao-cao-theo-don-vi': 'Báo cáo theo đơn vị',
-        '/bao-cao-theo-chi-tieu': 'Báo cáo theo chỉ tiêu',
-        '/xuat-bao-cao': 'Xuất Excel / PDF',
-
-        '/users': 'Người dùng',
-        '/permissions': 'Phân quyền',
-        '/nhat-ky-he-thong': 'Nhật ký hệ thống',
-    }
-
-    const pageTitle = computed(() => routeTitleMap[route.path] || 'KPI Tracker')
+        return user.value.roles.join(', ')
+    })
 
     const currentDateTime = computed(() => {
         return now.value.toLocaleString('vi-VN', {
@@ -321,11 +319,9 @@
         alert('Đổi mật khẩu')
     }
 
-    const logout = () => {
-        localStorage.removeItem('token')
+    const logout = async () => {
         localStorage.removeItem('sidebar_menus')
-        user.value = null
-        router.push('/login')
+        await authLogout()
     }
 
     onMounted(async () => {
@@ -685,3 +681,5 @@
         color: #6b7280;
     }
 </style>
+
+

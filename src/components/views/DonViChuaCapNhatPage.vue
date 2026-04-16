@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -163,20 +163,8 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
-    import axios from 'axios'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import httpClient from '../../services/httpClient'
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
@@ -391,27 +379,27 @@
     })
 
     const fetchTheoDoiItems = async () => {
-        const response = await api.get(API_PATHS.theoDoiThucHienKPI)
+        const response = await httpClient.get(API_PATHS.theoDoiThucHienKPI)
         theoDoiItems.value = normalizeList(response)
     }
 
     const fetchChiTietGiaoChiTieuOptions = async () => {
-        const response = await api.get(API_PATHS.chiTietGiaoChiTieu)
+        const response = await httpClient.get(API_PATHS.chiTietGiaoChiTieu)
         chiTietGiaoChiTieuOptions.value = normalizeList(response)
     }
 
     const fetchKyBaoCaoOptions = async () => {
-        const response = await api.get(API_PATHS.kyBaoCaoKPI)
+        const response = await httpClient.get(API_PATHS.kyBaoCaoKPI)
         kyBaoCaoOptions.value = normalizeList(response)
     }
 
     const fetchDanhMucChiTieuOptions = async () => {
-        const response = await api.get(API_PATHS.danhMucChiTieu)
+        const response = await httpClient.get(API_PATHS.danhMucChiTieu)
         danhMucChiTieuOptions.value = normalizeList(response)
     }
 
     const fetchDonViOptions = async () => {
-        const response = await api.get(API_PATHS.donVi)
+        const response = await httpClient.get(API_PATHS.donVi)
         donViOptions.value = normalizeList(response)
     }
 
@@ -619,3 +607,5 @@
         }
     }
 </style>
+
+

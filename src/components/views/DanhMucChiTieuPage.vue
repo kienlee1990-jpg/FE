@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -7,7 +7,7 @@
                         <i class="bi bi-list-check"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
+                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU</div>
                         <div class="gov-title">QUẢN LÝ DANH MỤC CHỈ TIÊU</div>
                     </div>
                 </div>
@@ -27,7 +27,7 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Tra cứu nhanh theo nhiều tiêu chí</small>
+                        <small class="text-muted">Tra cứu nhanh danh mục chỉ tiêu</small>
                     </div>
 
                     <div class="card-body">
@@ -35,15 +35,15 @@
                             <div class="col-12 col-md-6 col-xl-4">
                                 <label class="form-label">Từ khóa</label>
                                 <input v-model="filters.keyword" type="text" class="form-control"
-                                    placeholder="Mã hoặc tên chỉ tiêu" />
+                                    placeholder="Nhập mã hoặc tên chỉ tiêu" />
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Nguồn chỉ tiêu</label>
+                            <div class="col-12 col-md-6 col-xl-2">
+                                <label class="form-label">Nguồn</label>
                                 <select v-model="filters.nguonChiTieu" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="BO">Bộ công an</option>
-                                    <option value="THANH_PHO">Công an thành phố</option>
+                                    <option value="BO">Bộ Công an</option>
+                                    <option value="THANH_PHO">Công an Thành phố</option>
                                 </select>
                             </div>
 
@@ -54,10 +54,11 @@
                                     <option value="DINH_TINH">Định tính</option>
                                     <option value="DINH_LUONG_TICH_LUY">Định lượng tích lũy</option>
                                     <option value="DINH_LUONG_SO_SANH">Định lượng so sánh</option>
+                                    <option value="PHAN_RA">Phân rã nhiều tiêu chí</option>
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-2">
+                            <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Trạng thái</label>
                                 <select v-model="filters.trangThaiSuDung" class="form-select">
                                     <option value="">Tất cả</option>
@@ -84,7 +85,8 @@
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
                             <h5 class="mb-1">Danh sách chỉ tiêu</h5>
-                            <small class="text-muted">Theo dõi và quản lý dữ liệu chỉ tiêu</small>
+                                        <small class="text-muted">Bao gồm chỉ tiêu đơn và chỉ tiêu phân rã thành nhiều tiêu chí đánh
+                                            giá</small>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ items.length }}</span>
                     </div>
@@ -104,10 +106,10 @@
                             <table class="table table-hover align-middle mb-0 custom-table">
                                 <thead>
                                     <tr>
-                                        <th>Mã chỉ tiêu</th>
+                                        <th>Mã</th>
                                         <th>Tên chỉ tiêu</th>
-                                        <th>Nguồn</th>
                                         <th>Loại</th>
+                                        <th>Bộ tiêu chí</th>
                                         <th>Trạng thái</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
@@ -115,9 +117,27 @@
                                 <tbody>
                                     <tr v-for="item in items" :key="item.id">
                                         <td class="fw-semibold text-primary">{{ item.maChiTieu }}</td>
-                                        <td>{{ item.tenChiTieu }}</td>
-                                        <td>{{ mapNguon(item.nguonChiTieu) }}</td>
+                                        <td>
+                                            <div class="fw-semibold">{{ item.tenChiTieu }}</div>
+                                            <div class="small text-muted mt-1">{{ item.nguonChiTieuLabel }} | {{
+                                                item.linhVucNghiepVu || 'Chưa khai báo lĩnh vực' }}</div>
+                                            <div v-if="item.tieuChiDanhGias.length" class="criterion-tags mt-2">
+                                                <span v-for="child in item.tieuChiDanhGias"
+                                                    :key="child.id || child.maChiTieu"
+                                                    class="badge text-bg-light border">
+                                                    {{ child.tenChiTieu }}
+                                                </span>
+                                            </div>
+                                        </td>
                                         <td>{{ mapLoai(item.loaiChiTieu) }}</td>
+                                        <td>
+                                            <div class="fw-semibold">{{ getCriteriaSummary(item) }}</div>
+                                            <small class="text-muted">
+                                                {{ item.batBuocDatTatCaTieuChiCon && item.tieuChiDanhGias.length
+                                                    ? 'Phải đạt tất cả tiêu chí con'
+                                                    : 'Đánh giá theo 1 tiêu chí' }}
+                                            </small>
+                                        </td>
                                         <td>
                                             <span class="badge rounded-pill"
                                                 :class="item.trangThaiSuDung === 'DANG_AP_DUNG' ? 'text-bg-success' : 'text-bg-danger'">
@@ -149,99 +169,77 @@
                         <div class="modal-content border-0 shadow-lg rounded-4">
                             <div class="modal-header border-0 pb-0">
                                 <div>
-                                    <h4 class="modal-title mb-1">
-                                        {{ isEdit ? 'Cập nhật chỉ tiêu' : 'Tạo chỉ tiêu mới' }}
+                                    <h4 class="modal-title mb-1">{{ isEdit ? 'Cập nhật chỉ tiêu' : 'Tạo chỉ tiêu mới' }}
                                     </h4>
-                                    <p class="text-muted mb-0">Nhập thông tin danh mục chỉ tiêu</p>
+                                    <p class="text-muted mb-0">Khai báo chỉ tiêu đơn hoặc chỉ tiêu phân rã thành nhiều
+                                        tiêu chí đánh giá</p>
                                 </div>
                                 <button type="button" class="btn-close" @click="closeModal"></button>
                             </div>
 
                             <div class="modal-body pt-3">
                                 <div class="row g-3">
-                                    <div class="col-12">
-                                        <div class="alert alert-info mb-0">
-                                            <i class="bi bi-info-circle me-2"></i>
-                                            <strong>Cấp áp dụng</strong> được mặc định là <strong>Thành phố</strong>.
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Mã chỉ tiêu <span class="text-danger">*</span>
-                                        </label>
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Mã chỉ tiêu <span class="text-danger">*</span></label>
                                         <input v-model="form.maChiTieu" :disabled="isEdit" type="text"
                                             class="form-control" />
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Tên chỉ tiêu <span class="text-danger">*</span>
-                                        </label>
+                                    <div class="col-12 col-md-8">
+                                        <label class="form-label">Tên chỉ tiêu <span
+                                                class="text-danger">*</span></label>
                                         <input v-model="form.tenChiTieu" type="text" class="form-control" />
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Nguồn chỉ tiêu <span class="text-danger">*</span>
-                                        </label>
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Nguồn chỉ tiêu <span
+                                                class="text-danger">*</span></label>
                                         <select v-model="form.nguonChiTieu" class="form-select">
-                                            <option value="BO">Bộ công an</option>
-                                            <option value="THANH_PHO">Công an thành phố</option>
+                                            <option value="BO">Bộ Công an</option>
+                                            <option value="THANH_PHO">Công an Thành phố</option>
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Loại chỉ tiêu <span class="text-danger">*</span>
-                                        </label>
-                                        <select v-model="form.loaiChiTieu" class="form-select">
-                                            <option value="DINH_TINH">Định tính</option>
-                                            <option value="DINH_LUONG_TICH_LUY">Định lượng tích lũy</option>
-                                            <option value="DINH_LUONG_SO_SANH">Định lượng so sánh</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-4">
                                         <label class="form-label">Lĩnh vực nghiệp vụ</label>
-                                        <select v-model="form.linhVucNghiepVu" class="form-select">
-                                            <option value="">Chọn lĩnh vực nghiệp vụ</option>
+                                        <select :value="linhVucNghiepVuSelector" class="form-select"
+                                            @change="handleLinhVucSelectorChange($event.target.value)">
+                                            <option value="">Chọn lĩnh vực đã có</option>
                                             <option v-for="option in linhVucNghiepVuOptions" :key="option"
                                                 :value="option">
                                                 {{ option }}
                                             </option>
-                                            <option :value="NEW_LINH_VUC_VALUE">+ Thêm mới lĩnh vực</option>
+                                            <option :value="CUSTOM_OPTION_VALUE">Nhập lĩnh vực mới</option>
                                         </select>
-                                    </div>
-
-                                    <div v-if="form.linhVucNghiepVu === NEW_LINH_VUC_VALUE" class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Nhập lĩnh vực nghiệp vụ mới <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.linhVucNghiepVuMoi" type="text" class="form-control"
+                                        <input v-if="linhVucNghiepVuMode === 'custom'"
+                                            v-model="form.linhVucNghiepVu" type="text" class="form-control mt-2"
                                             placeholder="Nhập lĩnh vực nghiệp vụ mới" />
                                     </div>
 
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-4">
                                         <label class="form-label">Đơn vị tính</label>
-                                        <select v-model="form.donViTinh" class="form-select">
-                                            <option value="">Chọn đơn vị tính</option>
+                                        <select :value="donViTinhSelector" class="form-select"
+                                            @change="handleDonViTinhSelectorChange($event.target.value)">
+                                            <option value="">Chọn đơn vị tính đã có</option>
                                             <option v-for="option in donViTinhOptions" :key="option" :value="option">
                                                 {{ option }}
                                             </option>
-                                            <option :value="NEW_DON_VI_TINH_VALUE">+ Thêm mới đơn vị tính</option>
+                                            <option :value="CUSTOM_OPTION_VALUE">Nhập đơn vị tính mới</option>
+                                        </select>
+                                        <input v-if="donViTinhMode === 'custom'" v-model="form.donViTinh" type="text"
+                                            class="form-control mt-2" placeholder="Ví dụ: %, vụ, người" />
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Chế độ đánh giá <span
+                                                class="text-danger">*</span></label>
+                                        <select v-model="form.cheDoDanhGia" class="form-select">
+                                            <option value="DON">Chỉ tiêu đơn</option>
+                                            <option value="PHAN_RA">Chỉ tiêu phân rã</option>
                                         </select>
                                     </div>
 
-                                    <div v-if="form.donViTinh === NEW_DON_VI_TINH_VALUE" class="col-12 col-md-6">
-                                        <label class="form-label">
-                                            Nhập đơn vị tính mới <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model="form.donViTinhMoi" type="text" class="form-control"
-                                            placeholder="Nhập đơn vị tính mới" />
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-4">
                                         <label class="form-label">Trạng thái sử dụng</label>
                                         <select v-model="form.trangThaiSuDung" class="form-select">
                                             <option value="DANG_AP_DUNG">Đang áp dụng</option>
@@ -249,63 +247,210 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Ngày hiệu lực</label>
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Bắt đầu hiệu lực</label>
                                         <input v-model="form.ngayHieuLuc" type="date" class="form-control" />
                                     </div>
 
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Ngày hết hiệu lực</label>
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Kết thúc hiệu lực</label>
                                         <input v-model="form.ngayHetHieuLuc" type="date" class="form-control" />
                                     </div>
 
                                     <div class="col-12">
                                         <label class="form-label">Mô tả</label>
-                                        <textarea v-model="form.moTa" rows="3" class="form-control"></textarea>
+                                        <textarea v-model="form.moTa" rows="2" class="form-control"></textarea>
                                     </div>
 
                                     <div class="col-12">
                                         <label class="form-label">Hướng dẫn tính toán</label>
-                                        <textarea v-model="form.huongDanTinhToan" rows="3"
+                                        <textarea v-model="form.huongDanTinhToan" rows="2"
                                             class="form-control"></textarea>
                                     </div>
+                                    <div v-if="form.cheDoDanhGia === 'DON'" class="col-12">
+                                        <div class="criteria-block">
+                                            <div class="section-title">Tiêu chí đánh giá</div>
+                                            <div class="row g-3 mt-1">
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label">Loại tiêu chí <span
+                                                            class="text-danger">*</span></label>
+                                                    <select v-model="form.loaiChiTieu" class="form-select">
+                                                        <option value="DINH_TINH">Định tính</option>
+                                                        <option value="DINH_LUONG_TICH_LUY">Định lượng tích lũy</option>
+                                                        <option value="DINH_LUONG_SO_SANH">Định lượng so sánh</option>
+                                                    </select>
+                                                </div>
 
-                                    <template v-if="form.loaiChiTieu === 'DINH_TINH'">
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label">Điều kiện hoàn thành</label>
-                                            <input v-model="form.dieuKienHoanThanh" type="text" class="form-control" />
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label">Điều kiện không hoàn thành</label>
-                                            <input v-model="form.dieuKienKhongHoanThanh" type="text"
-                                                class="form-control" />
-                                        </div>
-                                    </template>
+                                                <div v-if="form.loaiChiTieu === 'DINH_TINH'" class="col-12 col-md-4">
+                                                    <label class="form-label">Điều kiện hoàn thành</label>
+                                                    <input v-model="form.dieuKienHoanThanh" type="text"
+                                                        class="form-control" />
+                                                </div>
+                                                <div v-if="form.loaiChiTieu === 'DINH_TINH'" class="col-12 col-md-4">
+                                                    <label class="form-label">Điều kiện không hoàn thành</label>
+                                                    <input v-model="form.dieuKienKhongHoanThanh" type="text"
+                                                        class="form-control" />
+                                                </div>
 
-                                    <template v-if="form.loaiChiTieu === 'DINH_LUONG_SO_SANH'">
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Tỷ lệ % mục tiêu</label>
-                                            <input v-model.number="form.tyLePhanTramMucTieu" type="number" min="0"
-                                                class="form-control" />
+                                                <template v-if="form.loaiChiTieu === 'DINH_LUONG_SO_SANH'">
+                                                    <div class="col-12 col-md-4">
+                                                        <label class="form-label">Tỷ lệ % mục tiêu</label>
+                                                        <input v-model.number="form.tyLePhanTramMucTieu" type="number"
+                                                            min="0" step="any" class="form-control" />
+                                                    </div>
+                                                    <div class="col-12 col-md-4">
+                                                        <label class="form-label">Loại mốc so sánh</label>
+                                                        <select v-model="form.loaiMocSoSanh" class="form-select">
+                                                            <option value="">Chọn</option>
+                                                            <option value="DAU_KY">Đầu kỳ</option>
+                                                            <option value="CUNG_KY">Cùng kỳ</option>
+                                                            <option value="KY_TRUOC">Kỳ trước</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-12 col-md-4">
+                                                        <label class="form-label">Chiều so sánh</label>
+                                                        <select v-model="form.chieuSoSanh" class="form-select">
+                                                            <option value="">Chọn</option>
+                                                            <option value="TANG">Tăng</option>
+                                                            <option value="GIAM">Giảm</option>
+                                                        </select>
+                                                    </div>
+                                                </template>
+                                            </div>
                                         </div>
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Loại mốc so sánh</label>
-                                            <select v-model="form.loaiMocSoSanh" class="form-select">
-                                                <option value="">Chọn</option>
-                                                <option value="DAU_KY">Đầu kỳ</option>
-                                                <option value="CUNG_KY">Cùng kỳ</option>
-                                                <option value="KY_TRUOC">Kỳ trước</option>
-                                            </select>
+                                    </div>
+
+                                    <div v-else class="col-12">
+                                        <div class="criteria-block">
+                                            <div
+                                                class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                                                <div>
+                                                    <div class="section-title mb-1">Bộ tiêu chí đánh giá</div>
+                                                    <div class="text-muted small">Mỗi chỉ tiêu con là một tiêu chí đánh
+                                                        giá. Kết quả chỉ tiêu cha sẽ dựa trên toàn bộ tiêu chí con.
+                                                    </div>
+                                                </div>
+                                                <button class="btn btn-outline-primary btn-sm"
+                                                    @click="addChildCriterion">
+                                                    <i class="bi bi-plus-circle me-1"></i>Thêm tiêu chí con
+                                                </button>
+                                            </div>
+
+                                            <div class="form-check mb-3">
+                                                <input id="allChildrenRequired" v-model="form.batBuocDatTatCaTieuChiCon"
+                                                    class="form-check-input" type="checkbox" />
+                                                <label class="form-check-label" for="allChildrenRequired">Phải đạt tất
+                                                    cả tiêu chí con thì chỉ tiêu mới đạt</label>
+                                            </div>
+
+                                            <div v-if="!form.tieuChiDanhGias.length" class="empty-inline">
+                                                Chưa có tiêu chí con. Hãy thêm ít nhất 2 tiêu chí để mô tả chỉ tiêu phân
+                                                rã.
+                                            </div>
+
+                                            <div v-for="(child, index) in form.tieuChiDanhGias" :key="child.localKey"
+                                                class="criteria-card mb-3">
+                                                <div
+                                                    class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                                                    <div class="fw-semibold">Tiêu chí con {{ index + 1 }}</div>
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                        @click="removeChildCriterion(index)">
+                                                        <i class="bi bi-trash me-1"></i>Xóa
+                                                    </button>
+                                                </div>
+
+                                                <div class="row g-3">
+                                                    <div class="col-12 col-md-3">
+                                                        <label class="form-label">Thứ tự</label>
+                                                        <input v-model.number="child.thuTuHienThi" type="number" min="1"
+                                                            class="form-control" />
+                                                    </div>
+
+                                                    <div class="col-12 col-md-3">
+                                                        <label class="form-label">Mã tiêu chí <span
+                                                                class="text-danger">*</span></label>
+                                                        <input v-model="child.maChiTieu" type="text"
+                                                            class="form-control" />
+                                                    </div>
+
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label">Tên tiêu chí <span
+                                                                class="text-danger">*</span></label>
+                                                        <input v-model="child.tenChiTieu" type="text"
+                                                            class="form-control" />
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <label class="form-label">Loại tiêu chí <span
+                                                                class="text-danger">*</span></label>
+                                                        <select v-model="child.loaiChiTieu" class="form-select">
+                                                            <option value="DINH_TINH">Định tính</option>
+                                                            <option value="DINH_LUONG_TICH_LUY">Định lượng tích lũy
+                                                            </option>
+                                                            <option value="DINH_LUONG_SO_SANH">Định lượng so sánh
+                                                            </option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <label class="form-label">Đơn vị tính</label>
+                                                        <input v-model="child.donViTinh" type="text"
+                                                            class="form-control"
+                                                            placeholder="Để trống nếu dùng đơn vị tính cha" />
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <label class="form-label">Mô tả ngắn</label>
+                                                        <input v-model="child.moTa" type="text" class="form-control" />
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                    <label class="form-label">Hướng dẫn tính toán</label>
+                                                    <textarea v-model="child.huongDanTinhToan" rows="2"
+                                                        class="form-control"></textarea>
+                                                    </div>
+
+                                                    <div v-if="child.loaiChiTieu === 'DINH_TINH'"
+                                                        class="col-12 col-md-6">
+                                                        <label class="form-label">Điều kiện hoàn thành</label>
+                                                        <input v-model="child.dieuKienHoanThanh" type="text"
+                                                            class="form-control" />
+                                                    </div>
+                                                    <div v-if="child.loaiChiTieu === 'DINH_TINH'"
+                                                        class="col-12 col-md-6">
+                                                        <label class="form-label">Điều kiện không hoàn thành</label>
+                                                        <input v-model="child.dieuKienKhongHoanThanh" type="text"
+                                                            class="form-control" />
+                                                    </div>
+
+                                                    <template v-if="child.loaiChiTieu === 'DINH_LUONG_SO_SANH'">
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label">Tỷ lệ % mục tiêu</label>
+                                                            <input v-model.number="child.tyLePhanTramMucTieu"
+                                                                type="number" min="0" step="any" class="form-control" />
+                                                        </div>
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label">Loại mốc so sánh</label>
+                                                            <select v-model="child.loaiMocSoSanh" class="form-select">
+                                                                <option value="">Chon</option>
+                                                                <option value="DAU_KY">Đầu kỳ</option>
+                                                                <option value="CUNG_KY">Cùng kỳ</option>
+                                                                <option value="KY_TRUOC">Kỳ trước</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label">Chiều so sánh</label>
+                                                            <select v-model="child.chieuSoSanh" class="form-select">
+                                                                <option value="">Chon</option>
+                                                                <option value="TANG">Tăng</option>
+                                                                <option value="GIAM">Giảm</option>
+                                                            </select>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Chiều so sánh</label>
-                                            <select v-model="form.chieuSoSanh" class="form-select">
-                                                <option value="">Chọn</option>
-                                                <option value="TANG">Tăng</option>
-                                                <option value="GIAM">Giảm</option>
-                                            </select>
-                                        </div>
-                                    </template>
+                                    </div>
                                 </div>
                             </div>
 
@@ -327,13 +472,12 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, reactive, ref } from 'vue'
+    import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
 
-    const NEW_LINH_VUC_VALUE = '__NEW_LINH_VUC__'
-    const NEW_DON_VI_TINH_VALUE = '__NEW_DON_VI_TINH__'
     const DEFAULT_CAP_AP_DUNG = 'THANH_PHO'
+    const CUSTOM_OPTION_VALUE = '__custom__'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -342,22 +486,6 @@
     const editingId = ref(null)
     const items = ref([])
 
-    const linhVucNghiepVuOptions = computed(() => {
-        const values = items.value
-            .map(item => item.linhVucNghiepVu?.trim())
-            .filter(Boolean)
-
-        return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'vi'))
-    })
-
-    const donViTinhOptions = computed(() => {
-        const values = items.value
-            .map(item => item.donViTinh?.trim())
-            .filter(Boolean)
-
-        return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'vi'))
-    })
-
     const filters = reactive({
         keyword: '',
         nguonChiTieu: '',
@@ -365,21 +493,16 @@
         trangThaiSuDung: ''
     })
 
-    const createDefaultForm = () => ({
+    const createChildCriterion = (index = 1) => ({
+        localKey: `${Date.now()}-${Math.random()}-${index}`,
+        id: null,
         maChiTieu: '',
         tenChiTieu: '',
-        nguonChiTieu: 'BO',
         loaiChiTieu: 'DINH_TINH',
-        linhVucNghiepVu: '',
-        linhVucNghiepVuMoi: '',
+        thuTuHienThi: index,
         donViTinh: '',
-        donViTinhMoi: '',
         moTa: '',
         huongDanTinhToan: '',
-        coChoPhepPhanRa: false,
-        trangThaiSuDung: 'DANG_AP_DUNG',
-        ngayHieuLuc: '',
-        ngayHetHieuLuc: '',
         dieuKienHoanThanh: '',
         dieuKienKhongHoanThanh: '',
         tyLePhanTramMucTieu: null,
@@ -387,52 +510,206 @@
         chieuSoSanh: ''
     })
 
+    const createDefaultForm = () => ({
+        maChiTieu: '',
+        tenChiTieu: '',
+        nguonChiTieu: 'BO',
+        linhVucNghiepVu: '',
+        donViTinh: '',
+        moTa: '',
+        huongDanTinhToan: '',
+        trangThaiSuDung: 'DANG_AP_DUNG',
+        ngayHieuLuc: '',
+        ngayHetHieuLuc: '',
+        cheDoDanhGia: 'DON',
+        coChoPhepPhanRa: false,
+        batBuocDatTatCaTieuChiCon: true,
+        loaiChiTieu: 'DINH_TINH',
+        dieuKienHoanThanh: '',
+        dieuKienKhongHoanThanh: '',
+        tyLePhanTramMucTieu: null,
+        loaiMocSoSanh: '',
+        chieuSoSanh: '',
+        tieuChiDanhGias: []
+    })
+
     const form = reactive(createDefaultForm())
+    const linhVucNghiepVuMode = ref('existing')
+    const donViTinhMode = ref('existing')
+
+    const normalizeOptionValue = value => String(value || '').trim()
+
+    const buildUniqueOptions = (values) => Array.from(
+        new Set(values.map(normalizeOptionValue).filter(Boolean))
+    ).sort((left, right) => left.localeCompare(right, 'vi'))
+
+    const linhVucNghiepVuOptions = computed(() => buildUniqueOptions(
+        items.value.map(item => item.linhVucNghiepVu)
+    ))
+
+    const donViTinhOptions = computed(() => buildUniqueOptions(
+        items.value.flatMap(item => [
+            item.donViTinh,
+            ...item.tieuChiDanhGias.map(child => child.donViTinh)
+        ])
+    ))
+
+    const linhVucNghiepVuSelector = computed(() => (
+        linhVucNghiepVuMode.value === 'custom'
+            ? CUSTOM_OPTION_VALUE
+            : normalizeOptionValue(form.linhVucNghiepVu)
+    ))
+
+    const donViTinhSelector = computed(() => (
+        donViTinhMode.value === 'custom'
+            ? CUSTOM_OPTION_VALUE
+            : normalizeOptionValue(form.donViTinh)
+    ))
 
     const resetForm = () => {
         Object.assign(form, createDefaultForm())
+        linhVucNghiepVuMode.value = 'existing'
+        donViTinhMode.value = 'existing'
     }
 
-    const getResolvedLinhVucNghiepVu = () => {
-        if (form.linhVucNghiepVu === NEW_LINH_VUC_VALUE) {
-            return form.linhVucNghiepVuMoi?.trim() || ''
+    const syncSuggestionModes = () => {
+        const linhVuc = normalizeOptionValue(form.linhVucNghiepVu)
+        const donViTinh = normalizeOptionValue(form.donViTinh)
+
+        linhVucNghiepVuMode.value = linhVuc && !linhVucNghiepVuOptions.value.includes(linhVuc) ? 'custom' : 'existing'
+        donViTinhMode.value = donViTinh && !donViTinhOptions.value.includes(donViTinh) ? 'custom' : 'existing'
+    }
+
+    const handleLinhVucSelectorChange = (value) => {
+        if (value === CUSTOM_OPTION_VALUE) {
+            linhVucNghiepVuMode.value = 'custom'
+            form.linhVucNghiepVu = ''
+            return
         }
-        return form.linhVucNghiepVu?.trim() || ''
+
+        linhVucNghiepVuMode.value = 'existing'
+        form.linhVucNghiepVu = value
     }
 
-    const getResolvedDonViTinh = () => {
-        if (form.donViTinh === NEW_DON_VI_TINH_VALUE) {
-            return form.donViTinhMoi?.trim() || ''
+    const handleDonViTinhSelectorChange = (value) => {
+        if (value === CUSTOM_OPTION_VALUE) {
+            donViTinhMode.value = 'custom'
+            form.donViTinh = ''
+            return
         }
-        return form.donViTinh?.trim() || ''
+
+        donViTinhMode.value = 'existing'
+        form.donViTinh = value
     }
 
-    const buildPayload = () => {
+    const normalizeList = (response) => {
+        if (Array.isArray(response)) return response
+        if (Array.isArray(response?.data)) return response.data
+        if (Array.isArray(response?.data?.data)) return response.data.data
+        if (Array.isArray(response?.items)) return response.items
+        return []
+    }
+
+    const pick = (item, ...keys) => {
+        for (const key of keys) {
+            if (item?.[key] !== undefined && item?.[key] !== null) return item[key]
+        }
+        return null
+    }
+
+    const normalizeChild = (child, index = 1) => ({
+        localKey: `${pick(child, 'id', 'Id') || 'new'}-${index}-${Math.random()}`,
+        id: Number(pick(child, 'id', 'Id')) || null,
+        maChiTieu: String(pick(child, 'maChiTieu', 'MaChiTieu') || ''),
+        tenChiTieu: String(pick(child, 'tenChiTieu', 'TenChiTieu') || ''),
+        loaiChiTieu: String(pick(child, 'loaiChiTieu', 'LoaiChiTieu') || 'DINH_TINH'),
+        thuTuHienThi: Number(pick(child, 'thuTuHienThi', 'ThuTuHienThi') || index),
+        donViTinh: String(pick(child, 'donViTinh', 'DonViTinh') || ''),
+        moTa: String(pick(child, 'moTa', 'MoTa') || ''),
+        huongDanTinhToan: String(pick(child, 'huongDanTinhToan', 'HuongDanTinhToan') || ''),
+        dieuKienHoanThanh: String(pick(child, 'dieuKienHoanThanh', 'DieuKienHoanThanh') || ''),
+        dieuKienKhongHoanThanh: String(pick(child, 'dieuKienKhongHoanThanh', 'DieuKienKhongHoanThanh') || ''),
+        tyLePhanTramMucTieu: pick(child, 'tyLePhanTramMucTieu', 'TyLePhanTramMucTieu'),
+        loaiMocSoSanh: String(pick(child, 'loaiMocSoSanh', 'LoaiMocSoSanh') || ''),
+        chieuSoSanh: String(pick(child, 'chieuSoSanh', 'ChieuSoSanh') || '')
+    })
+
+    const normalizeItem = (item) => {
+        const children = normalizeList(pick(item, 'tieuChiDanhGias', 'TieuChiDanhGias')).map((child, index) => normalizeChild(child, index + 1))
+        const loaiChiTieu = String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || '')
+        const nguonChiTieu = String(pick(item, 'nguonChiTieu', 'NguonChiTieu') || '')
+
         return {
-            maChiTieu: form.maChiTieu?.trim(),
-            tenChiTieu: form.tenChiTieu?.trim(),
-            nguonChiTieu: form.nguonChiTieu,
-            loaiChiTieu: form.loaiChiTieu,
-            capApDung: DEFAULT_CAP_AP_DUNG,
-            linhVucNghiepVu: getResolvedLinhVucNghiepVu() || null,
-            donViTinh: getResolvedDonViTinh() || null,
-            moTa: form.moTa || null,
-            huongDanTinhToan: form.huongDanTinhToan || null,
-            coChoPhepPhanRa: false,
-            trangThaiSuDung: form.trangThaiSuDung,
-            ngayHieuLuc: form.ngayHieuLuc || null,
-            ngayHetHieuLuc: form.ngayHetHieuLuc || null,
-            dieuKienHoanThanh: form.loaiChiTieu === 'DINH_TINH' ? form.dieuKienHoanThanh || null : null,
-            dieuKienKhongHoanThanh: form.loaiChiTieu === 'DINH_TINH' ? form.dieuKienKhongHoanThanh || null : null,
-            tyLePhanTramMucTieu: form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? form.tyLePhanTramMucTieu : null,
-            loaiMocSoSanh: form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? form.loaiMocSoSanh || null : null,
-            chieuSoSanh: form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? form.chieuSoSanh || null : null
+            id: Number(pick(item, 'id', 'Id') || 0),
+            maChiTieu: String(pick(item, 'maChiTieu', 'MaChiTieu') || ''),
+            tenChiTieu: String(pick(item, 'tenChiTieu', 'TenChiTieu') || ''),
+            nguonChiTieu,
+            nguonChiTieuLabel: nguonChiTieu === 'BO' ? 'Bộ Công an' : nguonChiTieu === 'THANH_PHO' ? 'Công an Thành phố' : nguonChiTieu,
+            loaiChiTieu,
+            capApDung: String(pick(item, 'capApDung', 'CapApDung') || DEFAULT_CAP_AP_DUNG),
+            linhVucNghiepVu: String(pick(item, 'linhVucNghiepVu', 'LinhVucNghiepVu') || ''),
+            donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
+            moTa: String(pick(item, 'moTa', 'MoTa') || ''),
+            huongDanTinhToan: String(pick(item, 'huongDanTinhToan', 'HuongDanTinhToan') || ''),
+            coChoPhepPhanRa: Boolean(pick(item, 'coChoPhepPhanRa', 'CoChoPhepPhanRa')),
+            trangThaiSuDung: String(pick(item, 'trangThaiSuDung', 'TrangThaiSuDung') || 'DANG_AP_DUNG'),
+            ngayHieuLuc: pick(item, 'ngayHieuLuc', 'NgayHieuLuc'),
+            ngayHetHieuLuc: pick(item, 'ngayHetHieuLuc', 'NgayHetHieuLuc'),
+            dieuKienHoanThanh: String(pick(item, 'dieuKienHoanThanh', 'DieuKienHoanThanh') || ''),
+            dieuKienKhongHoanThanh: String(pick(item, 'dieuKienKhongHoanThanh', 'DieuKienKhongHoanThanh') || ''),
+            tyLePhanTramMucTieu: pick(item, 'tyLePhanTramMucTieu', 'TyLePhanTramMucTieu'),
+            loaiMocSoSanh: String(pick(item, 'loaiMocSoSanh', 'LoaiMocSoSanh') || ''),
+            chieuSoSanh: String(pick(item, 'chieuSoSanh', 'ChieuSoSanh') || ''),
+            batBuocDatTatCaTieuChiCon: pick(item, 'batBuocDatTatCaTieuChiCon', 'BatBuocDatTatCaTieuChiCon') !== false,
+            tieuChiDanhGias: children
         }
     }
 
-    const buildQueryString = params => {
-        const searchParams = new URLSearchParams()
+    const mapLoai = (value) => {
+        const map = {
+            DINH_TINH: 'Định tính',
+            DINH_LUONG_TICH_LUY: 'Định lượng tích lũy',
+            DINH_LUONG_SO_SANH: 'Định lượng so sánh',
+            PHAN_RA: 'Phân rã'
+        }
 
+        return map[value] || value || '-'
+    }
+
+    const getTrangThaiLabel = value => value === 'DANG_AP_DUNG' ? 'Đang áp dụng' : 'Ngừng áp dụng'
+
+    const getCriteriaSummary = (item) => {
+        if (item.tieuChiDanhGias.length > 0) {
+            return `${item.tieuChiDanhGias.length} tiêu chí con`
+        }
+
+        return '1 tiêu chí'
+    }
+
+    const addChildCriterion = () => {
+        form.tieuChiDanhGias.push(createChildCriterion(form.tieuChiDanhGias.length + 1))
+    }
+
+    const removeChildCriterion = (index) => {
+        form.tieuChiDanhGias.splice(index, 1)
+        form.tieuChiDanhGias.forEach((child, childIndex) => {
+            if (!child.thuTuHienThi || Number(child.thuTuHienThi) <= 0) {
+                child.thuTuHienThi = childIndex + 1
+            }
+        })
+    }
+
+    watch(() => form.cheDoDanhGia, (mode) => {
+        form.coChoPhepPhanRa = mode === 'PHAN_RA'
+        if (mode === 'PHAN_RA' && form.tieuChiDanhGias.length < 2) {
+            while (form.tieuChiDanhGias.length < 2) {
+                addChildCriterion()
+            }
+        }
+    })
+
+    const buildQueryString = (params) => {
+        const searchParams = new URLSearchParams()
         Object.entries(params).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') {
                 searchParams.append(key, value)
@@ -446,7 +723,6 @@
     const fetchDanhMucChiTieu = async () => {
         try {
             loading.value = true
-
             const queryString = buildQueryString({
                 keyword: filters.keyword || undefined,
                 nguonChiTieu: filters.nguonChiTieu || undefined,
@@ -455,7 +731,7 @@
             })
 
             const data = await apiRequest(`/danh-muc-chi-tieu${queryString}`)
-            items.value = Array.isArray(data) ? data : []
+            items.value = normalizeList(data).map(normalizeItem)
         } catch (error) {
             console.error(error)
             alert(error.message || 'Không tải được danh mục chỉ tiêu.')
@@ -472,49 +748,34 @@
         showModal.value = true
     }
 
-    const openEditModal = item => {
+    const openEditModal = (item) => {
         isEdit.value = true
         editingId.value = item.id
-
-        const existingLinhVuc = item.linhVucNghiepVu?.trim() || ''
-        const existingDonViTinh = item.donViTinh?.trim() || ''
-
-        const hasLinhVucInOptions =
-            existingLinhVuc && linhVucNghiepVuOptions.value.includes(existingLinhVuc)
-
-        const hasDonViTinhInOptions =
-            existingDonViTinh && donViTinhOptions.value.includes(existingDonViTinh)
 
         Object.assign(form, {
             maChiTieu: item.maChiTieu,
             tenChiTieu: item.tenChiTieu,
             nguonChiTieu: item.nguonChiTieu,
-            loaiChiTieu: item.loaiChiTieu,
-            linhVucNghiepVu: hasLinhVucInOptions
-                ? existingLinhVuc
-                : existingLinhVuc
-                    ? NEW_LINH_VUC_VALUE
-                    : '',
-            linhVucNghiepVuMoi: hasLinhVucInOptions ? '' : existingLinhVuc,
-            donViTinh: hasDonViTinhInOptions
-                ? existingDonViTinh
-                : existingDonViTinh
-                    ? NEW_DON_VI_TINH_VALUE
-                    : '',
-            donViTinhMoi: hasDonViTinhInOptions ? '' : existingDonViTinh,
-            moTa: item.moTa || '',
-            huongDanTinhToan: item.huongDanTinhToan || '',
-            coChoPhepPhanRa: false,
-            trangThaiSuDung: item.trangThaiSuDung || 'DANG_AP_DUNG',
-            ngayHieuLuc: item.ngayHieuLuc ? item.ngayHieuLuc.slice(0, 10) : '',
-            ngayHetHieuLuc: item.ngayHetHieuLuc ? item.ngayHetHieuLuc.slice(0, 10) : '',
-            dieuKienHoanThanh: item.dieuKienHoanThanh || '',
-            dieuKienKhongHoanThanh: item.dieuKienKhongHoanThanh || '',
+            linhVucNghiepVu: item.linhVucNghiepVu,
+            donViTinh: item.donViTinh,
+            moTa: item.moTa,
+            huongDanTinhToan: item.huongDanTinhToan,
+            trangThaiSuDung: item.trangThaiSuDung,
+            ngayHieuLuc: item.ngayHieuLuc ? String(item.ngayHieuLuc).slice(0, 10) : '',
+            ngayHetHieuLuc: item.ngayHetHieuLuc ? String(item.ngayHetHieuLuc).slice(0, 10) : '',
+            cheDoDanhGia: item.tieuChiDanhGias.length > 0 ? 'PHAN_RA' : 'DON',
+            coChoPhepPhanRa: item.tieuChiDanhGias.length > 0,
+            batBuocDatTatCaTieuChiCon: item.batBuocDatTatCaTieuChiCon,
+            loaiChiTieu: item.tieuChiDanhGias.length > 0 ? 'DINH_TINH' : item.loaiChiTieu,
+            dieuKienHoanThanh: item.dieuKienHoanThanh,
+            dieuKienKhongHoanThanh: item.dieuKienKhongHoanThanh,
             tyLePhanTramMucTieu: item.tyLePhanTramMucTieu,
-            loaiMocSoSanh: item.loaiMocSoSanh || '',
-            chieuSoSanh: item.chieuSoSanh || ''
+            loaiMocSoSanh: item.loaiMocSoSanh,
+            chieuSoSanh: item.chieuSoSanh,
+            tieuChiDanhGias: item.tieuChiDanhGias.map((child, index) => normalizeChild(child, index + 1))
         })
 
+        syncSuggestionModes()
         showModal.value = true
     }
 
@@ -523,8 +784,41 @@
         resetForm()
     }
 
+    const validateCriterion = (criterion, label) => {
+        if (!criterion.maChiTieu?.trim()) {
+            alert(`${label}: vui lòng nhập mã tiêu chí.`)
+            return false
+        }
+
+        if (!criterion.tenChiTieu?.trim()) {
+            alert(`${label}: vui lòng nhập tên tiêu chí.`)
+            return false
+        }
+
+        if (criterion.loaiChiTieu === 'DINH_TINH') {
+            if (!criterion.dieuKienHoanThanh?.trim() || !criterion.dieuKienKhongHoanThanh?.trim()) {
+                alert(`${label}: chỉ tiêu định tính phải có điều kiện hoàn thành và không hoàn thành.`)
+                return false
+            }
+        }
+
+        if (criterion.loaiChiTieu === 'DINH_LUONG_SO_SANH') {
+            if (criterion.tyLePhanTramMucTieu === null || criterion.tyLePhanTramMucTieu === undefined || criterion.tyLePhanTramMucTieu === '') {
+                alert(`${label}: vui lòng nhập tỷ lệ % mục tiêu.`)
+                return false
+            }
+
+            if (!criterion.loaiMocSoSanh || !criterion.chieuSoSanh) {
+                alert(`${label}: vui lòng chọn loại mốc và chiều so sánh.`)
+                return false
+            }
+        }
+
+        return true
+    }
+
     const validateForm = () => {
-        if (!form.maChiTieu && !isEdit.value) {
+        if (!isEdit.value && !form.maChiTieu?.trim()) {
             alert('Vui lòng nhập mã chỉ tiêu.')
             return false
         }
@@ -534,31 +828,89 @@
             return false
         }
 
-        if (form.linhVucNghiepVu === NEW_LINH_VUC_VALUE && !form.linhVucNghiepVuMoi?.trim()) {
-            alert('Vui lòng nhập lĩnh vực nghiệp vụ mới.')
+        if (form.ngayHieuLuc && form.ngayHetHieuLuc && form.ngayHetHieuLuc < form.ngayHieuLuc) {
+            alert('Ngày kết thúc hiệu lực phải lớn hơn hoặc bằng ngày bắt đầu.')
             return false
         }
 
-        if (form.donViTinh === NEW_DON_VI_TINH_VALUE && !form.donViTinhMoi?.trim()) {
-            alert('Vui lòng nhập đơn vị tính mới.')
-            return false
-        }
-
-        if (form.loaiChiTieu === 'DINH_TINH') {
-            if (!form.dieuKienHoanThanh || !form.dieuKienKhongHoanThanh) {
-                alert('Chỉ tiêu định tính phải nhập điều kiện hoàn thành và điều kiện không hoàn thành.')
+        if (form.cheDoDanhGia === 'PHAN_RA') {
+            if (form.tieuChiDanhGias.length < 2) {
+                alert('Chỉ tiêu phân rã phải có ít nhất 2 tiêu chí con.')
                 return false
             }
-        }
 
-        if (form.loaiChiTieu === 'DINH_LUONG_SO_SANH') {
-            if (!form.tyLePhanTramMucTieu || !form.loaiMocSoSanh || !form.chieuSoSanh) {
-                alert('Chỉ tiêu định lượng so sánh phải nhập đủ tỷ lệ %, loại mốc so sánh và chiều so sánh.')
-                return false
+            for (let i = 0; i < form.tieuChiDanhGias.length; i += 1) {
+                if (!validateCriterion(form.tieuChiDanhGias[i], `Tiêu chí con ${i + 1}`)) {
+                    return false
+                }
             }
+
+            return true
         }
 
-        return true
+        return validateCriterion({
+            maChiTieu: form.maChiTieu,
+            tenChiTieu: form.tenChiTieu,
+            loaiChiTieu: form.loaiChiTieu,
+            dieuKienHoanThanh: form.dieuKienHoanThanh,
+            dieuKienKhongHoanThanh: form.dieuKienKhongHoanThanh,
+            tyLePhanTramMucTieu: form.tyLePhanTramMucTieu,
+            loaiMocSoSanh: form.loaiMocSoSanh,
+            chieuSoSanh: form.chieuSoSanh
+        }, 'Chỉ tiêu')
+    }
+
+    const buildCriterionPayload = (criterion, fallbackDonViTinh, index) => ({
+        id: criterion.id || null,
+        maChiTieu: criterion.maChiTieu.trim(),
+        tenChiTieu: criterion.tenChiTieu.trim(),
+        loaiChiTieu: criterion.loaiChiTieu,
+        thuTuHienThi: Number(criterion.thuTuHienThi || index + 1),
+        donViTinh: (criterion.donViTinh || fallbackDonViTinh || '').trim() || null,
+        moTa: criterion.moTa?.trim() || null,
+        huongDanTinhToan: criterion.huongDanTinhToan?.trim() || null,
+        dieuKienHoanThanh: criterion.loaiChiTieu === 'DINH_TINH' ? criterion.dieuKienHoanThanh?.trim() || null : null,
+        dieuKienKhongHoanThanh: criterion.loaiChiTieu === 'DINH_TINH' ? criterion.dieuKienKhongHoanThanh?.trim() || null : null,
+        tyLePhanTramMucTieu: criterion.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? Number(criterion.tyLePhanTramMucTieu) : null,
+        loaiMocSoSanh: criterion.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? criterion.loaiMocSoSanh || null : null,
+        chieuSoSanh: criterion.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? criterion.chieuSoSanh || null : null
+    })
+
+    const buildPayload = () => {
+        const payload = {
+            maChiTieu: form.maChiTieu.trim(),
+            tenChiTieu: form.tenChiTieu.trim(),
+            nguonChiTieu: form.nguonChiTieu,
+            loaiChiTieu: form.cheDoDanhGia === 'PHAN_RA' ? 'PHAN_RA' : form.loaiChiTieu,
+            capApDung: DEFAULT_CAP_AP_DUNG,
+            linhVucNghiepVu: form.linhVucNghiepVu?.trim() || null,
+            donViTinh: form.donViTinh?.trim() || null,
+            moTa: form.moTa?.trim() || null,
+            huongDanTinhToan: form.huongDanTinhToan?.trim() || null,
+            coChoPhepPhanRa: form.cheDoDanhGia === 'PHAN_RA',
+            trangThaiSuDung: form.trangThaiSuDung,
+            ngayHieuLuc: form.ngayHieuLuc || null,
+            ngayHetHieuLuc: form.ngayHetHieuLuc || null,
+            dieuKienHoanThanh: null,
+            dieuKienKhongHoanThanh: null,
+            tyLePhanTramMucTieu: null,
+            loaiMocSoSanh: null,
+            chieuSoSanh: null,
+            batBuocDatTatCaTieuChiCon: form.cheDoDanhGia === 'PHAN_RA' ? !!form.batBuocDatTatCaTieuChiCon : false,
+            tieuChiDanhGias: []
+        }
+
+        if (form.cheDoDanhGia === 'PHAN_RA') {
+            payload.tieuChiDanhGias = form.tieuChiDanhGias.map((criterion, index) => buildCriterionPayload(criterion, form.donViTinh, index))
+            return payload
+        }
+
+        payload.dieuKienHoanThanh = form.loaiChiTieu === 'DINH_TINH' ? form.dieuKienHoanThanh?.trim() || null : null
+        payload.dieuKienKhongHoanThanh = form.loaiChiTieu === 'DINH_TINH' ? form.dieuKienKhongHoanThanh?.trim() || null : null
+        payload.tyLePhanTramMucTieu = form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? Number(form.tyLePhanTramMucTieu) : null
+        payload.loaiMocSoSanh = form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? form.loaiMocSoSanh || null : null
+        payload.chieuSoSanh = form.loaiChiTieu === 'DINH_LUONG_SO_SANH' ? form.chieuSoSanh || null : null
+        return payload
     }
 
     const handleSubmit = async () => {
@@ -584,7 +936,7 @@
         }
     }
 
-    const handleDelete = async item => {
+    const handleDelete = async (item) => {
         const ok = window.confirm(`Bạn có chắc muốn xóa chỉ tiêu "${item.tenChiTieu}" không?`)
         if (!ok) return
 
@@ -592,13 +944,9 @@
             await apiRequest(`/danh-muc-chi-tieu/${item.id}`, 'DELETE')
             await fetchDanhMucChiTieu()
         } catch (error) {
-            console.error('Delete error:', error)
+            console.error(error)
             alert(error.message || 'Xóa chỉ tiêu thất bại.')
         }
-    }
-
-    const getTrangThaiLabel = value => {
-        return value === 'DANG_AP_DUNG' ? 'Đang áp dụng' : 'Ngừng áp dụng'
     }
 
     const resetFilters = async () => {
@@ -607,23 +955,6 @@
         filters.loaiChiTieu = ''
         filters.trangThaiSuDung = ''
         await fetchDanhMucChiTieu()
-    }
-
-    const mapNguon = value => {
-        const map = {
-            BO: 'Bộ công an',
-            THANH_PHO: 'Công an thành phố'
-        }
-        return map[value] || value
-    }
-
-    const mapLoai = value => {
-        const map = {
-            DINH_TINH: 'Định tính',
-            DINH_LUONG_TICH_LUY: 'Định lượng tích lũy',
-            DINH_LUONG_SO_SANH: 'Định lượng so sánh'
-        }
-        return map[value] || value
     }
 
     onMounted(() => {
@@ -635,17 +966,6 @@
     .page-wrap {
         min-height: 100vh;
         background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
-    }
-
-    .page-title {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #1f2d3d;
-    }
-
-    .page-subtitle {
-        color: #6b7280;
-        font-size: 0.95rem;
     }
 
     .wave-title {
@@ -681,21 +1001,11 @@
         flex-shrink: 0;
     }
 
-    .gov-text {
-        flex: 1;
-    }
-
     .gov-title {
         font-size: 1.3rem;
         font-weight: 800;
         color: #1f2d3d;
         line-height: 1.3;
-    }
-
-    .gov-sub {
-        color: #6b7280;
-        margin-top: 4px;
-        font-size: 0.95rem;
     }
 
     .custom-card {
@@ -705,10 +1015,7 @@
         overflow: hidden;
     }
 
-    .custom-card .card-header {
-        padding: 1rem 1.25rem 0.75rem;
-    }
-
+    .custom-card .card-header,
     .custom-card .card-body {
         padding: 1.25rem;
     }
@@ -726,126 +1033,42 @@
     }
 
     .form-control,
-    .form-select,
-    .input-group-text {
+    .form-select {
         min-height: 44px;
         border-radius: 12px;
         border-color: #dbe3ef;
-        box-shadow: none;
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: #89d2ef;
-        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
-    }
-
-    textarea.form-control {
-        min-height: 100px;
-        resize: vertical;
-    }
-
-    :deep(.table) {
-        margin-bottom: 0;
-        border-collapse: collapse;
-    }
-
-    :deep(.table thead th) {
-        border-bottom: 2px solid #dee2e6;
-        background: #f8fafc;
-        color: #334155;
-        font-weight: 700;
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-
-    :deep(.table td),
-    :deep(.table th) {
-        border-right: 1px solid #eee;
-        padding: 14px 16px;
-        vertical-align: middle;
-    }
-
-    :deep(.table td:last-child),
-    :deep(.table th:last-child) {
-        border-right: none;
-    }
-
-    :deep(.table tbody tr) {
-        border-bottom: 1px solid #f1f1f1;
-    }
-
-    :deep(.table-hover tbody tr:hover) {
-        background-color: rgba(0, 0, 0, 0.03);
     }
 
     .empty-state {
-        min-height: 260px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #6b7280;
+        padding: 48px 20px;
         text-align: center;
-        padding: 2rem 1rem;
+        color: #64748b;
     }
 
-    .badge.text-bg-light {
-        font-weight: 600;
-        border-radius: 999px;
-        padding: 0.45rem 0.7rem;
+    .criteria-block,
+    .criteria-card {
+        border: 1px solid #dbeafe;
+        background: #f8fbff;
+        border-radius: 18px;
+        padding: 16px;
     }
 
-    .custom-modal {
-        background: rgba(137, 210, 239, 0.5);
-    }
-
-    :deep(.modal-content) {
-        animation: fadeInUp 0.3s ease;
-    }
-
-    @keyframes fadeInUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    .modal-title {
+    .section-title {
+        font-size: 1rem;
         font-weight: 700;
-        color: #1f2937;
+        color: #1f2d3d;
     }
 
-    .alert-info {
-        border: none;
+    .empty-inline {
+        padding: 16px;
         border-radius: 14px;
-        background: rgba(137, 210, 239, 0.18);
-        color: #24566b;
+        background: #fff7ed;
+        color: #9a3412;
     }
 
-    @media (max-width: 768px) {
-        .page-title {
-            font-size: 1.4rem;
-        }
-
-        .custom-card .card-body {
-            padding: 1rem;
-        }
-
-        .gov-banner {
-            padding: 16px;
-            align-items: flex-start;
-        }
-
-        .gov-title {
-            font-size: 1.05rem;
-        }
-
-
+    .criterion-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 </style>

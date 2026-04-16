@@ -1,24 +1,22 @@
-﻿<template>
+<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
                 <div class="gov-banner mb-4">
                     <div class="gov-emblem">
-                        <i class="bi bi-bullseye"></i>
+                        <i class="bi bi-buildings"></i>
                     </div>
                     <div class="gov-text">
                         <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-                        <div class="gov-title">BÁO CÁO THEO CHỈ TIÊU</div>
-                        <div class="gov-sub"></div>
+                        <div class="gov-title">BÁO CÁO THEO ĐƠN VỊ</div>
+                        <div class="gov-sub">
+                            Tổng hợp kết quả đánh giá KPI theo từng đơn vị nhận chỉ tiêu để theo dõi chất lượng thực hiện và
+                            xác định nhóm đơn vị cần chú ý.
+                        </div>
                     </div>
                 </div>
 
-                <div class="bao-cao-chi-tieu-page">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="bao-cao-don-vi-page">
                     <div class="filter-card">
                         <div class="filter-grid">
                             <div class="form-group">
@@ -32,9 +30,22 @@
                             </div>
 
                             <div class="form-group">
+                                <label>Trạng thái nổi bật</label>
+                                <select v-model="filters.xepLoaiNoiBat">
+                                    <option value="">-- Tất cả trạng thái --</option>
+                                    <option v-for="status in trackedStatusOptions" :key="status.value" :value="status.value">
+                                        {{ status.label }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
                                 <label>Từ khóa</label>
-                                <input v-model.trim="filters.keyword" type="text"
-                                    placeholder="Nhập mã chỉ tiêu, tên chỉ tiêu..." />
+                                <input
+                                    v-model.trim="filters.keyword"
+                                    type="text"
+                                    placeholder="Tên đơn vị, chỉ tiêu nổi bật, chỉ tiêu cần chú ý..."
+                                />
                             </div>
 
                             <div class="form-group actions">
@@ -46,7 +57,7 @@
 
                     <div class="summary-grid">
                         <div class="summary-card">
-                            <span class="label">Tổng số chỉ tiêu</span>
+                            <span class="label">Tổng số đơn vị</span>
                             <strong>{{ filteredRows.length }}</strong>
                         </div>
                         <div class="summary-card">
@@ -79,47 +90,43 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
-                                        <th>Mã chỉ tiêu</th>
-                                        <th>Tên chỉ tiêu</th>
-                                        <th>Số đơn vị đánh giá</th>
-                                        <th>Tổng mục tiêu</th>
-                                        <th>Tổng đầu kỳ</th>
-                                        <th>Tổng cuối kỳ</th>
-                                        <th>Tổng cùng kỳ năm trước</th>
-                                        <th>CL so với đầu kỳ</th>
-                                        <th>% tăng trưởng đầu kỳ</th>
-                                        <th>CL cùng kỳ năm trước</th>
-                                        <th>% tăng trưởng cùng kỳ</th>
+                                        <th>Đơn vị</th>
+                                        <th>Tổng KPI</th>
                                         <th>% hoàn thành bình quân</th>
-                                        <th>Xếp loại tổng hợp</th>
-                                        <th>Kết quả tổng hợp</th>
+                                        <th>Hoàn thành vượt mức</th>
+                                        <th>Hoàn thành</th>
+                                        <th>Chưa hoàn thành</th>
+                                        <th>Không hoàn thành</th>
+                                        <th>KPI cần chú ý</th>
+                                        <th>Trạng thái nổi bật</th>
+                                        <th>Chỉ tiêu nổi bật</th>
+                                        <th>Chỉ tiêu cần chú ý nhất</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="15" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="12" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
-                                    <tr v-for="(row, index) in filteredRows" :key="row.maChiTieu || index">
+                                    <tr v-for="(row, index) in filteredRows" :key="row.tenDonVi || index">
                                         <td>{{ index + 1 }}</td>
-                                        <td>{{ row.maChiTieu || '-' }}</td>
-                                        <td>{{ row.tenChiTieu || '-' }}</td>
-                                        <td class="text-center">{{ row.soDonVi }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongMucTieu) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongDauKy) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongCuoiKy) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongCungKyNamTruoc) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.chenhLechSoVoiDauKy) }}</td>
-                                        <td class="text-right">{{ formatPercent(row.tyLeTangTruongSoVoiDauKy) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.chenhLechSoVoiCungKyNamTruoc) }}</td>
-                                        <td class="text-right">{{ formatPercent(row.tyLeTangTruongSoVoiCungKyNamTruoc)
-                                            }}</td>
+                                        <td class="unit-cell">
+                                            <div class="unit-name">{{ row.tenDonVi || '-' }}</div>
+                                            <div class="unit-sub">{{ row.tenKyApDung || 'Tất cả kỳ báo cáo' }}</div>
+                                        </td>
+                                        <td class="text-center">{{ row.tongChiTieu }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanhBinhQuan) }}</td>
+                                        <td class="text-center">{{ row.statusCounts.HOAN_THANH_VUOT_MUC }}</td>
+                                        <td class="text-center">{{ row.statusCounts.HOAN_THANH }}</td>
+                                        <td class="text-center">{{ row.statusCounts.CHUA_HOAN_THANH }}</td>
+                                        <td class="text-center">{{ row.statusCounts.KHONG_HOAN_THANH }}</td>
+                                        <td class="text-center text-danger">{{ row.kpiCanChuY }}</td>
                                         <td>
-                                            <span class="badge" :class="badgeClass(row.xepLoaiTongHop)">
-                                                {{ getDanhGiaLabel(row.xepLoaiTongHop) || '-' }}
+                                            <span class="badge" :class="badgeClass(row.xepLoaiNoiBat)">
+                                                {{ getDanhGiaLabel(row.xepLoaiNoiBat) || '-' }}
                                             </span>
                                         </td>
-                                        <td>{{ row.ketQuaTongHop || '-' }}</td>
+                                        <td>{{ row.chiTieuNoiBat || '-' }}</td>
+                                        <td>{{ row.chiTieuCanChuYNhat || '-' }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -138,6 +145,7 @@
     import {
         countTrackedStatuses,
         createTrackedStatusCounter,
+        DANH_GIA_TRACKED_STATUS_OPTIONS,
         DANH_GIA_TRACKED_STATUS_ORDER,
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
@@ -149,9 +157,11 @@
     const errorMessage = ref('')
     const rawRows = ref([])
     const kyBaoCaoOptions = ref([])
+    const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
 
     const filters = reactive({
         kyBaoCaoKPIId: '',
+        xepLoaiNoiBat: '',
         keyword: ''
     })
 
@@ -181,7 +191,7 @@
             rawRows.value = Array.isArray(data) ? data : []
         } catch (error) {
             console.error(error)
-            errorMessage.value = error.message || 'Không thể tải dữ liệu báo cáo theo chỉ tiêu.'
+            errorMessage.value = error.message || 'Không thể tải dữ liệu báo cáo theo đơn vị.'
             rawRows.value = []
         } finally {
             loading.value = false
@@ -190,78 +200,64 @@
 
     const reportRows = computed(() => {
         const grouped = new Map()
+        const selectedKy = kyBaoCaoOptions.value.find(item => String(item.id) === String(filters.kyBaoCaoKPIId))
+        const tenKyApDung = selectedKy?.tenKy || ''
 
         rawRows.value.forEach(item => {
-            const key = item.maChiTieu || item.tenChiTieu || `unknown-${item.id}`
+            const key = item.tenDonViNhan || 'Chưa xác định'
 
             if (!grouped.has(key)) {
                 grouped.set(key, {
-                    maChiTieu: item.maChiTieu || '',
-                    tenChiTieu: item.tenChiTieu || '',
-                    soDonVi: 0,
-                    tongMucTieu: 0,
-                    tongDauKy: 0,
-                    tongCuoiKy: 0,
-                    tongCungKyNamTruoc: 0,
+                    tenDonVi: key,
+                    tenKyApDung,
+                    tongChiTieu: 0,
                     tongTyLeHoanThanh: 0,
-                    soBanGhi: 0,
-                    statusCounts: createTrackedStatusCounter()
+                    soBanGhiCoTyLe: 0,
+                    statusCounts: createTrackedStatusCounter(),
+                    topItem: null,
+                    bottomItem: null
                 })
             }
 
             const group = grouped.get(key)
-
-            group.soDonVi += 1
-            group.soBanGhi += 1
-            group.tongMucTieu += toNumber(item.giaTriMucTieu)
-            group.tongDauKy += toNumber(item.giaTriDauKy)
-            group.tongCuoiKy += toNumber(item.giaTriCuoiKy)
-            group.tongCungKyNamTruoc += toNumber(item.giaTriCungKyNamTruoc)
-            group.tongTyLeHoanThanh += toNumber(item.tyLeHoanThanh)
-
+            const tyLeHoanThanh = toNumber(item.tyLeHoanThanh)
             const statusCode = getDanhGiaStatusCode(item.xepLoai)
+
+            group.tongChiTieu += 1
+
+            if (Number.isFinite(tyLeHoanThanh)) {
+                group.tongTyLeHoanThanh += tyLeHoanThanh
+                group.soBanGhiCoTyLe += 1
+            }
+
             if (Object.prototype.hasOwnProperty.call(group.statusCounts, statusCode)) {
                 group.statusCounts[statusCode] += 1
+            }
+
+            if (!group.topItem || compareByCompletion(item, group.topItem) > 0) {
+                group.topItem = item
+            }
+
+            if (!group.bottomItem || compareByCompletion(item, group.bottomItem) < 0) {
+                group.bottomItem = item
             }
         })
 
         return Array.from(grouped.values()).map(item => {
-            const chenhLechSoVoiDauKy = item.tongCuoiKy - item.tongDauKy
-            const chenhLechSoVoiCungKyNamTruoc = item.tongCuoiKy - item.tongCungKyNamTruoc
-
-            const tyLeTangTruongSoVoiDauKy =
-                item.tongDauKy !== 0
-                    ? (chenhLechSoVoiDauKy / item.tongDauKy) * 100
-                    : 0
-
-            const tyLeTangTruongSoVoiCungKyNamTruoc =
-                item.tongCungKyNamTruoc !== 0
-                    ? (chenhLechSoVoiCungKyNamTruoc / item.tongCungKyNamTruoc) * 100
-                    : 0
-
             const tyLeHoanThanhBinhQuan =
-                item.soBanGhi !== 0
-                    ? item.tongTyLeHoanThanh / item.soBanGhi
-                    : 0
-
-            const xepLoaiTongHop = getTopXepLoai(item.statusCounts)
-            const ketQuaTongHop = buildKetQuaTongHop(item.statusCounts)
+                item.soBanGhiCoTyLe > 0 ? item.tongTyLeHoanThanh / item.soBanGhiCoTyLe : 0
+            const xepLoaiNoiBat = getDominantStatus(item.statusCounts)
 
             return {
-                maChiTieu: item.maChiTieu,
-                tenChiTieu: item.tenChiTieu,
-                soDonVi: item.soDonVi,
-                tongMucTieu: item.tongMucTieu,
-                tongDauKy: item.tongDauKy,
-                tongCuoiKy: item.tongCuoiKy,
-                tongCungKyNamTruoc: item.tongCungKyNamTruoc,
-                chenhLechSoVoiDauKy,
-                tyLeTangTruongSoVoiDauKy,
-                chenhLechSoVoiCungKyNamTruoc,
-                tyLeTangTruongSoVoiCungKyNamTruoc,
+                tenDonVi: item.tenDonVi,
+                tenKyApDung: item.tenKyApDung,
+                tongChiTieu: item.tongChiTieu,
                 tyLeHoanThanhBinhQuan,
-                xepLoaiTongHop,
-                ketQuaTongHop
+                statusCounts: item.statusCounts,
+                kpiCanChuY: item.statusCounts.CHUA_HOAN_THANH + item.statusCounts.KHONG_HOAN_THANH,
+                xepLoaiNoiBat,
+                chiTieuNoiBat: buildItemLabel(item.topItem),
+                chiTieuCanChuYNhat: buildItemLabel(item.bottomItem)
             }
         })
     })
@@ -269,36 +265,38 @@
     const filteredRows = computed(() => {
         let data = [...reportRows.value]
 
+        if (filters.xepLoaiNoiBat) {
+            data = data.filter(item => item.xepLoaiNoiBat === filters.xepLoaiNoiBat)
+        }
+
         if (filters.keyword) {
-            const keyword = filters.keyword.toLowerCase()
+            const keyword = normalizeText(filters.keyword)
             data = data.filter(item =>
-                [item.maChiTieu, item.tenChiTieu]
+                [item.tenDonVi, item.chiTieuNoiBat, item.chiTieuCanChuYNhat, getDanhGiaLabel(item.xepLoaiNoiBat)]
                     .filter(Boolean)
-                    .some(value => String(value).toLowerCase().includes(keyword))
+                    .some(value => normalizeText(value).includes(keyword))
             )
         }
 
         return data.sort((a, b) => {
-            const aValue = toNumber(a.tyLeHoanThanhBinhQuan)
-            const bValue = toNumber(b.tyLeHoanThanhBinhQuan)
-            return bValue - aValue
+            if (b.kpiCanChuY !== a.kpiCanChuY) return b.kpiCanChuY - a.kpiCanChuY
+            return b.tyLeHoanThanhBinhQuan - a.tyLeHoanThanhBinhQuan
         })
     })
 
-    const thongKe = computed(() => {
-        return countTrackedStatuses(filteredRows.value, item => item.xepLoaiTongHop)
-    })
+    const thongKe = computed(() => countTrackedStatuses(filteredRows.value, item => item.xepLoaiNoiBat))
 
     function resetFilters() {
         filters.kyBaoCaoKPIId = ''
+        filters.xepLoaiNoiBat = ''
         filters.keyword = ''
         fetchDanhGiaKPI()
     }
 
     function toNumber(value) {
-        if (value === null || value === undefined || value === '') return 0
+        if (value === null || value === undefined || value === '') return Number.NaN
         const parsed = Number(value)
-        return Number.isNaN(parsed) ? 0 : parsed
+        return Number.isNaN(parsed) ? Number.NaN : parsed
     }
 
     function normalizeText(value) {
@@ -306,45 +304,47 @@
             .toLowerCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
             .trim()
     }
 
-    function getTopXepLoai(statusCounts) {
-        const selectedCode = DANH_GIA_TRACKED_STATUS_ORDER.reduce((bestCode, code) => {
-            if (!bestCode) return code
-            if (statusCounts[code] > statusCounts[bestCode]) return code
-            if (statusCounts[code] === statusCounts[bestCode] && getDanhGiaRank(code) > getDanhGiaRank(bestCode)) {
-                return code
+    function compareByCompletion(left, right) {
+        const leftValue = toNumber(left?.tyLeHoanThanh)
+        const rightValue = toNumber(right?.tyLeHoanThanh)
+
+        if (!Number.isFinite(leftValue) && !Number.isFinite(rightValue)) return 0
+        if (!Number.isFinite(leftValue)) return -1
+        if (!Number.isFinite(rightValue)) return 1
+        return leftValue - rightValue
+    }
+
+    function buildItemLabel(item) {
+        if (!item) return ''
+        return [item.maChiTieu, item.tenChiTieu].filter(Boolean).join(' - ')
+    }
+
+    function getDominantStatus(statusCounts) {
+        return DANH_GIA_TRACKED_STATUS_ORDER.reduce((selectedCode, currentCode) => {
+            if (!selectedCode) return currentCode
+
+            const currentCount = statusCounts[currentCode] || 0
+            const selectedCount = statusCounts[selectedCode] || 0
+
+            if (currentCount > selectedCount) return currentCode
+            if (currentCount === selectedCount && getDanhGiaRank(currentCode) < getDanhGiaRank(selectedCode)) {
+                return currentCode
             }
-            return bestCode
+
+            return selectedCode
         }, '')
-
-        return selectedCode || 'CHUA_DANH_GIA'
-    }
-
-    function buildKetQuaTongHop(statusCounts) {
-        const parts = []
-
-        DANH_GIA_TRACKED_STATUS_ORDER.forEach(code => {
-            if (statusCounts[code] > 0) {
-                parts.push(`${getDanhGiaLabel(code)}: ${statusCounts[code]}`)
-            }
-        })
-
-        return parts.length ? parts.join(' | ') : '-'
-    }
-
-    function formatNumber(value) {
-        if (value === null || value === undefined || value === '') return '-'
-        return Number(value).toLocaleString('vi-VN', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        })
     }
 
     function formatPercent(value) {
         if (value === null || value === undefined || value === '') return '-'
-        return `${Number(value).toLocaleString('vi-VN', {
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed)) return '-'
+        return `${parsed.toLocaleString('vi-VN', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2
         })}%`
@@ -356,37 +356,31 @@
 
     function exportCsv() {
         const headers = [
-            'Mã chỉ tiêu',
-            'Tên chỉ tiêu',
-            'Số đơn vị đánh giá',
-            'Tổng mục tiêu',
-            'Tổng đầu kỳ',
-            'Tổng cuối kỳ',
-            'Tổng cùng kỳ năm trước',
-            'CL so với đầu kỳ',
-            '% tăng trưởng đầu kỳ',
-            'CL cùng kỳ năm trước',
-            '% tăng trưởng cùng kỳ',
+            'Đơn vị',
+            'Tổng KPI',
             '% hoàn thành bình quân',
-            'Xếp loại tổng hợp',
-            'Kết quả tổng hợp'
+            'Hoàn thành vượt mức',
+            'Hoàn thành',
+            'Chưa hoàn thành',
+            'Không hoàn thành',
+            'KPI cần chú ý',
+            'Trạng thái nổi bật',
+            'Chỉ tiêu nổi bật',
+            'Chỉ tiêu cần chú ý nhất'
         ]
 
         const csvRows = filteredRows.value.map(item => [
-            item.maChiTieu || '',
-            item.tenChiTieu || '',
-            item.soDonVi ?? '',
-            item.tongMucTieu ?? '',
-            item.tongDauKy ?? '',
-            item.tongCuoiKy ?? '',
-            item.tongCungKyNamTruoc ?? '',
-            item.chenhLechSoVoiDauKy ?? '',
-            item.tyLeTangTruongSoVoiDauKy ?? '',
-            item.chenhLechSoVoiCungKyNamTruoc ?? '',
-            item.tyLeTangTruongSoVoiCungKyNamTruoc ?? '',
+            item.tenDonVi || '',
+            item.tongChiTieu ?? 0,
             item.tyLeHoanThanhBinhQuan ?? '',
-            item.xepLoaiTongHop || '',
-            item.ketQuaTongHop || ''
+            item.statusCounts.HOAN_THANH_VUOT_MUC ?? 0,
+            item.statusCounts.HOAN_THANH ?? 0,
+            item.statusCounts.CHUA_HOAN_THANH ?? 0,
+            item.statusCounts.KHONG_HOAN_THANH ?? 0,
+            item.kpiCanChuY ?? 0,
+            getDanhGiaLabel(item.xepLoaiNoiBat) || '',
+            item.chiTieuNoiBat || '',
+            item.chiTieuCanChuYNhat || ''
         ])
 
         const csvContent = [headers, ...csvRows]
@@ -397,7 +391,7 @@
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.setAttribute('download', 'bao-cao-theo-chi-tieu.csv')
+        link.setAttribute('download', 'bao-cao-theo-don-vi.csv')
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -461,25 +455,10 @@
         font-size: 0.95rem;
     }
 
-    .bao-cao-chi-tieu-page {
+    .bao-cao-don-vi-page {
         padding: 24px;
         background: #f6f8fb;
         min-height: 100%;
-    }
-
-    .page-header {
-        margin-bottom: 16px;
-    }
-
-    .page-header h2 {
-        margin: 0 0 6px;
-        font-size: 24px;
-        color: #1f2937;
-    }
-
-    .page-header p {
-        margin: 0;
-        color: #6b7280;
     }
 
     .filter-card,
@@ -493,7 +472,7 @@
 
     .filter-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 16px;
         align-items: end;
     }
@@ -618,12 +597,33 @@
         text-align: left;
     }
 
+    .unit-cell {
+        min-width: 240px;
+    }
+
+    .unit-name {
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .unit-sub {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #6b7280;
+        white-space: normal;
+    }
+
     .text-center {
         text-align: center;
     }
 
     .text-right {
         text-align: right;
+    }
+
+    .text-danger {
+        color: #dc2626;
+        font-weight: 700;
     }
 
     .empty-cell {
@@ -676,13 +676,14 @@
         color: #d92d20;
     }
 
-    .badge-default {
+    .badge-default,
+    .badge-pending,
+    .badge-muted {
         background: #f2f4f7;
         color: #344054;
     }
 
     @media (max-width: 1200px) {
-
         .filter-grid,
         .summary-grid {
             grid-template-columns: 1fr;
@@ -703,9 +704,8 @@
             font-size: 1.05rem;
         }
 
-        .bao-cao-chi-tieu-page {
+        .bao-cao-don-vi-page {
             padding: 16px;
         }
     }
 </style>
-

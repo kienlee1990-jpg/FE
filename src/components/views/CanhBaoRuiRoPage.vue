@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -185,7 +185,7 @@
 
                                 <div class="trend-detail compact">
                                     <div class="trend-row">
-                                        <span>KPI không đạt</span>
+                                        <span>KPI không hoàn thành</span>
                                         <strong>{{ failedCount }}</strong>
                                     </div>
                                     <div class="trend-row">
@@ -269,7 +269,7 @@
                                             <td>{{ formatPercent(item.tyLeHoanThanh) }}</td>
                                             <td>
                                                 <span :class="['badge', badgeClass(item.xepLoai)]">
-                                                    {{ item.xepLoai || 'Chưa có' }}
+                                                    {{ getDanhGiaLabel(item.xepLoai) || 'Chưa có' }}
                                                 </span>
                                             </td>
                                             <td>{{ formatPercent(item.tyLeTangTruongSoVoiDauKy) }}</td>
@@ -300,6 +300,11 @@
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
     import VueApexCharts from 'vue3-apexcharts'
+    import {
+        getDanhGiaBadgeClass,
+        getDanhGiaLabel,
+        getDanhGiaStatusCode
+    } from '../../utils/danhGiaStatusClean.js'
 
     const apexchart = VueApexCharts
 
@@ -533,7 +538,7 @@
     })
 
     const failedCount = computed(() =>
-        filteredRiskRows.value.filter(item => normalizeText(item.xepLoai) === 'khong dat').length
+        filteredRiskRows.value.filter(item => getDanhGiaStatusCode(item.xepLoai) === 'KHONG_HOAN_THANH').length
     )
 
     const lowCompletionCount = computed(() =>
@@ -597,15 +602,15 @@
         const completion = numberOrZero(item.tyLeHoanThanh)
         const dauKyGrowth = numberOrZero(item.tyLeTangTruongSoVoiDauKy)
         const cungKyGrowth = numberOrZero(item.tyLeTangTruongSoVoiCungKyNamTruoc)
-        const xepLoai = normalizeText(item.xepLoai)
+        const xepLoai = getDanhGiaStatusCode(item.xepLoai)
         const nhanXet = normalizeText(item.nhanXetDanhGia)
 
-        if (xepLoai === 'khong dat') {
+        if (xepLoai === 'KHONG_HOAN_THANH') {
             score += 45
-            reasons.push('Xếp loại không đạt')
-        } else if (xepLoai === 'dat') {
-            score += 18
-            reasons.push('Xếp loại chỉ đạt')
+            reasons.push('Xếp loại không hoàn thành')
+        } else if (xepLoai === 'CHUA_HOAN_THANH') {
+            score += 24
+            reasons.push('Xếp loại chưa hoàn thành')
         }
 
         if (completion < 50) {
@@ -734,12 +739,7 @@
     }
 
     function badgeClass(xepLoai) {
-        const value = normalizeText(xepLoai)
-        if (value === 'xuat sac') return 'badge-excellent'
-        if (value === 'tot') return 'badge-good'
-        if (value === 'dat') return 'badge-pass'
-        if (value === 'khong dat') return 'badge-fail'
-        return 'badge-default'
+        return getDanhGiaBadgeClass(xepLoai)
     }
 </script>
 
@@ -1160,3 +1160,4 @@
         }
     }
 </style>
+

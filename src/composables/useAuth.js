@@ -1,6 +1,6 @@
-import { ref } from "vue"
+﻿import { ref } from "vue"
 import { useRouter } from "vue-router"
-import { loginApi, getMe as getMeApi } from "../services/authService"
+import { getMe as getMeApi, loginApi, logoutApi } from "../services/authService"
 
 export function useAuth() {
     const router = useRouter()
@@ -8,68 +8,96 @@ export function useAuth() {
     const error = ref("")
     const user = ref(null)
 
-    // 🔑 LOGIN
+    const normalizeUser = (data) => ({
+        id: data?.userId || data?.id || "",
+        userId: data?.userId || data?.id || "",
+        email: data?.email || "",
+        fullName: data?.fullName || "",
+        roles: Array.isArray(data?.roles) ? data.roles : [],
+        permissions: Array.isArray(data?.permissions) ? data.permissions : []
+    })
+
+    const syncUserStorage = (profile) => {
+        user.value = profile
+        localStorage.setItem("user", JSON.stringify(profile))
+        localStorage.setItem("userId", profile.userId || "")
+        localStorage.setItem("fullName", profile.fullName || "")
+        localStorage.setItem("email", profile.email || "")
+    }
+
+    const clearSession = () => {
+        localStorage.removeItem("token")
+        localStorage.removeItem("refreshToken")
+        localStorage.removeItem("user")
+        localStorage.removeItem("userId")
+        localStorage.removeItem("fullName")
+        localStorage.removeItem("email")
+        user.value = null
+    }
+
     const login = async (username, password) => {
         error.value = ""
         loading.value = true
 
         try {
             const res = await loginApi({ email: username, password })
-
             const token = res.accessToken || res.token
-            const userData = res.user || res
+            const refreshToken = res.refreshToken || ""
 
-            if (!token) throw new Error("Không nhận được token")
-
-            // ✅ Check isActive 1 lần
-            if (userData.isActive === 0) {
-                error.value = "Tài khoản đang bị khóa hoặc chưa kích hoạt!"
-                return null
+            if (!token) {
+                throw new Error("Không nhận được token")
             }
 
-            // Chỉ lưu token & user khi isActive === 1
             localStorage.setItem("token", token)
-            localStorage.setItem("user", JSON.stringify(userData))
-            user.value = userData
+            if (refreshToken) {
+                localStorage.setItem("refreshToken", refreshToken)
+            }
+
+            const profile = normalizeUser(await getMeApi())
+            syncUserStorage(profile)
 
             router.push("/dashboard")
-            return userData
+            return profile
         } catch (err) {
-            error.value = err.message || "Login failed"
+            clearSession()
+            error.value = err.message || "Đăng nhập thất bại"
             return null
         } finally {
             loading.value = false
         }
     }
 
-    const logout = () => {
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        user.value = null
-        router.push("/login")
+    const logout = async () => {
+        const refreshToken = localStorage.getItem("refreshToken")
+
+        try {
+            if (refreshToken) {
+                await logoutApi(refreshToken)
+            }
+        } catch (err) {
+            console.warn("Logout API failed:", err?.message || err)
+        } finally {
+            clearSession()
+            router.push("/login")
+        }
     }
 
     const isAuthenticated = () => !!localStorage.getItem("token")
 
     const getMe = async () => {
         try {
-            const data = await getMeApi()
-
-            if (data.isActive === 0) {
-                logout()
-                return null
-            }
-
-            user.value = data
-            localStorage.setItem("user", JSON.stringify(data))
-
-            return data
+            const profile = normalizeUser(await getMeApi())
+            syncUserStorage(profile)
+            return profile
         } catch (err) {
             console.log(err.message)
-            logout()
+            clearSession()
+            router.push("/login")
             return null
         }
     }
 
     return { login, logout, getMe, user, isAuthenticated, loading, error }
 }
+
+

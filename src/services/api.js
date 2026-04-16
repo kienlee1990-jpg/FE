@@ -1,4 +1,19 @@
-const BASE_URL = "https://localhost:5000/api"
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"
+
+async function parseResponse(res) {
+    if (res.status === 204) {
+        return null
+    }
+
+    const contentType = res.headers.get("content-type") || ""
+
+    if (contentType.includes("application/json")) {
+        return res.json()
+    }
+
+    const text = await res.text()
+    return text ? { message: text } : null
+}
 
 export async function apiRequest(endpoint, method = "GET", body = null) {
     const token = localStorage.getItem("token")
@@ -12,10 +27,18 @@ export async function apiRequest(endpoint, method = "GET", body = null) {
         body: body ? JSON.stringify(body) : null
     })
 
+    const payload = await parseResponse(res)
+
     if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message || "API error")
+        throw new Error(
+            payload?.message ||
+            payload?.Message ||
+            payload?.title ||
+            "API error"
+        )
     }
 
-    return res.json()
+    return payload
 }
+
+

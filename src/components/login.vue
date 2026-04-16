@@ -1,14 +1,21 @@
-<template>
+﻿<template>
     <section class="login-page" :class="theme" @mousemove="handleMouseMove">
 
-        <!-- 💎 GLOW -->
+        <!-- ðŸ’Ž GLOW -->
         <div class="glow" :style="glowStyle"></div>
 
         <!-- LEFT PANEL -->
         <div class="left-panel">
             <div class="overlay"></div>
             <div class="content">
-                <!-- Logo hoặc hình ảnh có thể đặt ở đây -->
+                <img class="hero-illustration" :src="policeIllustration" alt="Minh họa ngành công an" />
+                <div class="hero-copy">
+                    <h2>Hệ thống theo dõi chỉ tiêu công tác</h2>
+                    <p>
+                        Hỗ trợ theo dõi giao chỉ tiêu, cập nhật kết quả thực hiện và tổng hợp đánh giá phục vụ công tác
+                        điều hành.
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -16,25 +23,25 @@
         <div class="right-panel">
             <div class="glass-card" :class="{ fadeOut: isSuccess }">
 
-                <!-- 🌙 THEME TOGGLE -->
+                <!-- ðŸŒ™ THEME TOGGLE -->
                 <div class="theme-toggle" @click="toggleTheme">
                     {{ theme === 'dark' ? '🌙' : '☀️' }}
                 </div>
 
-                <h3 class="mb-4">Sign in</h3>
+                <h3 class="mb-4">Đăng nhập</h3>
 
                 <form @submit.prevent="handleLogin">
 
                     <!-- USERNAME -->
                     <div class="mb-3">
-                        <input v-model="username" class="form-control" placeholder="Username" />
+                        <input v-model="username" class="form-control" placeholder="Tên đăng nhập" />
                         <small class="text-danger">{{ usernameError }}</small>
                     </div>
 
                     <!-- PASSWORD -->
                     <div class="mb-3 position-relative">
                         <input :type="showPassword ? 'text' : 'password'" v-model="password" class="form-control"
-                            placeholder="Password" />
+                            placeholder="Mật khẩu" />
                         <span class="toggle-password" @click="showPassword = !showPassword">
                             <i :class="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
                         </span>
@@ -49,7 +56,7 @@
                     <!-- LOGIN BUTTON -->
                     <button class="btn-login" type="submit" :disabled="loading">
                         <span v-if="loading" class="spinner"></span>
-                        {{ loading ? "Logging in..." : "Login" }}
+                        {{ loading ? "Đang đăng nhập..." : "Đăng nhập" }}
                     </button>
 
                 </form>
@@ -63,6 +70,7 @@
     import { ref, onMounted, computed } from "vue"
     import { useRouter } from "vue-router"
     import { useAuth } from "../composables/useAuth"
+    import policeIllustration from "../assets/police-login-illustration.svg"
 
     const router = useRouter()
     const { login, loading, error } = useAuth()
@@ -74,20 +82,20 @@
     const showPassword = ref(false)
     const isSuccess = ref(false)
 
-    // 🌙 THEME
+    // ðŸŒ™ THEME
     const theme = ref(localStorage.getItem("theme") || "light")
     const toggleTheme = () => {
         theme.value = theme.value === "light" ? "dark" : "light"
         localStorage.setItem("theme", theme.value)
     }
 
-    // 🔥 AUTO REDIRECT IF TOKEN EXISTS
+    // ðŸ”¥ AUTO REDIRECT IF TOKEN EXISTS
     onMounted(() => {
         const token = localStorage.getItem("token")
         if (token) router.push("/dashboard")
     })
 
-    // 💎 GLOW EFFECT
+    // ðŸ’Ž GLOW EFFECT
     const x = ref(0)
     const y = ref(0)
     const handleMouseMove = (e) => {
@@ -104,11 +112,11 @@
         passwordError.value = ""
 
         if (!username.value) {
-            usernameError.value = "Username required"
+            usernameError.value = "Vui lòng nhập tên đăng nhập"
             return
         }
         if (!password.value) {
-            passwordError.value = "Password required"
+            passwordError.value = "Vui lòng nhập mật khẩu"
             return
         }
 
@@ -138,7 +146,7 @@
         overflow: hidden;
     }
 
-    /* 💎 GLOW */
+    /* ðŸ’Ž GLOW */
     .glow {
         position: absolute;
         inset: 0;
@@ -149,7 +157,9 @@
     /* LEFT PANEL */
     .left-panel {
         flex: 1;
-        background: url("https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/img3.webp") center/cover;
+        background:
+            radial-gradient(circle at top, rgba(255, 215, 120, 0.18), transparent 36%),
+            linear-gradient(160deg, #08214a 0%, #0b3d7a 52%, #061731 100%);
         position: relative;
         display: flex;
         align-items: center;
@@ -160,6 +170,62 @@
     .content {
         z-index: 2;
         text-align: center;
+        width: min(100%, 520px);
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+    }
+
+    .overlay {
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(5, 16, 38, 0.15), rgba(5, 16, 38, 0.35)),
+            radial-gradient(circle at 20% 20%, rgba(255, 232, 163, 0.16), transparent 22%);
+    }
+
+    .hero-illustration {
+        width: min(100%, 420px);
+        height: auto;
+        display: block;
+        filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.28));
+    }
+
+    .hero-copy {
+        max-width: 420px;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: rgba(255, 214, 102, 0.18);
+        border: 1px solid rgba(255, 214, 102, 0.38);
+        color: #fbe39c;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 18px;
+    }
+
+    .hero-copy h2 {
+        margin: 0 0 14px;
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.25;
+        color: #ffffff;
+    }
+
+    .hero-copy p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.84);
+        font-size: 1rem;
+        line-height: 1.7;
     }
 
     /* RIGHT PANEL */
@@ -265,6 +331,11 @@
     @media (max-width: 768px) {
         .left-panel {
             display: none;
+        }
+
+        .login-page {
+            width: 100%;
+            left: 0;
         }
     }
 </style>

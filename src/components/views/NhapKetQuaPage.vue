@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -8,7 +8,7 @@
                     </div>
                     <div class="gov-text">
                         <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-                        <div class="gov-title">DANH SÁCH THEO DÕI BÁO KỲ</div>
+                        <div class="gov-title">NHẬP BÁO CÁO ĐỊNH KỲ</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
@@ -21,20 +21,20 @@
 
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
-                        Nhập số liệu báo cáo kỳ
+                        Nhập báo cáo định kỳ
                     </button>
                 </div>
 
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Tra cứu nhanh dữ liệu theo dõi KPI</small>
+                        <small class="text-muted">Tra cứu nhanh dữ liệu báo cáo định kỳ</small>
                     </div>
 
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-12 col-md-4">
-                                <label class="form-label">Kỳ báo cáo KPI</label>
+                                <label class="form-label">Kỳ báo cáo</label>
                                 <select v-model.number="filters.kyBaoCaoKPIId" class="form-select">
                                     <option :value="null">Tất cả</option>
                                     <option v-for="item in kyBaoCaoOptions" :key="getId(item)" :value="getId(item)">
@@ -54,12 +54,13 @@
                             </div>
 
                             <div class="col-12 col-md-4">
-                                <label class="form-label">Tên chỉ tiêu</label>
+                                <label class="form-label">Chỉ tiêu giao</label>
                                 <select v-model.number="filters.chiTietGiaoChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
                                     <option v-for="item in filteredChiTietGiaoFilterOptions" :key="getId(item)"
+                                        :title="getChiTietOptionLabel(item)"
                                         :value="getId(item)">
-                                        {{ getChiTietDisplayWithoutDonVi(item) }}
+                                        {{ getChiTietOptionLabel(item) }}
                                     </option>
                                 </select>
                             </div>
@@ -87,8 +88,8 @@
                 <div class="card custom-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
-                            <h5 class="mb-1">Danh sách theo dõi KPI</h5>
-                            <small class="text-muted">Theo dõi số liệu thực hiện theo kỳ báo cáo</small>
+                            <h5 class="mb-1">Danh sách báo cáo định kỳ</h5>
+                            <small class="text-muted">Số liệu thực hiện được cập nhật theo từng kỳ báo cáo</small>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ filteredItems.length }}</span>
                     </div>
@@ -137,6 +138,9 @@
                                                     - {{ item.TenDonViNhan || item.tenDonViNhan }}
                                                 </span>
                                             </small>
+                                            <small v-if="item.NhanXet || item.nhanXet" class="d-block text-muted">
+                                                Kết quả nhập: {{ item.NhanXet || item.nhanXet }}
+                                            </small>
                                         </td>
                                         <td>{{ formatNumber(item.GiaTriDauKy ?? item.giaTriDauKy) }}</td>
                                         <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy) }}
@@ -169,10 +173,10 @@
                             <div class="modal-header border-0 pb-0">
                                 <div>
                                     <h4 class="modal-title mb-1">
-                                        {{ isEdit ? 'Cập nhật theo dõi KPI' : 'Thêm theo dõi KPI' }}
+                                        {{ isEdit ? 'Cập nhật báo cáo định kỳ' : 'Nhập báo cáo định kỳ' }}
                                     </h4>
                                     <p class="text-muted mb-0">
-                                        Chọn đơn vị, chỉ tiêu được giao, rồi nhập số liệu theo kỳ báo cáo
+                                        Chọn đơn vị, chỉ tiêu được giao, rồi nhập số liệu của kỳ báo cáo
                                     </p>
                                 </div>
                                 <button type="button" class="btn-close" @click="closeModal"></button>
@@ -184,7 +188,8 @@
                                         <div class="alert alert-info mb-0">
                                             <i class="bi bi-info-circle me-2"></i>
                                             Chỉ được chọn kỳ báo cáo đang mở và phù hợp với tần suất của chỉ tiêu giao.
-                                            Giá trị đầu kỳ chỉ nhập ở kỳ đầu tiên, các kỳ sau tự lấy từ cuối kỳ trước.
+                                            Chỉ tiêu phân rã chỉ nhập kết quả ở tiêu chí con. Giá trị đầu kỳ được giữ
+                                            theo số gốc cố định, không cộng dồn sang các tháng hoặc kỳ sau.
                                         </div>
                                     </div>
 
@@ -208,19 +213,35 @@
                                         <select v-model.number="form.chiTietGiaoChiTieuId" class="form-select">
                                             <option :value="null">Chọn chỉ tiêu giao</option>
                                             <option v-for="item in filteredChiTietGiaoModalOptions" :key="getId(item)"
+                                                :title="getChiTietOptionLabel(item)"
                                                 :value="getId(item)">
-                                                {{ getChiTietDisplayWithoutDonVi(item) }}
+                                                {{ getChiTietOptionLabel(item) }}
                                             </option>
                                         </select>
-                                        <small class="text-muted" v-if="selectedChiTietGiao">
-                                            Tần suất báo cáo:
-                                            {{ mapTanSuat(getTanSuatBaoCao(selectedChiTietGiao)) }}
-                                        </small>
+                                        <div v-if="selectedChiTietGiao" class="selection-summary mt-2">
+                                            <div class="selection-summary-title">
+                                                {{ getChiTietSelectionTitle(selectedChiTietGiao) }}
+                                            </div>
+                                            <div class="selection-summary-highlight">
+                                                Tiêu chí giao: {{ getCriterionDisplay(selectedChiTietGiao) }}
+                                            </div>
+                                            <div class="selection-summary-meta">
+                                                <span>Chỉ tiêu: {{ getChiTietDisplayWithoutDonVi(selectedChiTietGiao) }}</span>
+                                                <span>Tần suất: {{ mapTanSuat(getTanSuatBaoCao(selectedChiTietGiao)) }}</span>
+                                            </div>
+                                            <div class="selection-summary-meta">
+                                                <span>Đơn vị: {{ selectedChiTietGiao.TenDonViNhanHienThi || '-' }}</span>
+                                                <span>Đợt giao: {{ getDotGiaoDisplay(selectedChiTietGiao) }}</span>
+                                            </div>
+                                            <div v-if="selectedChiTietGiao.LaTieuChiCon" class="selection-summary-meta">
+                                                <span>Thuộc chỉ tiêu cha: {{ getParentChiTietDisplay(selectedChiTietGiao) }}</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="col-12 col-md-4">
                                         <label class="form-label">
-                                            Kỳ báo cáo KPI <span class="text-danger">*</span>
+                                            Kỳ báo cáo <span class="text-danger">*</span>
                                         </label>
                                         <select v-model.number="form.kyBaoCaoKPIId" class="form-select">
                                             <option :value="null">Chọn kỳ báo cáo</option>
@@ -230,8 +251,8 @@
                                             </option>
                                         </select>
                                         <small class="text-muted" v-if="selectedChiTietGiao">
-                                            Chỉ hiển thị các kỳ đang mở và phù hợp với tần suất báo cáo của chỉ tiêu
-                                            giao.
+                                            Chỉ hiển thị các kỳ đang mở, đúng kỳ báo cáo đã giao và có ngày cuối kỳ nằm
+                                            trong khoảng thời gian của đợt giao chỉ tiêu.
                                         </small>
                                     </div>
 
@@ -239,36 +260,69 @@
                                         class="col-12">
                                         <div class="alert alert-warning mb-0">
                                             <i class="bi bi-exclamation-triangle me-2"></i>
-                                            Chỉ được nộp khi ngày kết thúc của đợt giao chỉ tiêu nhỏ hơn hoặc bằng ngày
-                                            cuối kỳ của kỳ báo cáo.
+                                            Chỉ được nộp khi ngày cuối kỳ của kỳ báo cáo lớn hơn hoặc bằng ngày bắt đầu
+                                            và nhỏ hơn hoặc bằng ngày kết thúc của đợt giao chỉ tiêu.
                                         </div>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
+                                    <div v-if="isDinhTinh" class="col-12">
                                         <label class="form-label">
-                                            Giá trị đầu kỳ <span class="text-danger" v-if="isKyDauTien">*</span>
+                                            Kết quả đánh giá định tính <span class="text-danger">*</span>
                                         </label>
-                                        <input v-model.number="form.giaTriDauKy" type="number" step="0.01" min="0"
-                                            class="form-control" :readonly="!isKyDauTien" :disabled="!isKyDauTien"
-                                            :placeholder="isKyDauTien ? 'Nhập giá trị đầu kỳ' : 'Tự động lấy từ kỳ trước'" />
-                                        <small class="text-muted" v-if="!isKyDauTien">
-                                            Giá trị đầu kỳ được tự động lấy từ cuối kỳ trước.
+                                        <select v-model="form.nhanXet" class="form-select">
+                                            <option value="">Chọn kết quả đánh giá</option>
+                                            <option v-for="option in qualitativeOptions" :key="option.value"
+                                                :value="option.value">
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1">
+                                            Các lựa chọn này được dùng trực tiếp để xác định trạng thái hoàn thành của
+                                            chỉ tiêu định tính.
                                         </small>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
-                                        <label class="form-label">
-                                            Giá trị thực hiện trong kỳ <span class="text-danger">*</span>
-                                        </label>
-                                        <input v-model.number="form.giaTriThucHienTrongKy" type="number" step="0.01"
-                                            min="0" class="form-control"
-                                            placeholder="Nhập giá trị thực hiện trong kỳ" />
-                                    </div>
+                                    <template v-else>
+                                        <div v-if="isDinhLuongSoSanh" class="col-12">
+                                            <div class="alert alert-secondary mb-0">
+                                                <i class="bi bi-graph-up-arrow me-2"></i>
+                                                Hệ thống sẽ tự tính tỷ lệ hoàn thành dựa trên kết quả kỳ này, mốc so
+                                                sánh
+                                                <strong>{{ comparisonSourceLabel }}</strong> và chiều so sánh
+                                                <strong>{{ comparisonDirectionLabel }}</strong>.
+                                            </div>
+                                        </div>
 
-                                    <div class="col-12 col-md-4">
-                                        <label class="form-label">Giá trị cuối kỳ</label>
-                                        <input :value="formatEditableNumber(giaTriCuoiKyPreview)" type="text"
-                                            class="form-control" readonly />
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label">
+                                                Giá trị đầu kỳ cố định
+                                            </label>
+                                            <input :value="formatEditableNumber(fixedGiaTriDauKy)" type="text"
+                                                class="form-control" readonly />
+                                            <small class="text-muted">
+                                                Giá trị này lấy từ bản giao chỉ tiêu và được giữ cố định cho mọi kỳ báo cáo.
+                                            </small>
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label">
+                                                {{ currentValueLabel }} <span class="text-danger">*</span>
+                                            </label>
+                                            <input v-model.number="form.giaTriThucHienTrongKy" type="number" step="0.01"
+                                                min="0" class="form-control" :placeholder="currentValuePlaceholder" />
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label">Giá trị cuối kỳ</label>
+                                            <input :value="formatEditableNumber(giaTriCuoiKyPreview)" type="text"
+                                                class="form-control" readonly />
+                                        </div>
+                                    </template>
+
+                                    <div v-if="!isDinhTinh" class="col-12">
+                                        <label class="form-label">Ghi chú báo cáo</label>
+                                        <textarea v-model="form.nhanXet" class="form-control"
+                                            placeholder="Nhập ghi chú hoặc diễn giải thêm nếu cần"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -277,7 +331,7 @@
                                 <button class="btn btn-light" @click="closeModal">Hủy</button>
                                 <button class="btn btn-primary" :disabled="saving" @click="handleSubmit">
                                     <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                                    {{ saving ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Lưu theo dõi KPI' }}
+                                    {{ saving ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Lưu báo cáo định kỳ' }}
                                 </button>
                             </div>
                         </div>
@@ -291,21 +345,9 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, reactive, ref, watch } from 'vue'
-    import axios from 'axios'
+    import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-
-    const api = axios.create({
-        baseURL: 'https://localhost:5000/api'
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    })
+    import httpClient from '../../services/httpClient'
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
@@ -321,6 +363,7 @@
     const showModal = ref(false)
     const isEdit = ref(false)
     const editingId = ref(null)
+    const isHydratingForm = ref(false)
 
     const items = ref([])
     const chiTietGiaoChiTieuOptions = ref([])
@@ -340,14 +383,21 @@
         donViNhanId: null,
         chiTietGiaoChiTieuId: null,
         kyBaoCaoKPIId: null,
-        giaTriDauKy: 0,
-        giaTriThucHienTrongKy: 0
+        giaTriThucHienTrongKy: 0,
+        nhanXet: ''
     })
 
     const form = reactive(createDefaultForm())
 
     const resetForm = () => {
         Object.assign(form, createDefaultForm())
+    }
+
+    const hydrateFormSafely = async (nextState) => {
+        isHydratingForm.value = true
+        Object.assign(form, nextState)
+        await nextTick()
+        isHydratingForm.value = false
     }
 
     const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
@@ -383,12 +433,31 @@
         return Number(item?.DanhMucChiTieuId ?? item?.danhMucChiTieuId ?? 0)
     }
 
+    const getLoaiChiTieu = (item) => {
+        return String(item?.LoaiChiTieu || item?.loaiChiTieu || '').trim().toUpperCase()
+    }
+
     const getDonViNhanId = (item) => {
         return Number(item?.DonViNhanId ?? item?.donViNhanId ?? 0)
     }
 
     const getDotGiaoChiTieuId = (item) => {
         return Number(item?.DotGiaoChiTieuId ?? item?.dotGiaoChiTieuId ?? 0)
+    }
+
+    const getTieuChiCon = (item) => {
+        const children = item?.TieuChiCon ?? item?.tieuChiCon ?? []
+        return Array.isArray(children) ? children : []
+    }
+
+    const hasChildCriteria = (item) => {
+        const coTieuChiCon = item?.CoTieuChiCon ?? item?.coTieuChiCon
+        if (typeof coTieuChiCon === 'boolean') return coTieuChiCon
+        return getTieuChiCon(item).length > 0
+    }
+
+    const getNgayBatDauDotGiao = (item) => {
+        return item?.NgayBatDau ?? item?.ngayBatDau ?? null
     }
 
     const getNgayKetThucDotGiao = (item) => {
@@ -399,6 +468,16 @@
         return item?.NgayCuoiKy ?? item?.ngayCuoiKy ?? null
     }
 
+    const getGiaTriDauKyCoDinhFromChiTiet = (item) => {
+        const rawValue = item?.GiaTriDauKyCoDinh ?? item?.giaTriDauKyCoDinh
+        if (rawValue === null || rawValue === undefined || rawValue === '') {
+            return null
+        }
+
+        const numericValue = Number(rawValue)
+        return Number.isNaN(numericValue) ? null : numericValue
+    }
+
     const toDateOnly = (value) => {
         if (!value) return null
         const d = new Date(value)
@@ -406,8 +485,43 @@
         return new Date(d.getFullYear(), d.getMonth(), d.getDate())
     }
 
+    const flattenDanhMucChiTieuTree = (items, parent = null) => {
+        const flattened = []
+
+        items.forEach((item) => {
+            const normalizedItem = {
+                ...item,
+                ChiTieuChaId:
+                    item?.ChiTieuChaId ??
+                    item?.chiTieuChaId ??
+                    parent?.Id ??
+                    parent?.id ??
+                    null
+            }
+
+            flattened.push(normalizedItem)
+
+            const children =
+                item?.TieuChiDanhGias ??
+                item?.tieuChiDanhGias ??
+                item?.TieuChiCons ??
+                item?.tieuChiCons ??
+                []
+
+            if (Array.isArray(children) && children.length > 0) {
+                flattened.push(...flattenDanhMucChiTieuTree(children, normalizedItem))
+            }
+        })
+
+        return flattened
+    }
+
+    const flattenedDanhMucChiTieuOptions = computed(() => {
+        return flattenDanhMucChiTieuTree(danhMucChiTieuOptions.value)
+    })
+
     const findDanhMucById = (id) => {
-        return danhMucChiTieuOptions.value.find((x) => getId(x) === Number(id)) || null
+        return flattenedDanhMucChiTieuOptions.value.find((x) => getId(x) === Number(id)) || null
     }
 
     const findDonViById = (id) => {
@@ -427,6 +541,34 @@
         }
         return map[value] || value || '-'
     }
+
+    const mapLoaiMocSoSanh = (value) => {
+        const map = {
+            DAU_KY: 'đầu kỳ',
+            CUNG_KY: 'cùng kỳ năm trước',
+            KY_TRUOC: 'kỳ trước'
+        }
+
+        return map[String(value || '').trim().toUpperCase()] || 'mốc cấu hình'
+    }
+
+    const mapChieuSoSanh = (value) => {
+        const map = {
+            TANG: 'tăng',
+            GIAM: 'giảm'
+        }
+
+        return map[String(value || '').trim().toUpperCase()] || 'so sánh'
+    }
+
+    const qualitativeOptions = [
+        { value: 'KHONG_XAY_RA', label: 'Không xảy ra' },
+        { value: 'DAM_BAO', label: 'Đảm bảo' },
+        { value: 'DAT_100', label: 'Đạt 100%' },
+        { value: 'XAY_RA', label: 'Xảy ra' },
+        { value: 'KHONG_DAM_BAO', label: 'Không đảm bảo' },
+        { value: 'KHONG_DAT', label: 'Không đạt' }
+    ]
 
     const isKyDangMo = (item) => {
         return getTrangThaiKy(item) === 'DANG_MO'
@@ -456,30 +598,37 @@
         const dotGiao = findDotGiaoById(dotGiaoId)
         if (!dotGiao) return false
 
+        const ngayBatDauDotGiao = toDateOnly(getNgayBatDauDotGiao(dotGiao))
         const ngayKetThucDotGiao = toDateOnly(getNgayKetThucDotGiao(dotGiao))
         const ngayCuoiKy = toDateOnly(getNgayCuoiKy(kyBaoCao))
 
-        if (!ngayKetThucDotGiao || !ngayCuoiKy) return false
+        if (!ngayBatDauDotGiao || !ngayKetThucDotGiao || !ngayCuoiKy) return false
 
-        return ngayKetThucDotGiao >= ngayCuoiKy
+        return ngayCuoiKy >= ngayBatDauDotGiao && ngayCuoiKy <= ngayKetThucDotGiao
     }
 
     const enrichedChiTietGiaoChiTieuOptions = computed(() => {
-        return chiTietGiaoChiTieuOptions.value.map((item) => {
+        const enrichItem = (item, parent = null) => {
             const danhMuc = findDanhMucById(getDanhMucChiTieuId(item))
-            const donVi = findDonViById(getDonViNhanId(item))
+            const donVi = findDonViById(getDonViNhanId(item) || getDonViNhanId(parent))
+            const parentDanhMuc = parent ? findDanhMucById(getDanhMucChiTieuId(parent)) : null
+            const dotGiao = findDotGiaoById(getDotGiaoChiTieuId(item) || getDotGiaoChiTieuId(parent))
 
             return {
                 ...item,
                 MaChiTieuHienThi:
                     item.MaChiTieu ||
                     item.maChiTieu ||
+                    item.MaDanhMucChiTieu ||
+                    item.maDanhMucChiTieu ||
                     danhMuc?.MaChiTieu ||
                     danhMuc?.maChiTieu ||
                     '',
                 TenChiTieuHienThi:
                     item.TenChiTieu ||
                     item.tenChiTieu ||
+                    item.TenDanhMucChiTieu ||
+                    item.tenDanhMucChiTieu ||
                     danhMuc?.TenChiTieu ||
                     danhMuc?.tenChiTieu ||
                     '',
@@ -488,15 +637,146 @@
                     item.tenDonViNhan ||
                     donVi?.TenDonVi ||
                     donVi?.tenDonVi ||
+                    '',
+                MaDotGiaoHienThi:
+                    item.MaDotGiaoChiTieu ||
+                    item.maDotGiaoChiTieu ||
+                    item.MaDotGiao ||
+                    item.maDotGiao ||
+                    dotGiao?.MaDotGiao ||
+                    dotGiao?.maDotGiao ||
+                    '',
+                TenDotGiaoHienThi:
+                    item.TenDotGiaoChiTieu ||
+                    item.tenDotGiaoChiTieu ||
+                    item.TenDotGiao ||
+                    item.tenDotGiao ||
+                    dotGiao?.TenDotGiao ||
+                    dotGiao?.tenDotGiao ||
+                    '',
+                LaTieuChiCon: !!parent,
+                MaChiTieuChaHienThi:
+                    parent?.MaChiTieu ||
+                    parent?.maChiTieu ||
+                    parentDanhMuc?.MaChiTieu ||
+                    parentDanhMuc?.maChiTieu ||
+                    '',
+                TenChiTieuChaHienThi:
+                    parent?.TenChiTieu ||
+                    parent?.tenChiTieu ||
+                    parent?.TenDanhMucChiTieu ||
+                    parent?.tenDanhMucChiTieu ||
+                    parentDanhMuc?.TenChiTieu ||
+                    parentDanhMuc?.tenChiTieu ||
+                    parent?.TenChiTieuHienThi ||
+                    parent?.tenChiTieuHienThi ||
                     ''
             }
+        }
+
+        const flattenedItems = []
+
+        chiTietGiaoChiTieuOptions.value.forEach((item) => {
+            flattenedItems.push(enrichItem(item))
+
+            getTieuChiCon(item).forEach((child) => {
+                flattenedItems.push(enrichItem(child, item))
+            })
         })
+
+        return flattenedItems
     })
+
+    const leafChiTietGiaoOptions = computed(() => {
+        return enrichedChiTietGiaoChiTieuOptions.value.filter((item) => !hasChildCriteria(item))
+    })
+
+    const getParentChiTietDisplay = (item) => {
+        const maCha = item?.MaChiTieuChaHienThi || ''
+        const tenCha = item?.TenChiTieuChaHienThi || ''
+        return [maCha, tenCha].filter(Boolean).join(' - ') || '-'
+    }
+
+    const getDotGiaoDisplay = (item) => {
+        const maDot = item?.MaDotGiaoHienThi || ''
+        const tenDot = item?.TenDotGiaoHienThi || ''
+        return [maDot, tenDot].filter(Boolean).join(' - ') || '-'
+    }
+
+    const getChiTietDisplayWithoutDonVi = (item) => {
+        const ma = item?.MaChiTieuHienThi || ''
+        const ten = item?.TenChiTieuHienThi || ''
+        const mainDisplay = [ma, ten].filter(Boolean).join(' - ')
+
+        if (item?.LaTieuChiCon) {
+            const parentDisplay = getParentChiTietDisplay(item)
+            return parentDisplay !== '-' ? `${mainDisplay} (thuộc ${parentDisplay})` : mainDisplay || '-'
+        }
+
+        return mainDisplay || '-'
+    }
+
+    const getChiTietSelectionTitle = (item) => {
+        if (!item) return '-'
+
+        const ma = item?.MaChiTieuHienThi || ''
+        const ten = item?.TenChiTieuHienThi || ''
+
+        if (item?.LaTieuChiCon) {
+            return [`Tiêu chí con: ${ten || '-'}`, ma ? `(${ma})` : ''].filter(Boolean).join(' ')
+        }
+
+        return [ma, ten].filter(Boolean).join(' - ') || '-'
+    }
+
+    const getCriterionDisplay = (item) => {
+        if (!item) return '-'
+
+        const danhMuc = findDanhMucById(getDanhMucChiTieuId(item))
+        const tenDanhMucCon =
+            danhMuc?.TenChiTieu ||
+            danhMuc?.tenChiTieu ||
+            item?.TenDanhMucChiTieu ||
+            item?.tenDanhMucChiTieu ||
+            item?.TenChiTieuHienThi ||
+            item?.tenChiTieuHienThi ||
+            ''
+
+        if (item?.LaTieuChiCon) {
+            return tenDanhMucCon || '-'
+        }
+
+        return [item?.MaChiTieuHienThi || '', tenDanhMucCon || item?.TenChiTieuHienThi || '']
+            .filter(Boolean)
+            .join(' - ') || '-'
+    }
+
+    const getChiTietOptionLabel = (item) => {
+        const mainDisplay = item?.LaTieuChiCon
+            ? `Tiêu chí giao: ${getCriterionDisplay(item)}`
+            : getChiTietDisplayWithoutDonVi(item)
+        const metaParts = []
+
+        if (item?.LaTieuChiCon) {
+            metaParts.push(`Chỉ tiêu cha: ${getParentChiTietDisplay(item)}`)
+        }
+
+        const dotGiaoDisplay = getDotGiaoDisplay(item)
+        if (dotGiaoDisplay !== '-') {
+            metaParts.push(`Đợt giao: ${dotGiaoDisplay}`)
+        }
+
+        if (item?.TenDonViNhanHienThi) {
+            metaParts.push(`Đơn vị: ${item.TenDonViNhanHienThi}`)
+        }
+
+        return metaParts.length ? `${mainDisplay} • ${metaParts.join(' • ')}` : mainDisplay
+    }
 
     const donViNhanFilterOptions = computed(() => {
         const map = new Map()
 
-        enrichedChiTietGiaoChiTieuOptions.value.forEach((item) => {
+        leafChiTietGiaoOptions.value.forEach((item) => {
             const id = getDonViNhanId(item)
             const ten = item.TenDonViNhanHienThi
 
@@ -512,7 +792,7 @@
         const donViId = Number(filters.donViNhanId || 0)
         if (!donViId) return []
 
-        return enrichedChiTietGiaoChiTieuOptions.value.filter(
+        return leafChiTietGiaoOptions.value.filter(
             (item) => getDonViNhanId(item) === donViId
         )
     })
@@ -521,16 +801,10 @@
         const donViId = Number(form.donViNhanId || 0)
         if (!donViId) return []
 
-        return enrichedChiTietGiaoChiTieuOptions.value.filter(
+        return leafChiTietGiaoOptions.value.filter(
             (item) => getDonViNhanId(item) === donViId
         )
     })
-
-    const getChiTietDisplayWithoutDonVi = (item) => {
-        const ma = item?.MaChiTieuHienThi || ''
-        const ten = item?.TenChiTieuHienThi || ''
-        return [ma, ten].filter(Boolean).join(' - ') || '-'
-    }
 
     const selectedChiTietGiao = computed(() => {
         return (
@@ -538,6 +812,12 @@
                 (x) => getId(x) === Number(form.chiTietGiaoChiTieuId ?? 0)
             ) || null
         )
+    })
+
+    const selectedDanhMucChiTieu = computed(() => {
+        const chiTiet = selectedChiTietGiao.value
+        if (!chiTiet) return null
+        return findDanhMucById(getDanhMucChiTieuId(chiTiet))
     })
 
     const selectedKyBaoCao = computed(() => {
@@ -571,14 +851,59 @@
         })
     })
 
-    const isKyDauTien = computed(() => {
-        const ky = selectedKyBaoCao.value
-        if (!ky) return true
-        return getThuTuKy(ky) <= 1
+    const currentLoaiChiTieu = computed(() => {
+        const loaiChiTieu = getLoaiChiTieu(selectedChiTietGiao.value)
+        return loaiChiTieu || getLoaiChiTieu(selectedDanhMucChiTieu.value)
+    })
+
+    const isDinhTinh = computed(() => currentLoaiChiTieu.value === 'DINH_TINH')
+    const isDinhLuongSoSanh = computed(() => currentLoaiChiTieu.value === 'DINH_LUONG_SO_SANH')
+
+    const comparisonSourceLabel = computed(() =>
+        mapLoaiMocSoSanh(selectedDanhMucChiTieu.value?.LoaiMocSoSanh ?? selectedDanhMucChiTieu.value?.loaiMocSoSanh)
+    )
+
+    const comparisonDirectionLabel = computed(() =>
+        mapChieuSoSanh(selectedDanhMucChiTieu.value?.ChieuSoSanh ?? selectedDanhMucChiTieu.value?.chieuSoSanh)
+    )
+
+    const currentValueLabel = computed(() => {
+        if (isDinhLuongSoSanh.value) {
+            return 'Kết quả đạt được trong kỳ'
+        }
+
+        return 'Giá trị thực hiện trong kỳ'
+    })
+
+    const currentValuePlaceholder = computed(() => {
+        if (isDinhLuongSoSanh.value) {
+            return 'Nhập kết quả đạt được trong kỳ báo cáo'
+        }
+
+        return 'Nhập giá trị thực hiện trong kỳ'
+    })
+
+    const getThuTuKyFromRecord = (item) => {
+        const kyId = Number(item?.KyBaoCaoKPIId ?? item?.kyBaoCaoKPIId ?? 0)
+        const kyItem = kyBaoCaoOptions.value.find((x) => getId(x) === kyId)
+        return getThuTuKy(kyItem)
+    }
+
+    const recordsForSelectedChiTiet = computed(() => {
+        const chiTietId = Number(form.chiTietGiaoChiTieuId ?? 0)
+        if (!chiTietId) return []
+
+        return enrichedItems.value
+            .filter((item) => Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0) === chiTietId)
+            .sort((left, right) => {
+                const kyDiff = getThuTuKyFromRecord(left) - getThuTuKyFromRecord(right)
+                if (kyDiff !== 0) return kyDiff
+                return getId(left) - getId(right)
+            })
     })
 
     const giaTriCuoiKyPreview = computed(() => {
-        const dauKy = Number(form.giaTriDauKy ?? 0)
+        const dauKy = Number(fixedGiaTriDauKy.value ?? 0)
         const thucHien = Number(form.giaTriThucHienTrongKy ?? 0)
         return dauKy + thucHien
     })
@@ -615,25 +940,21 @@
         })
     })
 
-    const previousTheoDoiRecord = computed(() => {
-        const chiTietId = Number(form.chiTietGiaoChiTieuId ?? 0)
-        const currentKy = selectedKyBaoCao.value
+    const fixedGiaTriDauKy = computed(() => {
+        const giaTriDauKyCoDinh = getGiaTriDauKyCoDinhFromChiTiet(selectedChiTietGiao.value)
+        if (giaTriDauKyCoDinh !== null) {
+            return giaTriDauKyCoDinh
+        }
 
-        if (!chiTietId || !currentKy) return null
+        const editingRecord = isEdit.value
+            ? recordsForSelectedChiTiet.value.find((item) => getId(item) === Number(editingId.value))
+            : null
 
-        const currentThuTuKy = getThuTuKy(currentKy)
-        if (currentThuTuKy <= 1) return null
-
-        const candidates = enrichedItems.value.filter((item) => {
-            const itemChiTietId = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
-            const itemKyId = Number(item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? 0)
-            const kyItem = kyBaoCaoOptions.value.find((x) => getId(x) === itemKyId)
-            const thuTuKy = getThuTuKy(kyItem)
-
-            return itemChiTietId === chiTietId && thuTuKy === currentThuTuKy - 1
-        })
-
-        return candidates[0] || null
+        return Number(
+            editingRecord?.GiaTriDauKy ??
+            editingRecord?.giaTriDauKy ??
+            0
+        )
     })
 
     const filteredItems = computed(() => {
@@ -665,18 +986,18 @@
     const buildPayload = () => ({
         chiTietGiaoChiTieuId: form.chiTietGiaoChiTieuId,
         kyBaoCaoKPIId: form.kyBaoCaoKPIId,
-        giaTriDauKy: Number(form.giaTriDauKy ?? 0),
-        giaTriThucHienTrongKy: Number(form.giaTriThucHienTrongKy ?? 0)
+        giaTriThucHienTrongKy: isDinhTinh.value ? 0 : Number(form.giaTriThucHienTrongKy ?? 0),
+        nhanXet: String(form.nhanXet || '').trim() || null
     })
 
     const fetchItems = async () => {
         try {
             loading.value = true
-            const response = await api.get(API_PATHS.theoDoiThucHienKPI)
+            const response = await httpClient.get(API_PATHS.theoDoiThucHienKPI)
             items.value = normalizeList(response)
         } catch (error) {
             console.error('fetchItems error:', error?.response?.status, error?.config?.url, error)
-            alert(error?.response?.data?.message || 'Không tải được danh sách theo dõi KPI.')
+            alert(error?.response?.data?.message || 'Không tải được danh sách báo cáo định kỳ.')
         } finally {
             loading.value = false
         }
@@ -684,7 +1005,7 @@
 
     const fetchChiTietGiaoChiTieuOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.chiTietGiaoChiTieu)
+            const response = await httpClient.get(API_PATHS.chiTietGiaoChiTieu)
             chiTietGiaoChiTieuOptions.value = normalizeList(response)
         } catch (error) {
             console.error('fetchChiTietGiaoChiTieuOptions error:', error?.response?.status, error?.config?.url, error)
@@ -694,7 +1015,7 @@
 
     const fetchKyBaoCaoOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.kyBaoCaoKPI)
+            const response = await httpClient.get(API_PATHS.kyBaoCaoKPI)
             kyBaoCaoOptions.value = normalizeList(response)
         } catch (error) {
             console.error('fetchKyBaoCaoOptions error:', error?.response?.status, error?.config?.url, error)
@@ -704,7 +1025,7 @@
 
     const fetchDanhMucChiTieuOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.danhMucChiTieu)
+            const response = await httpClient.get(API_PATHS.danhMucChiTieu)
             danhMucChiTieuOptions.value = normalizeList(response)
         } catch (error) {
             console.error('fetchDanhMucChiTieuOptions error:', error?.response?.status, error?.config?.url, error)
@@ -714,7 +1035,7 @@
 
     const fetchDonViOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.donVi)
+            const response = await httpClient.get(API_PATHS.donVi)
             donViOptions.value = normalizeList(response)
         } catch (error) {
             console.error('fetchDonViOptions error:', error?.response?.status, error?.config?.url, error)
@@ -724,7 +1045,7 @@
 
     const fetchDotGiaoChiTieuOptions = async () => {
         try {
-            const response = await api.get(API_PATHS.dotGiaoChiTieu)
+            const response = await httpClient.get(API_PATHS.dotGiaoChiTieu)
             dotGiaoChiTieuOptions.value = normalizeList(response)
         } catch (error) {
             console.error('fetchDotGiaoChiTieuOptions error:', error?.response?.status, error?.config?.url, error)
@@ -732,34 +1053,39 @@
         }
     }
 
-    const openCreateModal = () => {
+    const openCreateModal = async () => {
         isEdit.value = false
         editingId.value = null
-        resetForm()
+        await hydrateFormSafely(createDefaultForm())
         showModal.value = true
     }
 
-    const openEditModal = (item) => {
-        isEdit.value = true
-        editingId.value = getId(item)
-
+    const openEditModal = async (item) => {
         const chiTietId = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
         const chiTiet = enrichedChiTietGiaoChiTieuOptions.value.find((x) => getId(x) === chiTietId)
 
-        Object.assign(form, {
+        if (chiTiet && hasChildCriteria(chiTiet)) {
+            alert('Bản ghi này đang gắn với chỉ tiêu cha của cấu hình phân rã. Vui lòng nhập và sửa số liệu ở từng tiêu chí con.')
+            return
+        }
+
+        isEdit.value = true
+        editingId.value = getId(item)
+
+        await hydrateFormSafely({
             donViNhanId: getDonViNhanId(chiTiet) || null,
             chiTietGiaoChiTieuId: chiTietId || null,
             kyBaoCaoKPIId: item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? null,
-            giaTriDauKy: item.GiaTriDauKy ?? item.giaTriDauKy ?? 0,
-            giaTriThucHienTrongKy: item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0
+            giaTriThucHienTrongKy: item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0,
+            nhanXet: item.NhanXet ?? item.nhanXet ?? ''
         })
 
         showModal.value = true
     }
 
-    const closeModal = () => {
+    const closeModal = async () => {
         showModal.value = false
-        resetForm()
+        await hydrateFormSafely(createDefaultForm())
     }
 
     const validateForm = () => {
@@ -779,8 +1105,13 @@
             return false
         }
 
+        if (hasChildCriteria(chiTietDangChon)) {
+            alert('Chỉ tiêu phân rã phải nhập kết quả ở tiêu chí con, không nhập ở chỉ tiêu cha.')
+            return false
+        }
+
         if (!form.kyBaoCaoKPIId || Number(form.kyBaoCaoKPIId) <= 0) {
-            alert('Vui lòng chọn kỳ báo cáo KPI.')
+            alert('Vui lòng chọn kỳ báo cáo.')
             return false
         }
 
@@ -793,7 +1124,7 @@
         }
 
         if (!isKyPhuHopTanSuat(kyDangChon, tanSuat)) {
-            alert('Kỳ báo cáo không phù hợp với tần suất báo cáo của chỉ tiêu giao.')
+            alert('Kỳ báo cáo không phù hợp với kỳ báo cáo đã giao cho chỉ tiêu này.')
             return false
         }
 
@@ -804,25 +1135,25 @@
         }
 
         if (!nopDuocTheoNgayKetThucDotGiao.value) {
-            alert('Không được nộp vì ngày kết thúc của đợt giao chỉ tiêu phải lớn hơn hoặc bằng ngày cuối kỳ của kỳ báo cáo.')
+            alert('Không được nộp vì ngày cuối kỳ của kỳ báo cáo phải lớn hơn hoặc bằng ngày bắt đầu và nhỏ hơn hoặc bằng ngày kết thúc của đợt giao chỉ tiêu.')
             return false
         }
 
-        if (isKyDauTien.value) {
-            if (Number(form.giaTriDauKy) < 0) {
-                alert('Giá trị đầu kỳ không hợp lệ.')
+        if (isDinhTinh.value) {
+            if (!form.nhanXet) {
+                alert('Vui lòng chọn kết quả đánh giá định tính.')
                 return false
             }
         } else {
-            if (!previousTheoDoiRecord.value) {
-                alert('Chưa có dữ liệu kỳ trước để xác định giá trị đầu kỳ.')
+            if (Number(fixedGiaTriDauKy.value) < 0) {
+                alert('Giá trị đầu kỳ cố định không hợp lệ.')
                 return false
             }
-        }
 
-        if (Number(form.giaTriThucHienTrongKy) < 0) {
-            alert('Giá trị thực hiện trong kỳ không hợp lệ.')
-            return false
+            if (Number(form.giaTriThucHienTrongKy) < 0) {
+                alert('Giá trị thực hiện trong kỳ không hợp lệ.')
+                return false
+            }
         }
 
         return true
@@ -836,10 +1167,10 @@
             const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
-                await api.put(`${API_PATHS.theoDoiThucHienKPI}/${editingId.value}`, payload)
-            } else {
-                await api.post(API_PATHS.theoDoiThucHienKPI, payload)
-            }
+            await httpClient.put(`${API_PATHS.theoDoiThucHienKPI}/${editingId.value}`, payload)
+        } else {
+            await httpClient.post(API_PATHS.theoDoiThucHienKPI, payload)
+        }
 
             closeModal()
             await fetchItems()
@@ -850,7 +1181,7 @@
                 error?.response?.data?.message ||
                 error?.response?.data?.title ||
                 JSON.stringify(error?.response?.data?.errors || {}, null, 2) ||
-                'Lưu theo dõi KPI thất bại.'
+                'Lưu báo cáo định kỳ thất bại.'
 
             alert(message)
         } finally {
@@ -859,15 +1190,15 @@
     }
 
     const handleDelete = async (item) => {
-        const ok = window.confirm('Bạn có chắc muốn xóa bản ghi theo dõi KPI này không?')
+        const ok = window.confirm('Bạn có chắc muốn xóa bản ghi báo cáo định kỳ này không?')
         if (!ok) return
 
         try {
-            await api.delete(`${API_PATHS.theoDoiThucHienKPI}/${getId(item)}`)
+            await httpClient.delete(`${API_PATHS.theoDoiThucHienKPI}/${getId(item)}`)
             await fetchItems()
         } catch (error) {
             console.error('handleDelete error:', error?.response?.status, error?.config?.url, error)
-            alert(error?.response?.data?.message || 'Xóa theo dõi KPI thất bại.')
+            alert(error?.response?.data?.message || 'Xóa báo cáo định kỳ thất bại.')
         }
     }
 
@@ -905,16 +1236,18 @@
     watch(
         () => form.donViNhanId,
         () => {
+            if (isHydratingForm.value) return
             form.chiTietGiaoChiTieuId = null
             form.kyBaoCaoKPIId = null
-            form.giaTriDauKy = 0
             form.giaTriThucHienTrongKy = 0
+            form.nhanXet = ''
         }
     )
 
     watch(
         () => form.chiTietGiaoChiTieuId,
         () => {
+            if (isHydratingForm.value) return
             const selected = selectedChiTietGiao.value
 
             if (selected) {
@@ -933,40 +1266,19 @@
                 form.kyBaoCaoKPIId = null
             }
 
-            form.giaTriDauKy = 0
             form.giaTriThucHienTrongKy = 0
+            form.nhanXet = ''
         }
     )
 
     watch(
         () => form.kyBaoCaoKPIId,
         () => {
+            if (isHydratingForm.value) return
             if (!form.kyBaoCaoKPIId) {
-                form.giaTriDauKy = 0
                 form.giaTriThucHienTrongKy = 0
             }
         }
-    )
-
-    watch(
-        () => [form.chiTietGiaoChiTieuId, form.kyBaoCaoKPIId],
-        () => {
-            if (!form.chiTietGiaoChiTieuId || !form.kyBaoCaoKPIId) return
-
-            if (isKyDauTien.value) {
-                return
-            }
-
-            const giaTriCuoiKyTruoc =
-                previousTheoDoiRecord.value?.GiaTriCuoiKy ??
-                previousTheoDoiRecord.value?.giaTriCuoiKy ??
-                previousTheoDoiRecord.value?.GiaTriLuyKe ??
-                previousTheoDoiRecord.value?.giaTriLuyKe ??
-                0
-
-            form.giaTriDauKy = Number(giaTriCuoiKyTruoc ?? 0)
-        },
-        { immediate: true }
     )
 
     onMounted(async () => {
@@ -1080,6 +1392,35 @@
         font-weight: 600;
         color: #334155;
         margin-bottom: 0.45rem;
+    }
+
+    .selection-summary {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: #f8fbff;
+        border: 1px solid #d9e8f8;
+    }
+
+    .selection-summary-title {
+        font-weight: 700;
+        color: #1e3a5f;
+        line-height: 1.45;
+    }
+
+    .selection-summary-highlight {
+        margin-top: 8px;
+        font-weight: 700;
+        color: #0d4f8b;
+        line-height: 1.5;
+    }
+
+    .selection-summary-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-top: 6px;
+        font-size: 0.9rem;
+        color: #64748b;
     }
 
     :deep(.table) {

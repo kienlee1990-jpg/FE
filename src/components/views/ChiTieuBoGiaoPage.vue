@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -380,12 +380,12 @@
     const normalizeText = (value) => String(value || '').trim().toLowerCase()
 
     const getTanSuatLabel = (value) => {
-        const found = tanSuatBaoCaoOptions.find((x) => x.value === value)
+        const found = tanSuatBaoCaoOptions.find(x => x.value === value)
         return found?.label || value || '-'
     }
 
     const findDanhMucById = (id) => {
-        return danhMucOptions.value.find((x) => getId(x) === Number(id)) || null
+        return danhMucOptions.value.find(x => getId(x) === Number(id)) || null
     }
 
     const getGiaTriMacDinhTuDanhMuc = (item) => {
@@ -410,7 +410,7 @@
     }
 
     const fixedDonVi = computed(() => {
-        return donViOptions.value.find((item) => {
+        return donViOptions.value.find(item => {
             const ten = item.TenDonVi || item.tenDonVi || ''
             return normalizeText(ten) === normalizeText(FIXED_DON_VI_NAME)
         }) || null
@@ -421,21 +421,23 @@
     })
 
     const fixedDonViDisplay = computed(() => {
-        if (!fixedDonVi.value) return `${FIXED_DON_VI_NAME} (chưa tìm thấy trong danh mục đơn vị)`
+        if (!fixedDonVi.value) {
+            return `${FIXED_DON_VI_NAME} (chưa tìm thấy trong danh mục đơn vị)`
+        }
         return fixedDonVi.value.TenDonVi || fixedDonVi.value.tenDonVi || FIXED_DON_VI_NAME
     })
 
     const enrichedItems = computed(() => {
-        return items.value.map((item) => {
+        return items.value.map(item => {
             const dotId = Number(item.DotGiaoChiTieuId ?? item.dotGiaoChiTieuId ?? 0)
             const danhMucId = Number(item.DanhMucChiTieuId ?? item.danhMucChiTieuId ?? 0)
             const donViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
             const donViThucHienChinhId = Number(item.DonViThucHienChinhId ?? item.donViThucHienChinhId ?? 0)
 
-            const dot = dotOptions.value.find((x) => getId(x) === dotId)
-            const danhMuc = danhMucOptions.value.find((x) => getId(x) === danhMucId)
-            const donViNhan = donViOptions.value.find((x) => getId(x) === donViNhanId)
-            const donViThucHienChinh = donViOptions.value.find((x) => getId(x) === donViThucHienChinhId)
+            const dot = dotOptions.value.find(x => getId(x) === dotId)
+            const danhMuc = danhMucOptions.value.find(x => getId(x) === danhMucId)
+            const donViNhan = donViOptions.value.find(x => getId(x) === donViNhanId)
+            const donViThucHienChinh = donViOptions.value.find(x => getId(x) === donViThucHienChinhId)
 
             return {
                 ...item,
@@ -445,42 +447,49 @@
                     dot?.TenDotGiao ||
                     dot?.tenDotGiao ||
                     '-',
+
                 TenChiTieu:
                     item.TenChiTieu ||
                     item.tenChiTieu ||
                     danhMuc?.TenChiTieu ||
                     danhMuc?.tenChiTieu ||
                     '-',
+
                 MaChiTieu:
                     item.MaChiTieu ||
                     item.maChiTieu ||
                     danhMuc?.MaChiTieu ||
                     danhMuc?.maChiTieu ||
                     '-',
+
                 TenDonViNhan:
                     item.TenDonViNhan ||
                     item.tenDonViNhan ||
                     donViNhan?.TenDonVi ||
                     donViNhan?.tenDonVi ||
                     '-',
+
                 MaDonViNhan:
                     item.MaDonViNhan ||
                     item.maDonViNhan ||
                     donViNhan?.MaDonVi ||
                     donViNhan?.maDonVi ||
                     '-',
+
                 TenDonViThucHienChinh:
                     item.TenDonViThucHienChinh ||
                     item.tenDonViThucHienChinh ||
                     donViThucHienChinh?.TenDonVi ||
                     donViThucHienChinh?.tenDonVi ||
                     '-',
+
                 MaDonViThucHienChinh:
                     item.MaDonViThucHienChinh ||
                     item.maDonViThucHienChinh ||
                     donViThucHienChinh?.MaDonVi ||
                     donViThucHienChinh?.maDonVi ||
                     '-',
+
                 DonViTinh:
                     item.DonViTinh ||
                     item.donViTinh ||
@@ -495,11 +504,14 @@
                     danhMuc?.DVT ||
                     danhMuc?.dvt ||
                     '-',
+
                 TanSuatBaoCao: item.TanSuatBaoCao || item.tanSuatBaoCao || '',
+
                 DieuKienHoanThanh:
                     item.DieuKienHoanThanh ??
                     item.dieuKienHoanThanh ??
                     getGiaTriMacDinhTuDanhMuc(danhMuc),
+
                 GiaTriMucTieu:
                     item.GiaTriMucTieu ??
                     item.giaTriMucTieu ??
@@ -509,14 +521,15 @@
     })
 
     const filteredItems = computed(() => {
-        return enrichedItems.value.filter((item) => {
+        return enrichedItems.value.filter(item => {
             const keyword = filters.keyword.trim().toLowerCase()
             const dotId = Number(item.DotGiaoChiTieuId ?? item.dotGiaoChiTieuId ?? 0)
             const danhMucId = Number(item.DanhMucChiTieuId ?? item.danhMucChiTieuId ?? 0)
             const tanSuatBaoCao = (item.TanSuatBaoCao || item.tanSuatBaoCao || '').trim()
 
             const tenDonViThucHienChinh = item.TenDonViThucHienChinh || item.tenDonViThucHienChinh || ''
-            const matchFixedDonVi = normalizeText(tenDonViThucHienChinh) === normalizeText(FIXED_DON_VI_NAME)
+            const matchFixedDonVi =
+                normalizeText(tenDonViThucHienChinh) === normalizeText(FIXED_DON_VI_NAME)
 
             const searchText = [
                 item.TenDotGiao || '',
@@ -526,9 +539,7 @@
                 item.TenDonViThucHienChinh || '',
                 getTanSuatLabel(item.TanSuatBaoCao || item.tanSuatBaoCao || ''),
                 item.GhiChu || item.ghiChu || ''
-            ]
-                .join(' ')
-                .toLowerCase()
+            ].join(' ').toLowerCase()
 
             const matchKeyword = !keyword || searchText.includes(keyword)
             const matchDot = !filters.dotGiaoChiTieuId || Number(filters.dotGiaoChiTieuId) === dotId
@@ -553,6 +564,22 @@
         if (!selectedDanhMuc.value) return '-'
         return getDonViTinhText(selectedDanhMuc.value)
     })
+
+    const formatNumber = (value) => {
+        if (value === null || value === undefined || value === '') return '-'
+
+        const numberValue = Number(value)
+        if (Number.isNaN(numberValue)) return value
+
+        return numberValue.toLocaleString('vi-VN')
+    }
+
+    const formatNumberWithUnit = (value, unit) => {
+        const formatted = formatNumber(value)
+        if (formatted === '-') return '-'
+        if (!unit || unit === '-') return formatted
+        return `${formatted} ${unit}`
+    }
 
     const displayGiaTriMacDinh = computed(() => {
         if (
@@ -602,46 +629,48 @@
     })
 
     const fetchItems = async () => {
-        try {
-            loading.value = true
-            const data = await apiRequest(API_PATHS.chiTietGiaoChiTieu)
-            items.value = normalizeList(data)
-        } catch (error) {
-            console.error('fetchItems error:', error)
-            alert(error.message || 'Không tải được danh sách giao chỉ tiêu.')
-            items.value = []
-        } finally {
-            loading.value = false
-        }
+        const data = await apiRequest(API_PATHS.chiTietGiaoChiTieu)
+        items.value = normalizeList(data)
     }
 
     const fetchDotOptions = async () => {
-        try {
-            const data = await apiRequest(API_PATHS.dotGiaoChiTieu)
-            dotOptions.value = normalizeList(data)
-        } catch (error) {
-            console.error('fetchDotOptions error:', error)
-            dotOptions.value = []
-        }
+        const data = await apiRequest(API_PATHS.dotGiaoChiTieu)
+        dotOptions.value = normalizeList(data)
     }
 
     const fetchDanhMucOptions = async () => {
-        try {
-            const data = await apiRequest(API_PATHS.danhMucChiTieu)
-            danhMucOptions.value = normalizeList(data)
-        } catch (error) {
-            console.error('fetchDanhMucOptions error:', error)
-            danhMucOptions.value = []
-        }
+        const data = await apiRequest(API_PATHS.danhMucChiTieu)
+        danhMucOptions.value = normalizeList(data)
     }
 
     const fetchDonViOptions = async () => {
+        const data = await apiRequest(API_PATHS.donVi)
+        donViOptions.value = normalizeList(data)
+    }
+
+    const loadData = async () => {
         try {
-            const data = await apiRequest(API_PATHS.donVi)
-            donViOptions.value = normalizeList(data)
+            loading.value = true
+            const [chiTietData, dotData, danhMucData, donViData] = await Promise.all([
+                apiRequest(API_PATHS.chiTietGiaoChiTieu),
+                apiRequest(API_PATHS.dotGiaoChiTieu),
+                apiRequest(API_PATHS.danhMucChiTieu),
+                apiRequest(API_PATHS.donVi)
+            ])
+
+            items.value = normalizeList(chiTietData)
+            dotOptions.value = normalizeList(dotData)
+            danhMucOptions.value = normalizeList(danhMucData)
+            donViOptions.value = normalizeList(donViData)
         } catch (error) {
-            console.error('fetchDonViOptions error:', error)
+            console.error('loadData error:', error)
+            alert(error.message || 'Không tải được dữ liệu.')
+            items.value = []
+            dotOptions.value = []
+            danhMucOptions.value = []
             donViOptions.value = []
+        } finally {
+            loading.value = false
         }
     }
 
@@ -756,29 +785,8 @@
         filters.keyword = ''
     }
 
-    const formatNumber = (value) => {
-        if (value === null || value === undefined || value === '') return '-'
-
-        const numberValue = Number(value)
-        if (Number.isNaN(numberValue)) return value
-
-        return numberValue.toLocaleString('vi-VN')
-    }
-
-    const formatNumberWithUnit = (value, unit) => {
-        const formatted = formatNumber(value)
-        if (formatted === '-') return '-'
-        if (!unit || unit === '-') return formatted
-        return `${formatted} ${unit}`
-    }
-
     onMounted(async () => {
-        await Promise.all([
-            fetchItems(),
-            fetchDotOptions(),
-            fetchDanhMucOptions(),
-            fetchDonViOptions()
-        ])
+        await loadData()
     })
 </script>
 
@@ -997,3 +1005,4 @@
         }
     }
 </style>
+

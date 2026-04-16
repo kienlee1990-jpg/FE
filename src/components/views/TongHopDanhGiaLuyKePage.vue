@@ -4,46 +4,26 @@
             <div class="container-fluid py-4">
                 <div class="gov-banner mb-4">
                     <div class="gov-emblem">
-                        <i class="bi bi-bar-chart-line"></i>
+                        <i class="bi bi-collection"></i>
                     </div>
                     <div class="gov-text">
                         <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-                        <div class="gov-title">BÁO CÁO TỔNG HỢP KPI TOÀN HỆ THỐNG</div>
+                        <div class="gov-title">TỔNG HỢP ĐÁNH GIÁ LŨY KẾ</div>
                         <div class="gov-sub">
-                            Mỗi dòng là một chi tiết giao chỉ tiêu, cộng dồn số thực hiện trong các kỳ và lấy kết quả đánh giá gần nhất trong phạm vi lọc.
+                            Mỗi dòng phản ánh một chỉ tiêu chi tiết tại đơn vị, lấy số liệu cuối kỳ gần nhất tính đến thời điểm xem báo cáo.
                         </div>
                     </div>
                 </div>
 
-                <div class="bao-cao-page">
+                <div class="danh-gia-kpi-page">
                     <div class="filter-card">
                         <div class="filter-grid">
                             <div class="form-group">
                                 <label>Kỳ báo cáo</label>
-                                <select v-model="filters.kyBaoCaoKPIId" @change="fetchBaoCaoTongHop">
+                                <select v-model="filters.kyBaoCaoKPIId" @change="fetchTongHopDanhGia">
                                     <option value="">-- Tính đến kỳ mới nhất hiện có --</option>
                                     <option v-for="item in kyBaoCaoOptions" :key="getId(item)" :value="getId(item)">
                                         {{ getKyLabel(item) }}
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Đơn vị</label>
-                                <select v-model="filters.donVi">
-                                    <option value="">-- Tất cả đơn vị --</option>
-                                    <option v-for="item in donViOptions" :key="item" :value="item">
-                                        {{ item }}
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Xếp loại</label>
-                                <select v-model="filters.xepLoai">
-                                    <option value="">-- Tất cả xếp loại --</option>
-                                    <option v-for="status in trackedStatusOptions" :key="status.value" :value="status.value">
-                                        {{ status.label }}
                                     </option>
                                 </select>
                             </div>
@@ -58,25 +38,16 @@
                             </div>
 
                             <div class="form-group actions">
-                                <button class="btn btn-primary" @click="fetchBaoCaoTongHop">Tải dữ liệu</button>
+                                <button class="btn btn-primary" @click="fetchTongHopDanhGia">Tải dữ liệu</button>
                                 <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
-                                <button class="btn btn-success" @click="exportCsv">Xuất CSV</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="summary-grid">
                         <div class="summary-card">
-                            <span class="label">Tổng chi tiết chỉ tiêu</span>
+                            <span class="label">Tổng số chỉ tiêu chi tiết</span>
                             <strong>{{ filteredRows.length }}</strong>
-                        </div>
-                        <div class="summary-card">
-                            <span class="label">Tổng thực hiện cộng dồn</span>
-                            <strong>{{ formatNumber(tongGiaTriThucHienCongDon) }}</strong>
-                        </div>
-                        <div class="summary-card">
-                            <span class="label">Hoàn thành trung bình</span>
-                            <strong>{{ formatPercent(averageCompletion) }}</strong>
                         </div>
                         <div class="summary-card">
                             <span class="label">Hoàn thành vượt mức</span>
@@ -97,6 +68,10 @@
                     </div>
 
                     <div class="table-card">
+                        <div class="table-toolbar">
+                            <button class="btn btn-success" @click="exportCsv">Xuất CSV</button>
+                        </div>
+
                         <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                         <div v-else class="table-wrapper">
@@ -108,9 +83,9 @@
                                         <th>Tên chỉ tiêu chi tiết</th>
                                         <th>Đơn vị</th>
                                         <th>Đợt giao chỉ tiêu</th>
-                                        <th>Kỳ gần nhất</th>
+                                        <th>Kỳ cập nhật gần nhất</th>
                                         <th>Giá trị mục tiêu</th>
-                                        <th>Thực hiện cộng dồn</th>
+                                        <th>Đầu kỳ gần nhất</th>
                                         <th>Cuối kỳ gần nhất</th>
                                         <th>Lũy kế hiện tại</th>
                                         <th>Số dư mục tiêu</th>
@@ -133,22 +108,13 @@
                                             </div>
                                         </td>
                                         <td>{{ row.tenDonViNhan || '-' }}</td>
-                                        <td>
-                                            <div>{{ row.tenDotGiaoChiTieu || '-' }}</div>
-                                            <div class="sub-label">{{ buildDotGiaoMeta(row) }}</div>
-                                            <div class="sub-label">
-                                                {{ `${formatDate(row.ngayBatDauDotGiao)} - ${formatDate(row.ngayKetThucDotGiao)}` }}
-                                            </div>
-                                        </td>
+                                        <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
                                         <td>
                                             <div>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</div>
                                             <div class="sub-label">{{ buildLatestKyMeta(row) }}</div>
                                         </td>
                                         <td class="text-right">{{ formatNumber(row.giaTriMucTieu) }}</td>
-                                        <td class="text-right">
-                                            <div>{{ formatNumber(row.giaTriThucHienCongDon) }}</div>
-                                            <div class="sub-label">{{ row.soKyDaTongHop }} kỳ đã tổng hợp</div>
-                                        </td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriDauKyGanNhat) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai) }}</td>
                                         <td class="text-right">{{ formatNumber(row.soDuMucTieu) }}</td>
@@ -157,8 +123,9 @@
                                             <span class="badge" :class="badgeClass(row.xepLoai)">
                                                 {{ getDanhGiaLabel(row.xepLoai) || '-' }}
                                             </span>
-                                            <div class="sub-label">{{ row.ketQuaDanhGia || '-' }}</div>
-                                            <div v-if="row.nhanXetDanhGia" class="sub-label">{{ row.nhanXetDanhGia }}</div>
+                                            <div class="sub-label">
+                                                {{ `${getThoiHanLabel(row.dieuKienThoiHan)} | ${row.nguonDanhGiaTinhToan}` }}
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -173,32 +140,27 @@
 
 <script setup>
     import BaseLayout from '../BaseLayout.vue'
-    import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
+    import { useTongHopDanhGiaPage } from './tongHopDanhGiaPageState.js'
 
     const {
         loading,
         errorMessage,
         kyBaoCaoOptions,
-        trackedStatusOptions,
         filters,
-        donViOptions,
         filteredRows,
         thongKe,
-        tongGiaTriThucHienCongDon,
-        averageCompletion,
-        fetchBaoCaoTongHop,
+        fetchTongHopDanhGia,
         resetFilters,
         getId,
         getKyLabel,
-        buildDotGiaoMeta,
         buildLatestKyMeta,
-        formatDate,
         formatNumber,
         formatPercent,
         badgeClass,
         getDanhGiaLabel,
+        getThoiHanLabel,
         exportCsv
-    } = useBaoCaoTongHopPage()
+    } = useTongHopDanhGiaPage()
 </script>
 
 <style scoped>
@@ -257,7 +219,7 @@
         font-size: 0.95rem;
     }
 
-    .bao-cao-page {
+    .danh-gia-kpi-page {
         padding: 20px;
         background: #f6f8fb;
         min-height: 100%;
@@ -274,7 +236,7 @@
 
     .filter-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
         align-items: end;
     }
@@ -301,16 +263,13 @@
 
     .form-group input:focus,
     .form-group select:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+        border-color: #89d2ef;
+        box-shadow: 0 0 0 0.2rem rgba(137, 210, 239, 0.2);
     }
 
     .actions {
         flex-direction: row;
         gap: 10px;
-        align-items: stretch;
-        justify-content: flex-end;
-        grid-column: 1 / -1;
     }
 
     .btn {
@@ -362,6 +321,12 @@
     .summary-card strong {
         font-size: 24px;
         color: #111827;
+    }
+
+    .table-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
     }
 
     .table-wrapper {
@@ -472,6 +437,10 @@
         .summary-grid {
             grid-template-columns: 1fr;
         }
+
+        .actions {
+            flex-direction: column;
+        }
     }
 
     @media (max-width: 768px) {
@@ -484,12 +453,8 @@
             font-size: 1.05rem;
         }
 
-        .bao-cao-page {
+        .danh-gia-kpi-page {
             padding: 16px;
-        }
-
-        .actions {
-            flex-direction: column;
         }
     }
 </style>

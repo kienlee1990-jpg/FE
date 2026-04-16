@@ -1,28 +1,29 @@
-import { createRouter, createWebHistory } from "vue-router"
+﻿import { createRouter, createWebHistory } from "vue-router"
 
 import Login from "../components/login.vue"
 import Dashboard from "../components/Dashboard.vue"
+import BaoCaoChiTieuCongAnThanhPhoPage from "../components/views/BaoCaoChiTieuCongAnThanhPhoPage.vue"
 
 import DanhMucChiTieuPage from "../components/views/DanhMucChiTieuPage.vue"
-import ChiTieuBoGiaoPage from "../components/views/ChiTieuBoGiaoPage.vue"
-import ChiTieuThanhPhoGiaoPage from "../components/views/ChiTieuThanhPhoGiaoPage.vue"
 import DanhMucDonViPage from "../components/views/DanhMucDonViPage.vue"
 import CanhBaoRuiRoPage from "../components/views/CanhBaoRuiRoPage.vue"
 import BaoCaoTheoChiTieuPage from "../components/views/BaoCaoTheoChiTieuPage.vue"
+import CauHinhDanhGiaChiTieuPage from "../components/views/CauHinhDanhGiaChiTieuPage.vue"
+import BaoCaoTongHopPage from "../components/views/BaoCaoTongHopPage.vue"
+import BaoCaoTheoDonViPage from "../components/views/BaoCaoTheoDonViPage.vue"
 
 import DonViChuaCapNhatPage from "../components/views/DonViChuaCapNhatPage.vue"
 import DotGiaoChiTieuPage from "../components/views/DotGiaoChiTieuPage.vue"
-import GiaoChiTieuChoDonViPage from "../components/views/GiaoChiTieuChoDonViPage.vue"
+import GiaoChoCatpPage from "../components/views/GiaoChoCatpPage.vue"
+import GiaoChoPhongPage from "../components/views/GiaoChoPhongPage.vue"
+import GiaoChoCadpPhuongXaPage from "../components/views/GiaoChoCadpPhuongXaPage.vue"
 import KyBaoCaoPage from "../components/views/KyBaoCaoPage.vue"
-import NguoiDungPage from "../components/views/NguoiDungPage.vue"
 import NhapKetQuaPage from "../components/views/NhapKetQuaPage.vue"
 import NhatKyHeThongPage from "../components/views/NhatKyHeThongPage.vue"
 import Permissions from "../components/views/Permissions.vue"
-import PhanQuyenPage from "../components/views/PhanQuyenPage.vue"
-import PhanRaChiTieuBoGiaoPage from "../components/views/PhanRaChiTieuBoGiaoPage.vue"
 import SoSanhDonViPage from "../components/views/SoSanhDonViPage.vue"
 import TienDoThucHienPage from "../components/views/TienDoThucHienPage.vue"
-import TongHopDanhGiaPage from "../components/views/TongHopDanhGiaPage.vue"
+import TongHopDanhGiaLuyKePage from "../components/views/TongHopDanhGiaLuyKePage.vue"
 import Users from "../components/views/Users.vue"
 import XepHangDonViPage from "../components/views/XepHangDonViPage.vue"
 import XuatBaoCaoPage from "../components/views/XuatBaoCaoPage.vue"
@@ -30,7 +31,7 @@ import XuatBaoCaoPage from "../components/views/XuatBaoCaoPage.vue"
 const routes = [
     {
         path: "/login",
-        name: "Login",
+        name: "Đăng nhập",
         component: Login
     },
 
@@ -38,6 +39,12 @@ const routes = [
         path: "/dashboard",
         name: "Dashboard",
         component: Dashboard,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: "/bao-cao-chi-tieu-cong-an-thanh-pho",
+        name: "BaoCaoChiTieuCongAnThanhPho",
+        component: BaoCaoChiTieuCongAnThanhPhoPage,
         meta: { requiresAuth: true }
     },
 
@@ -52,16 +59,18 @@ const routes = [
     },
 
     {
-        path: "/chi-tieu-bo-giao",
-        name: "ChiTieuBoGiao",
-        component: ChiTieuBoGiaoPage,
+        path: "/giao-cho-catp",
+        alias: "/chi-tieu-bo-giao",
+        name: "GiaoChoCATP",
+        component: GiaoChoCatpPage,
         meta: { requiresAuth: true }
     },
 
     {
-        path: "/chi-tieu-thanh-pho-giao",
-        name: "ChiTieuThanhPhoGiao",
-        component: ChiTieuThanhPhoGiaoPage,
+        path: "/giao-cho-phong",
+        alias: "/chi-tieu-thanh-pho-giao",
+        name: "GiaoChoPhong",
+        component: GiaoChoPhongPage,
         meta: { requiresAuth: true }
     },
 
@@ -88,15 +97,16 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
-        path: "/phan-ra-chi-tieu-bo-giao",
-        name: "PhanRaChiTieuBoGiao",
-        component: PhanRaChiTieuBoGiaoPage,
+        path: "/cau-hinh-danh-gia-chi-tieu",
+        name: "CauHinhDanhGiaChiTieu",
+        component: CauHinhDanhGiaChiTieuPage,
         meta: { requiresAuth: true }
     },
     {
-        path: "/giao-chi-tieu-don-vi",
-        name: "GiaoChiTieuChoDonVi",
-        component: GiaoChiTieuChoDonViPage,
+        path: "/giao-cho-cadp-phuong-xa",
+        alias: "/giao-chi-tieu-don-vi",
+        name: "GiaoChoCadpPhuongXa",
+        component: GiaoChoCadpPhuongXaPage,
         meta: { requiresAuth: true }
     },
 
@@ -128,9 +138,10 @@ const routes = [
 
     // Đánh giá và báo cáo
     {
-        path: "/tong-hop-danh-gia",
+        path: "/tong-hop-danh-gia-luy-ke",
+        alias: "/tong-hop-danh-gia",
         name: "TongHopDanhGia",
-        component: TongHopDanhGiaPage,
+        component: TongHopDanhGiaLuyKePage,
         meta: { requiresAuth: true }
     },
     {
@@ -139,6 +150,19 @@ const routes = [
         component: XepHangDonViPage,
         meta: { requiresAuth: true }
     },
+    {
+        path: "/bao-cao-tong-hop",
+        name: "BaoCaoTongHop",
+        component: BaoCaoTongHopPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: "/bao-cao-theo-don-vi",
+        name: "BaoCaoTheoDonVi",
+        component: BaoCaoTheoDonViPage,
+        meta: { requiresAuth: true }
+    },
+
     {
         path: "/xuat-bao-cao",
         name: "XuatBaoCao",
@@ -166,23 +190,12 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
-        path: "/users-page",
-        name: "NguoiDungPage",
-        component: NguoiDungPage,
-        meta: { requiresAuth: true }
-    },
-    {
         path: "/permissions",
         name: "Permissions",
         component: Permissions,
         meta: { requiresAuth: true }
     },
-    {
-        path: "/phan-quyen",
-        name: "PhanQuyen",
-        component: PhanQuyenPage,
-        meta: { requiresAuth: true }
-    },
+
     {
         path: "/nhat-ky-he-thong",
         name: "NhatKyHeThong",
@@ -220,3 +233,5 @@ router.beforeEach((to) => {
 })
 
 export default router
+
+
