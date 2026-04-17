@@ -9,7 +9,6 @@
                     <div class="gov-text">
                         <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">CẤU HÌNH NGƯỠNG ĐÁNH GIÁ KPI</div>
-
                     </div>
                 </div>
 
@@ -28,21 +27,41 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Tra cứu nhanh theo danh mục chỉ tiêu hoặc từ khóa</small>
+                        <small class="text-muted">Tra cứu nhanh theo danh mục chỉ tiêu, tiêu chí đánh giá hoặc từ khóa</small>
                     </div>
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-md-6 col-xl-4">
+                            <div class="col-12 col-md-4">
                                 <label class="form-label">Danh mục chỉ tiêu ID</label>
                                 <input v-model="filters.danhMucChiTieuId" type="number" min="1" class="form-control"
                                     placeholder="Nhập ID danh mục chỉ tiêu" />
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-8">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Tiêu chí đánh giá</label>
+                                <select v-model="filters.tieuChiDanhGia" class="form-select">
+                                    <option value="">Tất cả</option>
+                                    <option v-for="item in TIEU_CHI_DANH_GIA_OPTIONS" :key="item.value" :value="item.value">
+                                        {{ item.label }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Quy tắc đánh giá</label>
+                                <select v-model="filters.quyTacDanhGia" class="form-select">
+                                    <option value="">Tất cả</option>
+                                    <option v-for="item in QUY_TAC_DANH_GIA_OPTIONS" :key="item.value" :value="item.value">
+                                        {{ item.label }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-4">
                                 <label class="form-label">Từ khóa</label>
                                 <input v-model="filters.keyword" type="text" class="form-control"
-                                    placeholder="Tìm theo xếp loại, ghi chú..." />
+                                    placeholder="Tìm theo xếp loại, tiêu chí đánh giá hoặc ghi chú" />
                             </div>
                         </div>
 
@@ -85,6 +104,8 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>Danh mục chỉ tiêu ID</th>
+                                        <th>Tiêu chí đánh giá</th>
+                                        <th>Quy tắc đánh giá</th>
                                         <th>Từ tỷ lệ</th>
                                         <th>Đến tỷ lệ</th>
                                         <th>Điều kiện thời hạn</th>
@@ -98,6 +119,8 @@
                                     <tr v-for="item in items" :key="item.id">
                                         <td class="fw-semibold text-primary">{{ item.id }}</td>
                                         <td>{{ item.danhMucChiTieuId ?? '-' }}</td>
+                                        <td>{{ getTieuChiDanhGiaLabel(item.tieuChiDanhGia) }}</td>
+                                        <td>{{ getQuyTacDanhGiaLabel(item.quyTacDanhGia) }}</td>
                                         <td>{{ formatNumber(item.tuTyLe) }}</td>
                                         <td>{{ formatNumber(item.denTyLe) }}</td>
                                         <td>{{ getThoiHanLabel(item.dieuKienThoiHan) }}</td>
@@ -135,7 +158,7 @@
                                 <div>
                                     <h4 class="modal-title mb-1">{{ isEdit ? 'Cập nhật cấu hình ngưỡng đánh giá KPI' :
                                         'Tạo cấu hình ngưỡng đánh giá KPI mới' }}</h4>
-                                    <p class="text-muted mb-0">Nhập thông tin cấu hình ngưỡng đánh giá</p>
+                                    <p class="text-muted mb-0">Nhập thông tin cấu hình ngưỡng đánh giá theo từng tiêu chí</p>
                                 </div>
                                 <button type="button" class="btn-close" @click="closeModal"></button>
                             </div>
@@ -146,6 +169,32 @@
                                         <label class="form-label">Danh mục chỉ tiêu ID</label>
                                         <input v-model="form.danhMucChiTieuId" type="number" min="1"
                                             class="form-control" placeholder="Nhập ID danh mục chỉ tiêu" />
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">
+                                            Tiêu chí đánh giá <span class="text-danger">*</span>
+                                        </label>
+                                        <select v-model="form.tieuChiDanhGia" class="form-select">
+                                            <option value="">Chọn tiêu chí đánh giá</option>
+                                            <option v-for="item in TIEU_CHI_DANH_GIA_OPTIONS" :key="item.value"
+                                                :value="item.value">
+                                                {{ item.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">
+                                            Quy tắc đánh giá <span class="text-danger">*</span>
+                                        </label>
+                                        <select v-model="form.quyTacDanhGia" class="form-select" :disabled="form.tieuChiDanhGia === 'DINH_TINH'">
+                                            <option value="">Chọn quy tắc đánh giá</option>
+                                            <option v-for="item in getQuyTacOptionsByCriterion(form.tieuChiDanhGia)" :key="item.value"
+                                                :value="item.value">
+                                                {{ item.label }}
+                                            </option>
+                                        </select>
                                     </div>
 
                                     <div class="col-12 col-md-6">
@@ -167,7 +216,7 @@
                                         </label>
                                         <select v-model="form.xepLoai" class="form-select">
                                             <option value="">Chọn xếp loại</option>
-                                            <option v-for="item in DANH_GIA_TRACKED_STATUS_OPTIONS" :key="item.value"
+                                            <option v-for="item in availableXepLoaiOptions" :key="item.value"
                                                 :value="item.value">
                                                 {{ item.label }}
                                             </option>
@@ -222,15 +271,21 @@
 </template>
 
 <script setup>
-    import { onMounted, reactive, ref } from 'vue'
+    import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import httpClient from '../../services/httpClient'
     import {
         DANH_GIA_TRACKED_STATUS_OPTIONS,
         DIEU_KIEN_THOI_HAN_OPTIONS,
+        getQuyTacDanhGiaLabel,
+        getQuyTacOptionsByCriterion,
+        isKhongVuotNguongRule,
+        TIEU_CHI_DANH_GIA_OPTIONS,
+        QUY_TAC_DANH_GIA_OPTIONS,
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
-        getThoiHanLabel
+        getThoiHanLabel,
+        getTieuChiDanhGiaLabel
     } from '../../utils/danhGiaStatusClean.js'
 
     const loading = ref(false)
@@ -242,11 +297,15 @@
 
     const filters = reactive({
         danhMucChiTieuId: '',
+        tieuChiDanhGia: '',
+        quyTacDanhGia: '',
         keyword: ''
     })
 
     const createDefaultForm = () => ({
         danhMucChiTieuId: '',
+        tieuChiDanhGia: '',
+        quyTacDanhGia: '',
         tuTyLe: '',
         denTyLe: '',
         dieuKienThoiHan: '',
@@ -256,6 +315,38 @@
     })
 
     const form = reactive(createDefaultForm())
+
+    const availableXepLoaiOptions = computed(() => {
+        if (form.tieuChiDanhGia === 'DINH_TINH' || isKhongVuotNguongRule(form.quyTacDanhGia)) {
+            return DANH_GIA_TRACKED_STATUS_OPTIONS.filter((item) => item.value !== 'HOAN_THANH_VUOT_MUC')
+        }
+
+        return DANH_GIA_TRACKED_STATUS_OPTIONS
+    })
+
+    watch(
+        () => form.tieuChiDanhGia,
+        () => {
+            if (form.tieuChiDanhGia === 'DINH_TINH') {
+                form.quyTacDanhGia = 'MAC_DINH'
+            } else if (!form.quyTacDanhGia || form.quyTacDanhGia === 'MAC_DINH') {
+                form.quyTacDanhGia = 'DAT_TOI_THIEU'
+            }
+
+            if ((form.tieuChiDanhGia === 'DINH_TINH' || isKhongVuotNguongRule(form.quyTacDanhGia)) && form.xepLoai === 'HOAN_THANH_VUOT_MUC') {
+                form.xepLoai = ''
+            }
+        }
+    )
+
+    watch(
+        () => form.quyTacDanhGia,
+        () => {
+            if ((form.tieuChiDanhGia === 'DINH_TINH' || isKhongVuotNguongRule(form.quyTacDanhGia)) && form.xepLoai === 'HOAN_THANH_VUOT_MUC') {
+                form.xepLoai = ''
+            }
+        }
+    )
 
     const resetForm = () => {
         Object.assign(form, createDefaultForm())
@@ -269,6 +360,8 @@
 
     const buildPayload = () => ({
         danhMucChiTieuId: form.danhMucChiTieuId ? Number(form.danhMucChiTieuId) : null,
+        tieuChiDanhGia: form.tieuChiDanhGia,
+        quyTacDanhGia: form.quyTacDanhGia || null,
         tuTyLe: Number(form.tuTyLe),
         denTyLe: Number(form.denTyLe),
         dieuKienThoiHan: form.dieuKienThoiHan,
@@ -283,6 +376,8 @@
             const response = await httpClient.get('/cau-hinh-nguong-danh-gia-kpi', {
                 params: {
                     danhMucChiTieuId: filters.danhMucChiTieuId ? Number(filters.danhMucChiTieuId) : undefined,
+                    tieuChiDanhGia: filters.tieuChiDanhGia || undefined,
+                    quyTacDanhGia: filters.quyTacDanhGia || undefined,
                     keyword: filters.keyword || undefined
                 }
             })
@@ -308,6 +403,8 @@
 
         Object.assign(form, {
             danhMucChiTieuId: item.danhMucChiTieuId ?? '',
+            tieuChiDanhGia: item.tieuChiDanhGia || '',
+            quyTacDanhGia: item.quyTacDanhGia || '',
             tuTyLe: item.tuTyLe ?? '',
             denTyLe: item.denTyLe ?? '',
             dieuKienThoiHan: item.dieuKienThoiHan || '',
@@ -327,6 +424,16 @@
     const validateForm = () => {
         if (form.danhMucChiTieuId !== '' && Number(form.danhMucChiTieuId) <= 0) {
             alert('Danh mục chỉ tiêu ID không hợp lệ.')
+            return false
+        }
+
+        if (!form.tieuChiDanhGia?.trim()) {
+            alert('Vui lòng chọn tiêu chí đánh giá.')
+            return false
+        }
+
+        if (!form.quyTacDanhGia?.trim()) {
+            alert('Vui lòng chọn quy tắc đánh giá.')
             return false
         }
 
@@ -409,6 +516,8 @@
 
     const resetFilters = async () => {
         filters.danhMucChiTieuId = ''
+        filters.tieuChiDanhGia = ''
+        filters.quyTacDanhGia = ''
         filters.keyword = ''
         await fetchData()
     }
@@ -424,7 +533,6 @@
         fetchData()
     })
 </script>
-
 <style scoped>
     .page-wrap {
         min-height: 100vh;
@@ -618,5 +726,6 @@
         }
     }
 </style>
+
 
 

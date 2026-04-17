@@ -129,7 +129,6 @@
                                     <tr>
                                         <th>Kỳ báo cáo</th>
                                         <th>Đơn vị thực hiện</th>
-                                        <th>Mã chỉ tiêu</th>
                                         <th>Tên chỉ tiêu</th>
                                         <th>Tần suất</th>
                                         <th>Trạng thái</th>
@@ -137,12 +136,8 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="item in filteredMissingItems" :key="item.uniqueKey">
-                                        <td>
-                                            <div class="fw-semibold">{{ item.tenKy }}</div>
-                                            <small class="text-muted">{{ item.maKy || '-' }}</small>
-                                        </td>
+                                        <td>{{ item.tenKy || item.maKy || '-' }}</td>
                                         <td>{{ item.tenDonViNhan || '-' }}</td>
-                                        <td class="fw-semibold text-primary">{{ item.maChiTieu || '-' }}</td>
                                         <td>{{ item.tenChiTieu || '-' }}</td>
                                         <td>{{ mapTanSuat(item.tanSuatBaoCao) }}</td>
                                         <td>
@@ -607,5 +602,6 @@
         }
     }
 </style>
+
 
 

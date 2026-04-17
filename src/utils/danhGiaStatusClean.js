@@ -1,4 +1,4 @@
-export const DANH_GIA_STATUS_OPTIONS = [
+﻿export const DANH_GIA_STATUS_OPTIONS = [
   { value: 'HOAN_THANH_VUOT_MUC', label: 'Hoàn thành vượt mức', shortLabel: 'Vượt mức', className: 'badge-excellent', rank: 4 },
   { value: 'HOAN_THANH', label: 'Hoàn thành', shortLabel: 'Hoàn thành', className: 'badge-good', rank: 3 },
   { value: 'CHUA_HOAN_THANH', label: 'Chưa hoàn thành', shortLabel: 'Chưa hoàn thành', className: 'badge-pass', rank: 2 },
@@ -20,6 +20,48 @@ export const DIEU_KIEN_THOI_HAN_OPTIONS = [
   { value: 'MAC_DINH', label: 'Mặc định' },
   { value: 'CHUA_DEN_HAN', label: 'Chưa đến hạn' },
   { value: 'DA_DEN_HAN', label: 'Đã đến hạn' }
+]
+
+export const TIEU_CHI_DANH_GIA_OPTIONS = [
+  { value: 'DINH_TINH', label: 'Định tính' },
+  { value: 'DINH_LUONG_TICH_LUY', label: 'Định lượng tích lũy' },
+  { value: 'DINH_LUONG_SO_SANH', label: 'Định lượng so sánh' }
+]
+
+export const LOAI_MOC_SO_SANH_OPTIONS = [
+  { value: 'DAU_KY', label: 'Đầu kỳ' },
+  { value: 'CUNG_KY', label: 'Cùng kỳ năm trước' },
+  { value: 'KY_TRUOC', label: 'Kỳ trước' },
+  { value: 'TONG_NAM_TRUOC', label: 'Tổng năm trước' }
+]
+
+export const CHIEU_SO_SANH_OPTIONS = [
+  { value: 'TANG', label: 'Tăng' },
+  { value: 'GIAM', label: 'Giảm' }
+]
+
+export const QUY_TAC_DANH_GIA_OPTIONS = [
+  { value: 'MAC_DINH', label: 'Mặc định' },
+  { value: 'DAT_TOI_THIEU', label: 'Đạt tối thiểu' },
+  { value: 'KHONG_VUOT_NGUONG', label: 'Không vượt ngưỡng' }
+]
+
+export const DINH_TINH_OPTION_GROUPS = {
+  hoanThanh: [
+    { value: 'KHONG_XAY_RA', label: 'Không xảy ra' },
+    { value: 'DAM_BAO', label: 'Đảm bảo' },
+    { value: 'DAT_100', label: 'Đạt 100%' }
+  ],
+  khongHoanThanh: [
+    { value: 'XAY_RA', label: 'Xảy ra' },
+    { value: 'KHONG_DAM_BAO', label: 'Không đảm bảo' },
+    { value: 'KHONG_DAT', label: 'Không đạt' }
+  ]
+}
+
+export const DINH_TINH_OPTIONS = [
+  ...DINH_TINH_OPTION_GROUPS.hoanThanh,
+  ...DINH_TINH_OPTION_GROUPS.khongHoanThanh
 ]
 
 const STATUS_ALIASES = {
@@ -116,4 +158,54 @@ export function countTrackedStatuses(items, selector = item => item?.xepLoai) {
 export function getThoiHanLabel(value) {
   const normalized = normalizeDanhGiaText(value)
   return DIEU_KIEN_THOI_HAN_OPTIONS.find(item => item.value === normalized)?.label || value || 'Mặc định'
+}
+
+export function getTieuChiDanhGiaLabel(value) {
+  const normalized = normalizeDanhGiaText(value)
+  return TIEU_CHI_DANH_GIA_OPTIONS.find(item => item.value === normalized)?.label || value || '-'
+}
+
+export function getLoaiMocSoSanhLabel(value) {
+  const normalized = normalizeDanhGiaText(value)
+  return LOAI_MOC_SO_SANH_OPTIONS.find(item => item.value === normalized)?.label || value || '-'
+}
+
+export function getChieuSoSanhLabel(value) {
+  const normalized = normalizeDanhGiaText(value)
+  return CHIEU_SO_SANH_OPTIONS.find(item => item.value === normalized)?.label || value || '-'
+}
+
+export function getQuyTacDanhGiaLabel(value) {
+  const normalized = normalizeDanhGiaText(value)
+  return QUY_TAC_DANH_GIA_OPTIONS.find(item => item.value === normalized)?.label || value || 'Mặc định'
+}
+
+export function isDinhTinhCriterion(value) {
+  return normalizeDanhGiaText(value) === 'DINH_TINH'
+}
+
+export function isDinhLuongSoSanhCriterion(value) {
+  return normalizeDanhGiaText(value) === 'DINH_LUONG_SO_SANH'
+}
+
+export function isDinhLuongTichLuyCriterion(value) {
+  return normalizeDanhGiaText(value) === 'DINH_LUONG_TICH_LUY'
+}
+
+export function isQuantitativeCriterion(value) {
+  return isDinhLuongTichLuyCriterion(value) || isDinhLuongSoSanhCriterion(value)
+}
+
+export function isKhongVuotNguongRule(value) {
+  return normalizeDanhGiaText(value) === 'KHONG_VUOT_NGUONG'
+}
+
+export function getQuyTacOptionsByCriterion(value) {
+  if (isDinhTinhCriterion(value)) {
+    return QUY_TAC_DANH_GIA_OPTIONS.filter(item => item.value === 'MAC_DINH')
+  }
+
+  return QUY_TAC_DANH_GIA_OPTIONS.filter(item =>
+    item.value === 'DAT_TOI_THIEU' || item.value === 'KHONG_VUOT_NGUONG'
+  )
 }

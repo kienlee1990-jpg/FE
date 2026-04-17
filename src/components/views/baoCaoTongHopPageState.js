@@ -225,6 +225,11 @@ export function useBaoCaoTongHopPage() {
     const latestKy = compareLatestRow(latestDanhGia, latestTheoDoi) >= 0 ? latestDanhGia : latestTheoDoi
 
     const giaTriThucHienCongDon = sumField(theoDoiItems, 'giaTriThucHienTrongKy')
+    const giaTriDauKyGanNhat =
+      latestTheoDoi?.giaTriDauKy ??
+      latestDanhGia?.giaTriDauKy ??
+      assignment.giaTriDauKyCoDinh ??
+      null
     const giaTriLuyKeHienTai =
       latestTheoDoi?.giaTriLuyKe ??
       latestTheoDoi?.giaTriCuoiKy ??
@@ -252,9 +257,12 @@ export function useBaoCaoTongHopPage() {
       ngayBatDauDotGiao: assignment.ngayBatDauDotGiao || '',
       ngayKetThucDotGiao: assignment.ngayKetThucDotGiao || '',
       trangThaiDotGiao: assignment.trangThaiDotGiao || '',
+      tieuChiDanhGia: assignment.tieuChiDanhGia || '',
       giaTriMucTieu: assignment.giaTriMucTieu,
+      giaTriDauKyGanNhat,
       giaTriThucHienCongDon,
       giaTriCuoiKyGanNhat: latestTheoDoi?.giaTriCuoiKy ?? latestDanhGia?.giaTriCuoiKy ?? null,
+      giaTriCungKyNamTruocGanNhat: latestDanhGia?.giaTriCungKyNamTruoc ?? null,
       giaTriLuyKeHienTai,
       tyLeHoanThanh,
       soDuMucTieu:
@@ -436,7 +444,10 @@ export function useBaoCaoTongHopPage() {
         '-',
       loaiChiTieu:
         normalizeCode(pick(rawItem, 'loaiChiTieu', 'LoaiChiTieu') || pick(danhMuc, 'loaiChiTieu', 'LoaiChiTieu')) || '',
-      giaTriMucTieu: getNumberOrNull(pick(rawItem, 'giaTriMucTieu', 'GiaTriMucTieu'))
+      tieuChiDanhGia:
+        normalizeCode(pick(rawItem, 'tieuChiDanhGia', 'TieuChiDanhGia') || pick(danhMuc, 'tieuChiDanhGia', 'TieuChiDanhGia')) || '',
+      giaTriMucTieu: getNumberOrNull(pick(rawItem, 'giaTriMucTieu', 'GiaTriMucTieu')),
+      giaTriDauKyCoDinh: getNumberOrNull(pick(rawItem, 'giaTriDauKyCoDinh', 'GiaTriDauKyCoDinh'))
     }
   }
 
@@ -671,6 +682,7 @@ export function useBaoCaoTongHopPage() {
     kyBaoCaoOptions,
     trackedStatusOptions,
     filters,
+    groupedRows,
     donViOptions,
     filteredRows,
     thongKe,

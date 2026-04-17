@@ -245,7 +245,6 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>Mã KPI</th>
                                             <th>Tên KPI</th>
                                             <th>Đơn vị</th>
                                             <th>Kỳ báo cáo</th>
@@ -262,7 +261,6 @@
                                         <tr v-for="(item, index) in filteredRiskRows"
                                             :key="item.id || `${item.maChiTieu}-${index}`">
                                             <td>{{ index + 1 }}</td>
-                                            <td>{{ item.maChiTieu || '-' }}</td>
                                             <td>{{ item.tenChiTieu || '-' }}</td>
                                             <td>{{ item.tenDonViNhan || '-' }}</td>
                                             <td>{{ item.tenKy || item.maKy || '-' }}</td>
@@ -1160,4 +1158,5 @@
         }
     }
 </style>
+
 

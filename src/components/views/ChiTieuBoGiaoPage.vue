@@ -133,21 +133,10 @@
                                             <small class="text-muted">
                                                 {{ item.MaChiTieu || item.maChiTieu || '-' }}
                                             </small>
-                                            <div class="mt-1">
-                                                <small class="text-muted">
-                                                    Đơn vị tính: {{ getDonViTinhText(item) }}
-                                                </small>
-                                            </div>
+                                            <div class="mt-1 text-muted">Đơn vị tính: {{ getDonViTinhText(item) }}</div>
                                         </td>
 
-                                        <td>
-                                            <div class="fw-semibold">
-                                                {{ item.TenDonViThucHienChinh || item.tenDonViThucHienChinh || '-' }}
-                                            </div>
-                                            <small class="text-muted">
-                                                {{ item.MaDonViThucHienChinh || item.maDonViThucHienChinh || '-' }}
-                                            </small>
-                                        </td>
+                                        <td><div class="fw-semibold">{{ item.TenDonViThucHienChinh || item.tenDonViThucHienChinh || '-' }}</div></td>
 
                                         <td>
                                             <span class="badge text-bg-light border">
@@ -160,13 +149,7 @@
                                                 {{ formatNumberWithUnit(item.GiaTriMucTieu ?? item.giaTriMucTieu,
                                                 getDonViTinhText(item)) }}
                                             </div>
-                                            <small
-                                                v-if="(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== null && (item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== undefined"
-                                                class="text-muted">
-                                                Mặc định:
-                                                {{ formatNumberWithUnit(item.DieuKienHoanThanh ??
-                                                item.dieuKienHoanThanh, getDonViTinhText(item)) }}
-                                            </small>
+                                            <span v-if="(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== null && (item.DieuKienHoanThanh ?? item.dieuKienHoanThanh) !== undefined"> • Mặc định: {{ formatNumberWithUnit(item.DieuKienHoanThanh ?? item.dieuKienHoanThanh, getDonViTinhText(item)) }}</span>
                                         </td>
 
                                         <td>{{ item.GhiChu || item.ghiChu || '-' }}</td>
@@ -1005,4 +988,6 @@
         }
     }
 </style>
+
+
 

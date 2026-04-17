@@ -108,7 +108,6 @@
                                 <thead>
                                     <tr v-if="isCatpScope">
                                         <th>Đợt giao</th>
-                                        <th>Mã chỉ tiêu</th>
                                         <th>Chỉ tiêu giao</th>
                                         <th>Tiêu chí giao</th>
                                         <th>Kỳ báo cáo</th>
@@ -129,26 +128,14 @@
                                 </thead>
                                 <tbody v-if="isCatpScope">
                                     <tr v-for="item in filteredItems" :key="item.id">
-                                        <td>
-                                            <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
-                                            <small class="text-muted">{{ formatDotRangeFromAssignment(item) || 'Chưa khai báo thời gian' }}</small>
-                                        </td>
-                                        <td>
-                                            <div class="fw-semibold">{{ item.maDanhMucChiTieu || '-' }}</div>
-                                            <small class="text-muted">{{ mapLoai(item.loaiChiTieu) }}</small>
-                                        </td>
+                                        <td><div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div></td>
                                         <td>
                                             <div class="fw-semibold text-primary">{{ item.tenDanhMucChiTieu || '-' }}</div>
-                                            <small class="text-muted d-block">{{ item.tenDonViNhan || CATP_TEN_DON_VI }}</small>
-                                            <small v-if="item.tenDonViThucHienChinh && item.tenDonViThucHienChinh !== item.tenDonViNhan" class="text-muted">
-                                                Thực hiện: {{ item.tenDonViThucHienChinh }}
-                                            </small>
                                         </td>
                                         <td>
                                             <div v-if="item.tieuChiCon.length" class="table-stack">
                                                 <div v-for="child in item.tieuChiCon" :key="child.id" class="table-stack-line">
                                                     <div class="fw-semibold">{{ child.tenDanhMucChiTieu || '-' }}</div>
-                                                    <small class="text-muted">{{ child.maDanhMucChiTieu || '-' }}</small>
                                                 </div>
                                             </div>
                                             <span v-else class="text-muted">Giao trực tiếp</span>
@@ -189,15 +176,17 @@
                                 </tbody>
                                 <tbody v-else>
                                     <tr v-for="item in filteredItems" :key="`${item.id}-default`">
-                                        <td>
-                                            <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
-                                            <small class="text-muted">{{ formatDotRangeFromAssignment(item) || 'Chưa khai báo thời gian' }}</small>
-                                        </td>
+                                        <td><div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div></td>
                                         <td>
                                             <div class="fw-semibold text-primary">{{ item.tenDanhMucChiTieu || '-' }}
                                             </div>
                                             <small class="text-muted">{{ item.maDanhMucChiTieu || '-' }}</small>
-                                            <div class="small text-muted mt-1">{{ mapLoai(item.loaiChiTieu) }}</div>
+                                            <div class="small text-muted mt-1">
+                                                {{ mapLoai(getEffectiveCriterion(item)) }}
+                                                <template v-if="!isQualitative(getEffectiveCriterion(item))">
+                                                    • {{ getQuyTacDanhGiaLabel(getEffectiveQuyTacDanhGia(item)) }}
+                                                </template>
+                                            </div>
                                             <div v-if="item.tieuChiCon.length" class="criteria-tags mt-2">
                                                 <span v-for="child in item.tieuChiCon" :key="child.id"
                                                     class="badge text-bg-light border">{{ child.tenDanhMucChiTieu
@@ -206,8 +195,6 @@
                                         </td>
                                         <td>
                                             <div class="fw-semibold">{{ item.tenDonViNhan || '-' }}</div>
-                                            <small class="text-muted d-block">{{ getDonViGroupLabelById(item.donViNhanId) }}</small>
-                                            <small class="text-muted">{{ item.tenDonViThucHienChinh || item.tenDonViNhan || '-' }}</small>
                                         </td>
                                         <td>
                                             <span class="badge text-bg-light border">{{
@@ -215,20 +202,13 @@
                                         </td>
                                         <td>
                                             <div v-if="!item.tieuChiCon.length">
-                                                <div>{{ formatAssignmentTarget(item) }}</div>
-                                                <small v-if="showGiaTriDauKyCoDinh(item)" class="text-muted d-block">
-                                                    Đầu kỳ cố định: {{ formatAssignmentBaseline(item) }}
-                                                </small>
+                                                <div>{{ formatAssignmentTarget(item) }}<span v-if="showGiaTriDauKyCoDinh(item)"> • Đầu kỳ: {{ formatAssignmentBaseline(item) }}</span></div>
                                             </div>
                                             <div v-else class="d-flex flex-column gap-2">
                                                 <div v-for="child in item.tieuChiCon" :key="child.id"
                                                     class="target-line">
                                                     <div class="fw-semibold">{{ child.tenDanhMucChiTieu }}</div>
-                                                    <div class="text-muted small">{{ formatAssignmentTarget(child) }}
-                                                    </div>
-                                                    <div v-if="showGiaTriDauKyCoDinh(child)" class="text-muted small">
-                                                        Đầu kỳ cố định: {{ formatAssignmentBaseline(child) }}
-                                                    </div>
+                                                    <div>{{ formatAssignmentTarget(child) }}<span v-if="showGiaTriDauKyCoDinh(child)"> • Đầu kỳ: {{ formatAssignmentBaseline(child) }}</span></div>
                                                 </div>
                                             </div>
                                         </td>
@@ -320,7 +300,7 @@
                                                 <div class="selection-label">Chỉ tiêu được giao</div>
                                                 <div class="selection-value">{{ selectedDanhMuc.maChiTieu }} - {{ selectedDanhMuc.tenChiTieu }}</div>
                                                 <div class="selection-meta">
-                                                    {{ mapLoai(selectedDanhMuc.loaiChiTieu) }}{{ selectedDanhMuc.tieuChiDanhGias.length ? ` • ${selectedDanhMuc.tieuChiDanhGias.length} tiêu chí con` : '' }}
+                                                    {{ mapLoai(form.tieuChiDanhGia || selectedDanhMuc.tieuChiDanhGia || selectedDanhMuc.loaiChiTieu) }}{{ selectedDanhMuc.tieuChiDanhGias.length ? ` • ${selectedDanhMuc.tieuChiDanhGias.length} tiêu chí con` : '' }}
                                                 </div>
                                             </div>
                                             <div v-if="selectedDonVi" class="selection-card">
@@ -332,9 +312,23 @@
                                     </div>
 
                                     <div class="col-12 col-md-4">
-                                        <label class="form-label">Loại đánh giá</label>
-                                        <input :value="selectedDanhMuc ? mapLoai(selectedDanhMuc.loaiChiTieu) : '-'"
-                                            type="text" class="form-control" readonly />
+                                        <label class="form-label">Tiêu chí đánh giá <span class="text-danger">*</span></label>
+                                        <select v-model="form.tieuChiDanhGia" class="form-select">
+                                            <option value="">Chọn tiêu chí đánh giá</option>
+                                            <option v-for="item in TIEU_CHI_DANH_GIA_OPTIONS" :key="item.value" :value="item.value">
+                                                {{ item.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Quy tắc đánh giá <span v-if="!isQualitative(form.tieuChiDanhGia || selectedDanhMuc?.loaiChiTieu)" class="text-danger">*</span></label>
+                                        <select v-model="form.quyTacDanhGia" class="form-select" :disabled="isQualitative(form.tieuChiDanhGia || selectedDanhMuc?.loaiChiTieu)">
+                                            <option value="">Chọn quy tắc đánh giá</option>
+                                            <option v-for="item in getQuyTacOptionsByCriterion(form.tieuChiDanhGia || selectedDanhMuc?.loaiChiTieu)" :key="item.value" :value="item.value">
+                                                {{ item.label }}
+                                            </option>
+                                        </select>
                                     </div>
 
                                     <div class="col-12 col-md-4">
@@ -354,10 +348,32 @@
                                         class="col-12">
                                         <div class="criteria-block">
                                             <div class="section-title mb-2">Mục tiêu giao</div>
-                                            <div class="text-muted small mb-3">{{ buildCatalogHint(selectedDanhMuc) }}
+                                            <div class="text-muted small mb-3">{{ buildCatalogHint({ ...selectedDanhMuc, tieuChiDanhGia: form.tieuChiDanhGia, loaiMocSoSanh: form.loaiMocSoSanh, chieuSoSanh: form.chieuSoSanh }) }}
                                             </div>
 
-                                            <div v-if="isQualitative(selectedDanhMuc.loaiChiTieu)" class="row g-3">
+                                            <div v-if="!isQualitative(form.tieuChiDanhGia || selectedDanhMuc.loaiChiTieu)" class="row g-3 mb-3">
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Chiều đánh giá <span class="text-danger">*</span></label>
+                                                    <select v-model="form.chieuSoSanh" class="form-select">
+                                                        <option value="">Chọn chiều đánh giá</option>
+                                                        <option v-for="item in CHIEU_SO_SANH_OPTIONS" :key="item.value" :value="item.value">
+                                                            {{ item.label }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+
+                                                <div v-if="isDinhLuongSoSanhCriterion(form.tieuChiDanhGia)" class="col-12 col-md-6">
+                                                    <label class="form-label">Mốc so sánh <span class="text-danger">*</span></label>
+                                                    <select v-model="form.loaiMocSoSanh" class="form-select">
+                                                        <option value="">Chọn mốc so sánh</option>
+                                                        <option v-for="item in LOAI_MOC_SO_SANH_OPTIONS" :key="item.value" :value="item.value">
+                                                            {{ item.label }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="isQualitative(form.tieuChiDanhGia || selectedDanhMuc.loaiChiTieu)" class="row g-3">
                                                 <div class="col-12">
                                                     <label class="form-label">Mô tả mục tiêu <span
                                                             class="text-danger">*</span></label>
@@ -409,7 +425,7 @@
                                                     <div>
                                                         <div class="fw-semibold">{{ index + 1 }}. {{ child.tenChiTieu }}
                                                         </div>
-                                                        <div class="small text-muted">{{ mapLoai(child.loaiChiTieu) }} |
+                                                        <div class="small text-muted">{{ mapLoai(child.tieuChiDanhGia || child.loaiChiTieu) }}<template v-if="!isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)"> • {{ getQuyTacDanhGiaLabel(child.quyTacDanhGia) }}</template> |
                                                             {{ child.donViTinh || '-' }}</div>
                                                     </div>
                                                     <span class="badge text-bg-light border">{{ child.maChiTieu
@@ -418,8 +434,52 @@
 
                                                 <div class="small text-muted mb-3">{{ buildCatalogHint(child) }}</div>
 
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-12 col-md-4">
+                                                        <label class="form-label">Tiêu chí đánh giá <span class="text-danger">*</span></label>
+                                                        <select v-model="child.tieuChiDanhGia" class="form-select">
+                                                            <option value="">Chọn tiêu chí đánh giá</option>
+                                                            <option v-for="item in TIEU_CHI_DANH_GIA_OPTIONS" :key="item.value" :value="item.value">
+                                                                {{ item.label }}
+                                                            </option>
+                                                        </select>
+                                                    </div>
+
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label">Quy tắc đánh giá <span v-if="!isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)" class="text-danger">*</span></label>
+                                                            <select v-model="child.quyTacDanhGia" class="form-select" :disabled="isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)">
+                                                                <option value="">Chọn quy tắc đánh giá</option>
+                                                                <option v-for="item in getQuyTacOptionsByCriterion(child.tieuChiDanhGia || child.loaiChiTieu)" :key="item.value" :value="item.value">
+                                                                    {{ item.label }}
+                                                                </option>
+                                                            </select>
+                                                        </div>
+
+                                                    <template v-if="!isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)">
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label">Chiều đánh giá <span class="text-danger">*</span></label>
+                                                            <select v-model="child.chieuSoSanh" class="form-select">
+                                                                <option value="">Chọn chiều đánh giá</option>
+                                                                <option v-for="item in CHIEU_SO_SANH_OPTIONS" :key="item.value" :value="item.value">
+                                                                    {{ item.label }}
+                                                                </option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div v-if="isDinhLuongSoSanhCriterion(child.tieuChiDanhGia)" class="col-12 col-md-4">
+                                                            <label class="form-label">Mốc so sánh <span class="text-danger">*</span></label>
+                                                            <select v-model="child.loaiMocSoSanh" class="form-select">
+                                                                <option value="">Chọn mốc so sánh</option>
+                                                                <option v-for="item in LOAI_MOC_SO_SANH_OPTIONS" :key="item.value" :value="item.value">
+                                                                    {{ item.label }}
+                                                                </option>
+                                                            </select>
+                                                        </div>
+                                                    </template>
+                                                </div>
+
                                                 <div class="row g-3">
-                                                    <div v-if="isQualitative(child.loaiChiTieu)" class="col-12">
+                                                    <div v-if="isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)" class="col-12">
                                                         <label class="form-label">Mô tả mục tiêu <span
                                                                 class="text-danger">*</span></label>
                                                         <textarea v-model="child.giaTriMucTieuText" rows="3"
@@ -434,7 +494,7 @@
                                                             class="form-control" placeholder="Nhập giá trị mục tiêu" />
                                                     </div>
 
-                                                    <div v-if="!isQualitative(child.loaiChiTieu)"
+                                                    <div v-if="!isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)"
                                                         class="col-12 col-md-4">
                                                         <label class="form-label">Đầu kỳ cố định <span
                                                                 class="text-danger">*</span></label>
@@ -442,7 +502,7 @@
                                                             class="form-control" placeholder="Nhập đầu kỳ cố định" />
                                                     </div>
 
-                                                    <div v-if="!isQualitative(child.loaiChiTieu)"
+                                                    <div v-if="!isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)"
                                                         class="col-12 col-md-4">
                                                         <label class="form-label">Đơn vị tính</label>
                                                         <input :value="child.donViTinh || '-'" type="text"
@@ -488,6 +548,21 @@
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
+    import {
+        CHIEU_SO_SANH_OPTIONS,
+        LOAI_MOC_SO_SANH_OPTIONS,
+        QUY_TAC_DANH_GIA_OPTIONS,
+        TIEU_CHI_DANH_GIA_OPTIONS,
+        getLoaiMocSoSanhLabel,
+        getQuyTacDanhGiaLabel,
+        getQuyTacOptionsByCriterion,
+        getTieuChiDanhGiaLabel,
+        isDinhLuongTichLuyCriterion,
+        isDinhLuongSoSanhCriterion,
+        isDinhTinhCriterion,
+        isKhongVuotNguongRule,
+        isQuantitativeCriterion
+    } from '../../utils/danhGiaStatusClean.js'
 
     const props = defineProps({
         scope: {
@@ -566,6 +641,10 @@
         danhMucChiTieuId: null,
         donViId: null,
         tanSuatBaoCao: '',
+        tieuChiDanhGia: '',
+        loaiMocSoSanh: '',
+        chieuSoSanh: '',
+        quyTacDanhGia: '',
         giaTriMucTieu: '',
         giaTriDauKyCoDinh: '',
         giaTriMucTieuText: '',
@@ -615,12 +694,14 @@
         maChiTieu: String(pick(item, 'maChiTieu', 'MaChiTieu') || ''),
         tenChiTieu: String(pick(item, 'tenChiTieu', 'TenChiTieu') || ''),
         loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || 'DINH_TINH'),
+        tieuChiDanhGia: String(pick(item, 'tieuChiDanhGia', 'TieuChiDanhGia', 'loaiChiTieu', 'LoaiChiTieu') || 'DINH_TINH'),
         donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
         dieuKienHoanThanh: String(pick(item, 'dieuKienHoanThanh', 'DieuKienHoanThanh') || ''),
         dieuKienKhongHoanThanh: String(pick(item, 'dieuKienKhongHoanThanh', 'DieuKienKhongHoanThanh') || ''),
         tyLePhanTramMucTieu: pick(item, 'tyLePhanTramMucTieu', 'TyLePhanTramMucTieu'),
         loaiMocSoSanh: String(pick(item, 'loaiMocSoSanh', 'LoaiMocSoSanh') || ''),
         chieuSoSanh: String(pick(item, 'chieuSoSanh', 'ChieuSoSanh') || ''),
+        quyTacDanhGia: String(pick(item, 'quyTacDanhGia', 'QuyTacDanhGia') || ''),
         thuTuHienThi: Number(pick(item, 'thuTuHienThi', 'ThuTuHienThi') || index)
     })
 
@@ -629,6 +710,7 @@
         maChiTieu: String(pick(item, 'maChiTieu', 'MaChiTieu') || ''),
         tenChiTieu: String(pick(item, 'tenChiTieu', 'TenChiTieu') || ''),
         loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || ''),
+        tieuChiDanhGia: String(pick(item, 'tieuChiDanhGia', 'TieuChiDanhGia', 'loaiChiTieu', 'LoaiChiTieu') || ''),
         chiTieuChaId: pick(item, 'chiTieuChaId', 'ChiTieuChaId'),
         thuTuHienThi: Number(pick(item, 'thuTuHienThi', 'ThuTuHienThi') || 0),
         donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
@@ -637,6 +719,7 @@
         tyLePhanTramMucTieu: pick(item, 'tyLePhanTramMucTieu', 'TyLePhanTramMucTieu'),
         loaiMocSoSanh: String(pick(item, 'loaiMocSoSanh', 'LoaiMocSoSanh') || ''),
         chieuSoSanh: String(pick(item, 'chieuSoSanh', 'ChieuSoSanh') || ''),
+        quyTacDanhGia: String(pick(item, 'quyTacDanhGia', 'QuyTacDanhGia') || ''),
         batBuocDatTatCaTieuChiCon: pick(item, 'batBuocDatTatCaTieuChiCon', 'BatBuocDatTatCaTieuChiCon') !== false,
         tieuChiDanhGias: normalizeList(pick(item, 'tieuChiDanhGias', 'TieuChiDanhGias')).map((child, index) => normalizeCatalogChild(child, index + 1))
     })
@@ -647,7 +730,9 @@
         tenDanhMucChiTieu: String(pick(item, 'tenDanhMucChiTieu', 'TenDanhMucChiTieu') || ''),
         maDanhMucChiTieu: String(pick(item, 'maDanhMucChiTieu', 'MaDanhMucChiTieu') || ''),
         loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || 'DINH_TINH'),
+        tieuChiDanhGia: String(pick(item, 'tieuChiDanhGia', 'TieuChiDanhGia', 'loaiChiTieu', 'LoaiChiTieu') || 'DINH_TINH'),
         donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
+        quyTacDanhGia: String(pick(item, 'quyTacDanhGia', 'QuyTacDanhGia') || ''),
         giaTriMucTieu: pick(item, 'giaTriMucTieu', 'GiaTriMucTieu'),
         giaTriDauKyCoDinh: pick(item, 'giaTriDauKyCoDinh', 'GiaTriDauKyCoDinh'),
         giaTriMucTieuText: String(pick(item, 'giaTriMucTieuText', 'GiaTriMucTieuText') || ''),
@@ -664,6 +749,10 @@
         maDanhMucChiTieu: String(pick(item, 'maDanhMucChiTieu', 'MaDanhMucChiTieu') || ''),
         tenDanhMucChiTieu: String(pick(item, 'tenDanhMucChiTieu', 'TenDanhMucChiTieu') || ''),
         loaiChiTieu: String(pick(item, 'loaiChiTieu', 'LoaiChiTieu') || ''),
+        tieuChiDanhGia: String(pick(item, 'tieuChiDanhGia', 'TieuChiDanhGia', 'loaiChiTieu', 'LoaiChiTieu') || ''),
+        loaiMocSoSanh: String(pick(item, 'loaiMocSoSanh', 'LoaiMocSoSanh') || ''),
+        chieuSoSanh: String(pick(item, 'chieuSoSanh', 'ChieuSoSanh') || ''),
+        quyTacDanhGia: String(pick(item, 'quyTacDanhGia', 'QuyTacDanhGia') || ''),
         donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
         tanSuatBaoCao: String(pick(item, 'tanSuatBaoCao', 'TanSuatBaoCao') || ''),
         donViNhanId: Number(pick(item, 'donViNhanId', 'DonViNhanId') || 0),
@@ -679,17 +768,22 @@
 
     const getKyBaoCaoLabel = (value) => tanSuatBaoCaoOptions.find(x => x.value === value)?.label || value || '-'
 
+    const normalizeCode = (value) => String(value || '').trim().toUpperCase()
+    const getEffectiveCriterion = (item) => normalizeCode(item?.tieuChiDanhGia || item?.loaiChiTieu)
+    const getEffectiveLoaiMocSoSanh = (item) => normalizeCode(item?.loaiMocSoSanh)
+    const getEffectiveChieuSoSanh = (item) => normalizeCode(item?.chieuSoSanh)
+    const getEffectiveQuyTacDanhGia = (item) => normalizeCode(item?.quyTacDanhGia) || (isQualitative(getEffectiveCriterion(item)) ? 'MAC_DINH' : 'DAT_TOI_THIEU')
+
     const mapLoai = (value) => {
-        const map = {
-            DINH_TINH: 'Định tính',
-            DINH_LUONG_TICH_LUY: 'Định lượng tích lũy',
-            DINH_LUONG_SO_SANH: 'Định lượng so sánh',
-            PHAN_RA: 'Phân rã'
+        if (normalizeCode(value) === 'PHAN_RA') {
+            return 'Phân rã'
         }
-        return map[value] || value || '-'
+
+        return getTieuChiDanhGiaLabel(value)
     }
 
-    const isQualitative = (loaiChiTieu) => loaiChiTieu === 'DINH_TINH'
+    const isQualitative = (criterion) => isDinhTinhCriterion(normalizeCode(criterion))
+    const isQuantitative = (criterion) => isQuantitativeCriterion(normalizeCode(criterion))
 
     const scopeMeta = computed(() => SCOPE_CONFIGS[props.scope] || SCOPE_CONFIGS.CADP_PHUONG_XA)
     const isCatpScope = computed(() => props.scope === 'CATP')
@@ -766,7 +860,8 @@
         const map = {
             DAU_KY: 'đầu kỳ',
             CUNG_KY: 'cùng kỳ',
-            KY_TRUOC: 'kỳ trước'
+            KY_TRUOC: 'kỳ trước',
+            TONG_NAM_TRUOC: 'tổng năm trước'
         }
 
         return map[value] || value || 'mốc so sánh'
@@ -811,7 +906,7 @@
     }
 
     const formatAssignmentTarget = (item) => {
-        if (isQualitative(item.loaiChiTieu)) {
+        if (isQualitative(getEffectiveCriterion(item))) {
             return item.giaTriMucTieuText || 'Chưa nhập mô tả mục tiêu'
         }
 
@@ -822,9 +917,7 @@
         return `${formatNumber(item.giaTriMucTieu)}${item.donViTinh ? ` ${item.donViTinh}` : ''}`
     }
 
-    const showGiaTriDauKyCoDinh = (item) => {
-        return !isQualitative(item?.loaiChiTieu)
-    }
+    const showGiaTriDauKyCoDinh = (item) => !isQualitative(getEffectiveCriterion(item))
 
     const formatAssignmentBaseline = (item) => {
         if (!showGiaTriDauKyCoDinh(item)) {
@@ -842,15 +935,18 @@
     const buildCatalogHint = (item) => {
         if (!item) return ''
 
-        if (item.loaiChiTieu === 'DINH_TINH') {
+        const criterion = getEffectiveCriterion(item)
+        const quyTac = getEffectiveQuyTacDanhGia(item)
+        const chieu = getEffectiveChieuSoSanh(item)
+        if (criterion === 'DINH_TINH') {
             return `Điều kiện hoàn thành: ${item.dieuKienHoanThanh || 'chưa khai báo'}`
         }
 
-        if (item.loaiChiTieu === 'DINH_LUONG_SO_SANH') {
-            return `Mục tiêu ${item.chieuSoSanh === 'GIAM' ? 'giảm' : 'tăng'} ${item.tyLePhanTramMucTieu || 0}% so với ${getMocSoSanhLabel(item.loaiMocSoSanh)}`
+        if (criterion === 'DINH_LUONG_SO_SANH') {
+            return `Đánh giá theo quy tắc ${getQuyTacDanhGiaLabel(quyTac).toLowerCase()}, chiều ${chieu === 'GIAM' ? 'giảm' : 'tăng'} và mốc ${getLoaiMocSoSanhLabel(getEffectiveLoaiMocSoSanh(item)).toLowerCase()}`
         }
 
-        return `Đánh giá theo giá trị định lượng${item.donViTinh ? ` (${item.donViTinh})` : ''}`
+        return `Đánh giá theo kết quả lũy kế, quy tắc ${getQuyTacDanhGiaLabel(quyTac).toLowerCase()} và chiều ${chieu === 'GIAM' ? 'giảm' : 'tăng'}${item.donViTinh ? ` (${item.donViTinh})` : ''}`
     }
 
     const selectedDanhMuc = computed(() => {
@@ -976,12 +1072,20 @@
         const danhMuc = selectedDanhMuc.value
 
         if (!danhMuc) {
+            form.tieuChiDanhGia = ''
+            form.loaiMocSoSanh = ''
+            form.chieuSoSanh = ''
             form.giaTriMucTieu = ''
             form.giaTriDauKyCoDinh = ''
             form.giaTriMucTieuText = ''
             form.tieuChiCon = []
             return
         }
+
+        form.tieuChiDanhGia = existingAssignment?.tieuChiDanhGia || danhMuc.tieuChiDanhGia || danhMuc.loaiChiTieu || 'DINH_TINH'
+        form.loaiMocSoSanh = existingAssignment?.loaiMocSoSanh || danhMuc.loaiMocSoSanh || ''
+        form.chieuSoSanh = existingAssignment?.chieuSoSanh || danhMuc.chieuSoSanh || 'TANG'
+        form.quyTacDanhGia = existingAssignment?.quyTacDanhGia || (isQualitative(form.tieuChiDanhGia) ? 'MAC_DINH' : 'DAT_TOI_THIEU')
 
         if (danhMuc.tieuChiDanhGias.length > 0) {
             const assignmentByCatalogId = new Map((existingAssignment?.tieuChiCon || []).map(child => [child.danhMucChiTieuId, child]))
@@ -995,6 +1099,7 @@
                     maChiTieu: criterion.maChiTieu,
                     tenChiTieu: criterion.tenChiTieu,
                     loaiChiTieu: criterion.loaiChiTieu,
+                    tieuChiDanhGia: assigned?.tieuChiDanhGia || criterion.tieuChiDanhGia || criterion.loaiChiTieu || 'DINH_TINH',
                     donViTinh: criterion.donViTinh || danhMuc.donViTinh,
                     giaTriMucTieu: assigned?.giaTriMucTieu ?? '',
                     giaTriDauKyCoDinh: assigned?.giaTriDauKyCoDinh ?? 0,
@@ -1004,8 +1109,9 @@
                     dieuKienHoanThanh: criterion.dieuKienHoanThanh,
                     dieuKienKhongHoanThanh: criterion.dieuKienKhongHoanThanh,
                     tyLePhanTramMucTieu: criterion.tyLePhanTramMucTieu,
-                    loaiMocSoSanh: criterion.loaiMocSoSanh,
-                    chieuSoSanh: criterion.chieuSoSanh
+                    loaiMocSoSanh: assigned?.loaiMocSoSanh || criterion.loaiMocSoSanh || '',
+                    chieuSoSanh: assigned?.chieuSoSanh || criterion.chieuSoSanh || 'TANG',
+                    quyTacDanhGia: assigned?.quyTacDanhGia || (isQualitative(criterion.tieuChiDanhGia || criterion.loaiChiTieu) ? 'MAC_DINH' : 'DAT_TOI_THIEU')
                 }
             })
             return
@@ -1021,6 +1127,44 @@
         if (syncingForm.value) return
         hydrateTargetsFromDanhMuc()
     })
+
+    const ensureCriterionDefaults = (target) => {
+        const criterion = target?.tieuChiDanhGia || target?.loaiChiTieu
+        if (!criterion) return
+
+        if (isQualitative(criterion)) {
+            target.quyTacDanhGia = 'MAC_DINH'
+            target.loaiMocSoSanh = ''
+            target.chieuSoSanh = ''
+            return
+        }
+
+        if (!target.quyTacDanhGia || target.quyTacDanhGia === 'MAC_DINH') {
+            target.quyTacDanhGia = 'DAT_TOI_THIEU'
+        }
+
+        if (!target.chieuSoSanh) {
+            target.chieuSoSanh = 'TANG'
+        }
+
+        if (!isDinhLuongSoSanhCriterion(criterion)) {
+            target.loaiMocSoSanh = ''
+        }
+    }
+
+    watch(() => form.tieuChiDanhGia, () => {
+        if (syncingForm.value) return
+        ensureCriterionDefaults(form)
+    })
+
+    watch(
+        () => form.tieuChiCon.map(child => child.tieuChiDanhGia),
+        () => {
+            if (syncingForm.value) return
+            form.tieuChiCon.forEach(ensureCriterionDefaults)
+        },
+        { deep: true }
+    )
 
     const getResolvedDonViId = () => {
         if (form.donViId) {
@@ -1046,25 +1190,64 @@
         donViNhanId: getResolvedDonViId(),
         donViThucHienChinhId: getResolvedDonViId(),
         tanSuatBaoCao: form.tanSuatBaoCao || null,
-        giaTriMucTieu: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && !isQualitative(selectedDanhMuc.value.loaiChiTieu)
+        tieuChiDanhGia: form.tieuChiDanhGia || null,
+        quyTacDanhGia: isQualitative(form.tieuChiDanhGia || selectedDanhMuc.value?.loaiChiTieu) ? null : form.quyTacDanhGia || null,
+        loaiMocSoSanh: isDinhLuongSoSanhCriterion(form.tieuChiDanhGia) ? form.loaiMocSoSanh || null : null,
+        chieuSoSanh: isQualitative(form.tieuChiDanhGia || selectedDanhMuc.value?.loaiChiTieu) ? null : form.chieuSoSanh || null,
+        giaTriMucTieu: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && !isQualitative(form.tieuChiDanhGia || selectedDanhMuc.value.loaiChiTieu)
             ? Number(form.giaTriMucTieu)
             : null,
-        giaTriDauKyCoDinh: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && !isQualitative(selectedDanhMuc.value.loaiChiTieu)
+        giaTriDauKyCoDinh: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && !isQualitative(form.tieuChiDanhGia || selectedDanhMuc.value.loaiChiTieu)
             ? Number(form.giaTriDauKyCoDinh)
             : null,
-        giaTriMucTieuText: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && isQualitative(selectedDanhMuc.value.loaiChiTieu)
+        giaTriMucTieuText: selectedDanhMuc.value && !selectedDanhMuc.value.tieuChiDanhGias.length && isQualitative(form.tieuChiDanhGia || selectedDanhMuc.value.loaiChiTieu)
             ? form.giaTriMucTieuText?.trim() || null
             : null,
         ghiChu: form.ghiChu?.trim() || null,
         tieuChiCon: form.tieuChiCon.map((child) => ({
             danhMucChiTieuId: child.danhMucChiTieuId,
-            giaTriMucTieu: isQualitative(child.loaiChiTieu) ? null : Number(child.giaTriMucTieu),
-            giaTriDauKyCoDinh: isQualitative(child.loaiChiTieu) ? null : Number(child.giaTriDauKyCoDinh),
-            giaTriMucTieuText: isQualitative(child.loaiChiTieu) ? child.giaTriMucTieuText?.trim() || null : null,
+            tieuChiDanhGia: child.tieuChiDanhGia || null,
+            quyTacDanhGia: isQualitative(child.tieuChiDanhGia || child.loaiChiTieu) ? null : child.quyTacDanhGia || null,
+            loaiMocSoSanh: isDinhLuongSoSanhCriterion(child.tieuChiDanhGia) ? child.loaiMocSoSanh || null : null,
+            chieuSoSanh: isQualitative(child.tieuChiDanhGia || child.loaiChiTieu) ? null : child.chieuSoSanh || null,
+            giaTriMucTieu: isQualitative(child.tieuChiDanhGia || child.loaiChiTieu) ? null : Number(child.giaTriMucTieu),
+            giaTriDauKyCoDinh: isQualitative(child.tieuChiDanhGia || child.loaiChiTieu) ? null : Number(child.giaTriDauKyCoDinh),
+            giaTriMucTieuText: isQualitative(child.tieuChiDanhGia || child.loaiChiTieu) ? child.giaTriMucTieuText?.trim() || null : null,
             ghiChu: child.ghiChu?.trim() || null,
             thuTuHienThi: child.thuTuHienThi || null
         }))
     })
+
+    const validateCriterionConfig = (item, label) => {
+        if (!item?.tieuChiDanhGia) {
+            alert(`Vui lòng chọn tiêu chí đánh giá cho ${label}.`)
+            return false
+        }
+
+        if (!isQualitative(item.tieuChiDanhGia) && !item?.quyTacDanhGia) {
+            alert(`Vui lòng chọn quy tắc đánh giá cho ${label}.`)
+            return false
+        }
+
+        if (!isQualitative(item.tieuChiDanhGia) && item?.quyTacDanhGia === 'MAC_DINH') {
+            alert(`Quy tắc đánh giá của ${label} chưa hợp lệ với chỉ tiêu định lượng.`)
+            return false
+        }
+
+        if (!isQualitative(item.tieuChiDanhGia) && !item?.chieuSoSanh) {
+            alert(`Vui lòng chọn chiều đánh giá cho ${label}.`)
+            return false
+        }
+
+        if (isDinhLuongSoSanhCriterion(item.tieuChiDanhGia)) {
+            if (!item.loaiMocSoSanh) {
+                alert(`Vui lòng chọn mốc so sánh cho ${label}.`)
+                return false
+            }
+        }
+
+        return true
+    }
 
     const validateForm = () => {
         if (!form.dotGiaoChiTieuId) {
@@ -1092,10 +1275,18 @@
             return false
         }
 
+        if (!validateCriterionConfig(form, 'chỉ tiêu giao')) {
+            return false
+        }
+
         if (selectedDanhMuc.value.tieuChiDanhGias.length > 0) {
             for (let i = 0; i < form.tieuChiCon.length; i += 1) {
                 const child = form.tieuChiCon[i]
-                if (isQualitative(child.loaiChiTieu)) {
+                if (!validateCriterionConfig(child, `tiêu chí con ${i + 1}`)) {
+                    return false
+                }
+
+                if (isQualitative(child.tieuChiDanhGia || child.loaiChiTieu)) {
                     if (!child.giaTriMucTieuText?.trim()) {
                         alert(`Vui lòng nhập mô tả mục tiêu cho tiêu chí con ${i + 1}.`)
                         return false
@@ -1122,7 +1313,7 @@
             return true
         }
 
-        if (isQualitative(selectedDanhMuc.value.loaiChiTieu)) {
+        if (isQualitative(form.tieuChiDanhGia || selectedDanhMuc.value.loaiChiTieu)) {
             if (!form.giaTriMucTieuText?.trim()) {
                 alert('Vui lòng nhập mô tả mục tiêu.')
                 return false
@@ -1197,6 +1388,10 @@
             danhMucChiTieuId: item.danhMucChiTieuId,
             donViId: item.donViNhanId,
             tanSuatBaoCao: item.tanSuatBaoCao,
+            tieuChiDanhGia: item.tieuChiDanhGia || item.loaiChiTieu || '',
+            loaiMocSoSanh: item.loaiMocSoSanh || '',
+            chieuSoSanh: item.chieuSoSanh || 'TANG',
+            quyTacDanhGia: item.quyTacDanhGia || (isQualitative(item.tieuChiDanhGia || item.loaiChiTieu) ? 'MAC_DINH' : 'DAT_TOI_THIEU'),
             giaTriMucTieu: item.giaTriMucTieu ?? '',
             giaTriDauKyCoDinh: item.giaTriDauKyCoDinh ?? 0,
             giaTriMucTieuText: item.giaTriMucTieuText || '',
@@ -1205,6 +1400,8 @@
         })
         syncingForm.value = false
         hydrateTargetsFromDanhMuc(item)
+        ensureCriterionDefaults(form)
+        form.tieuChiCon.forEach(ensureCriterionDefaults)
         showModal.value = true
     }
 
@@ -1439,3 +1636,5 @@
         margin-top: 4px;
     }
 </style>
+
+

@@ -23,7 +23,7 @@
                         <div class="filter-grid">
                             <div class="form-group">
                                 <label>Kỳ báo cáo</label>
-                                <select v-model="filters.kyBaoCaoKPIId" @change="fetchDanhGiaKPI">
+                                <select v-model="baseFilters.kyBaoCaoKPIId" @change="fetchBaoCaoTongHop">
                                     <option value="">-- Tất cả kỳ báo cáo --</option>
                                     <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
                                         {{ item.tenKy }}
@@ -38,7 +38,7 @@
                             </div>
 
                             <div class="form-group actions">
-                                <button class="btn btn-primary" @click="fetchDanhGiaKPI">Tải dữ liệu</button>
+                                <button class="btn btn-primary" @click="fetchBaoCaoTongHop">Tải dữ liệu</button>
                                 <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
                             </div>
                         </div>
@@ -79,7 +79,6 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
-                                        <th>Mã chỉ tiêu</th>
                                         <th>Tên chỉ tiêu</th>
                                         <th>Số đơn vị đánh giá</th>
                                         <th>Tổng mục tiêu</th>
@@ -97,11 +96,10 @@
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="15" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="14" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
                                     <tr v-for="(row, index) in filteredRows" :key="row.maChiTieu || index">
                                         <td>{{ index + 1 }}</td>
-                                        <td>{{ row.maChiTieu || '-' }}</td>
                                         <td>{{ row.tenChiTieu || '-' }}</td>
                                         <td class="text-center">{{ row.soDonVi }}</td>
                                         <td class="text-right">{{ formatNumber(row.tongMucTieu) }}</td>
@@ -132,67 +130,43 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, reactive, ref } from 'vue'
+    import { computed, reactive } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-    import { apiRequest } from '../../services/api.js'
+    import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
     import {
         countTrackedStatuses,
         createTrackedStatusCounter,
         DANH_GIA_TRACKED_STATUS_ORDER,
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
-        getDanhGiaRank,
-        getDanhGiaStatusCode
+        getDanhGiaRank
     } from '../../utils/danhGiaStatusClean.js'
 
-    const loading = ref(false)
-    const errorMessage = ref('')
-    const rawRows = ref([])
-    const kyBaoCaoOptions = ref([])
+    const {
+        loading,
+        errorMessage,
+        kyBaoCaoOptions: baseKyBaoCaoOptions,
+        groupedRows,
+        filters: baseFilters,
+        fetchBaoCaoTongHop
+    } = useBaoCaoTongHopPage()
 
     const filters = reactive({
-        kyBaoCaoKPIId: '',
         keyword: ''
     })
 
-    onMounted(async () => {
-        await Promise.all([fetchKyBaoCao(), fetchDanhGiaKPI()])
+    const kyBaoCaoOptions = computed(() => {
+        return baseKyBaoCaoOptions.value.map(item => ({
+            id: Number(item?.id ?? item?.Id ?? 0),
+            tenKy: item?.tenKy ?? item?.TenKy ?? '-'
+        }))
     })
-
-    async function fetchKyBaoCao() {
-        try {
-            const data = await apiRequest('/KyBaoCaoKPI')
-            kyBaoCaoOptions.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error('Lỗi tải kỳ báo cáo:', error)
-            kyBaoCaoOptions.value = []
-        }
-    }
-
-    async function fetchDanhGiaKPI() {
-        loading.value = true
-        errorMessage.value = ''
-
-        try {
-            const data = filters.kyBaoCaoKPIId
-                ? await apiRequest(`/DanhGiaKPI/by-ky-bao-cao/${filters.kyBaoCaoKPIId}`)
-                : await apiRequest('/DanhGiaKPI')
-
-            rawRows.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error(error)
-            errorMessage.value = error.message || 'Không thể tải dữ liệu báo cáo theo chỉ tiêu.'
-            rawRows.value = []
-        } finally {
-            loading.value = false
-        }
-    }
 
     const reportRows = computed(() => {
         const grouped = new Map()
 
-        rawRows.value.forEach(item => {
-            const key = item.maChiTieu || item.tenChiTieu || `unknown-${item.id}`
+        groupedRows.value.forEach(item => {
+            const key = item.maChiTieu || item.tenChiTieu || item.chiTietGiaoChiTieuId
 
             if (!grouped.has(key)) {
                 grouped.set(key, {
@@ -204,46 +178,37 @@
                     tongCuoiKy: 0,
                     tongCungKyNamTruoc: 0,
                     tongTyLeHoanThanh: 0,
-                    soBanGhi: 0,
+                    soKpiCoTyLe: 0,
                     statusCounts: createTrackedStatusCounter()
                 })
             }
 
             const group = grouped.get(key)
+            const tyLeHoanThanh = toNumber(item.tyLeHoanThanh)
 
             group.soDonVi += 1
-            group.soBanGhi += 1
             group.tongMucTieu += toNumber(item.giaTriMucTieu)
-            group.tongDauKy += toNumber(item.giaTriDauKy)
-            group.tongCuoiKy += toNumber(item.giaTriCuoiKy)
-            group.tongCungKyNamTruoc += toNumber(item.giaTriCungKyNamTruoc)
-            group.tongTyLeHoanThanh += toNumber(item.tyLeHoanThanh)
+            group.tongDauKy += toNumber(item.giaTriDauKyGanNhat)
+            group.tongCuoiKy += toNumber(item.giaTriCuoiKyGanNhat)
+            group.tongCungKyNamTruoc += toNumber(item.giaTriCungKyNamTruocGanNhat)
 
-            const statusCode = getDanhGiaStatusCode(item.xepLoai)
-            if (Object.prototype.hasOwnProperty.call(group.statusCounts, statusCode)) {
-                group.statusCounts[statusCode] += 1
+            if (Number.isFinite(tyLeHoanThanh)) {
+                group.tongTyLeHoanThanh += tyLeHoanThanh
+                group.soKpiCoTyLe += 1
+            }
+
+            if (Object.prototype.hasOwnProperty.call(group.statusCounts, item.xepLoai)) {
+                group.statusCounts[item.xepLoai] += 1
             }
         })
 
         return Array.from(grouped.values()).map(item => {
             const chenhLechSoVoiDauKy = item.tongCuoiKy - item.tongDauKy
             const chenhLechSoVoiCungKyNamTruoc = item.tongCuoiKy - item.tongCungKyNamTruoc
-
-            const tyLeTangTruongSoVoiDauKy =
-                item.tongDauKy !== 0
-                    ? (chenhLechSoVoiDauKy / item.tongDauKy) * 100
-                    : 0
-
+            const tyLeTangTruongSoVoiDauKy = item.tongDauKy !== 0 ? (chenhLechSoVoiDauKy / item.tongDauKy) * 100 : 0
             const tyLeTangTruongSoVoiCungKyNamTruoc =
-                item.tongCungKyNamTruoc !== 0
-                    ? (chenhLechSoVoiCungKyNamTruoc / item.tongCungKyNamTruoc) * 100
-                    : 0
-
-            const tyLeHoanThanhBinhQuan =
-                item.soBanGhi !== 0
-                    ? item.tongTyLeHoanThanh / item.soBanGhi
-                    : 0
-
+                item.tongCungKyNamTruoc !== 0 ? (chenhLechSoVoiCungKyNamTruoc / item.tongCungKyNamTruoc) * 100 : 0
+            const tyLeHoanThanhBinhQuan = item.soKpiCoTyLe > 0 ? item.tongTyLeHoanThanh / item.soKpiCoTyLe : 0
             const xepLoaiTongHop = getTopXepLoai(item.statusCounts)
             const ketQuaTongHop = buildKetQuaTongHop(item.statusCounts)
 
@@ -270,11 +235,11 @@
         let data = [...reportRows.value]
 
         if (filters.keyword) {
-            const keyword = filters.keyword.toLowerCase()
+            const keyword = normalizeText(filters.keyword)
             data = data.filter(item =>
                 [item.maChiTieu, item.tenChiTieu]
                     .filter(Boolean)
-                    .some(value => String(value).toLowerCase().includes(keyword))
+                    .some(value => normalizeText(value).includes(keyword))
             )
         }
 
@@ -285,14 +250,11 @@
         })
     })
 
-    const thongKe = computed(() => {
-        return countTrackedStatuses(filteredRows.value, item => item.xepLoaiTongHop)
-    })
+    const thongKe = computed(() => countTrackedStatuses(filteredRows.value, item => item.xepLoaiTongHop))
 
     function resetFilters() {
-        filters.kyBaoCaoKPIId = ''
+        baseFilters.kyBaoCaoKPIId = ''
         filters.keyword = ''
-        fetchDanhGiaKPI()
     }
 
     function toNumber(value) {
@@ -708,4 +670,7 @@
         }
     }
 </style>
+
+
+
 

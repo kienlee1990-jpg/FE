@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -21,7 +21,7 @@
                         <div class="filter-grid">
                             <div class="form-group">
                                 <label>Kỳ báo cáo</label>
-                                <select v-model="filters.kyBaoCaoKPIId" @change="fetchDanhGiaKPI">
+                                <select v-model="baseFilters.kyBaoCaoKPIId" @change="fetchBaoCaoTongHop">
                                     <option value="">-- Tất cả kỳ báo cáo --</option>
                                     <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
                                         {{ item.tenKy }}
@@ -49,7 +49,7 @@
                             </div>
 
                             <div class="form-group actions">
-                                <button class="btn btn-primary" @click="fetchDanhGiaKPI">Tải dữ liệu</button>
+                                <button class="btn btn-primary" @click="fetchBaoCaoTongHop">Tải dữ liệu</button>
                                 <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
                             </div>
                         </div>
@@ -139,9 +139,9 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, reactive, ref } from 'vue'
+    import { computed, reactive } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-    import { apiRequest } from '../../services/api.js'
+    import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
     import {
         countTrackedStatuses,
         createTrackedStatusCounter,
@@ -149,61 +149,38 @@
         DANH_GIA_TRACKED_STATUS_ORDER,
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
-        getDanhGiaRank,
-        getDanhGiaStatusCode
+        getDanhGiaRank
     } from '../../utils/danhGiaStatusClean.js'
 
-    const loading = ref(false)
-    const errorMessage = ref('')
-    const rawRows = ref([])
-    const kyBaoCaoOptions = ref([])
     const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
 
+    const {
+        loading,
+        errorMessage,
+        kyBaoCaoOptions: baseKyBaoCaoOptions,
+        groupedRows,
+        filters: baseFilters,
+        fetchBaoCaoTongHop
+    } = useBaoCaoTongHopPage()
+
     const filters = reactive({
-        kyBaoCaoKPIId: '',
         xepLoaiNoiBat: '',
         keyword: ''
     })
 
-    onMounted(async () => {
-        await Promise.all([fetchKyBaoCao(), fetchDanhGiaKPI()])
+    const kyBaoCaoOptions = computed(() => {
+        return baseKyBaoCaoOptions.value.map(item => ({
+            id: Number(item?.id ?? item?.Id ?? 0),
+            tenKy: item?.tenKy ?? item?.TenKy ?? '-'
+        }))
     })
-
-    async function fetchKyBaoCao() {
-        try {
-            const data = await apiRequest('/KyBaoCaoKPI')
-            kyBaoCaoOptions.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error('Lỗi tải kỳ báo cáo:', error)
-            kyBaoCaoOptions.value = []
-        }
-    }
-
-    async function fetchDanhGiaKPI() {
-        loading.value = true
-        errorMessage.value = ''
-
-        try {
-            const data = filters.kyBaoCaoKPIId
-                ? await apiRequest(`/DanhGiaKPI/by-ky-bao-cao/${filters.kyBaoCaoKPIId}`)
-                : await apiRequest('/DanhGiaKPI')
-
-            rawRows.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error(error)
-            errorMessage.value = error.message || 'Không thể tải dữ liệu báo cáo theo đơn vị.'
-            rawRows.value = []
-        } finally {
-            loading.value = false
-        }
-    }
 
     const reportRows = computed(() => {
         const grouped = new Map()
-        const selectedKy = kyBaoCaoOptions.value.find(item => String(item.id) === String(filters.kyBaoCaoKPIId))
-        const tenKyApDung = selectedKy?.tenKy || ''
+        const selectedKy = kyBaoCaoOptions.value.find(item => String(item.id) === String(baseFilters.kyBaoCaoKPIId))
+        const tenKyApDung = selectedKy?.tenKy || 'Tính đến kỳ mới nhất hiện có'
 
-        rawRows.value.forEach(item => {
+        groupedRows.value.forEach(item => {
             const key = item.tenDonViNhan || 'Chưa xác định'
 
             if (!grouped.has(key)) {
@@ -212,7 +189,7 @@
                     tenKyApDung,
                     tongChiTieu: 0,
                     tongTyLeHoanThanh: 0,
-                    soBanGhiCoTyLe: 0,
+                    soKpiCoTyLe: 0,
                     statusCounts: createTrackedStatusCounter(),
                     topItem: null,
                     bottomItem: null
@@ -221,17 +198,16 @@
 
             const group = grouped.get(key)
             const tyLeHoanThanh = toNumber(item.tyLeHoanThanh)
-            const statusCode = getDanhGiaStatusCode(item.xepLoai)
 
             group.tongChiTieu += 1
 
             if (Number.isFinite(tyLeHoanThanh)) {
                 group.tongTyLeHoanThanh += tyLeHoanThanh
-                group.soBanGhiCoTyLe += 1
+                group.soKpiCoTyLe += 1
             }
 
-            if (Object.prototype.hasOwnProperty.call(group.statusCounts, statusCode)) {
-                group.statusCounts[statusCode] += 1
+            if (Object.prototype.hasOwnProperty.call(group.statusCounts, item.xepLoai)) {
+                group.statusCounts[item.xepLoai] += 1
             }
 
             if (!group.topItem || compareByCompletion(item, group.topItem) > 0) {
@@ -245,7 +221,7 @@
 
         return Array.from(grouped.values()).map(item => {
             const tyLeHoanThanhBinhQuan =
-                item.soBanGhiCoTyLe > 0 ? item.tongTyLeHoanThanh / item.soBanGhiCoTyLe : 0
+                item.soKpiCoTyLe > 0 ? item.tongTyLeHoanThanh / item.soKpiCoTyLe : 0
             const xepLoaiNoiBat = getDominantStatus(item.statusCounts)
 
             return {
@@ -287,10 +263,9 @@
     const thongKe = computed(() => countTrackedStatuses(filteredRows.value, item => item.xepLoaiNoiBat))
 
     function resetFilters() {
-        filters.kyBaoCaoKPIId = ''
+        baseFilters.kyBaoCaoKPIId = ''
         filters.xepLoaiNoiBat = ''
         filters.keyword = ''
-        fetchDanhGiaKPI()
     }
 
     function toNumber(value) {
@@ -709,3 +684,5 @@
         }
     }
 </style>
+
+

@@ -97,7 +97,6 @@
                             <table class="table table-hover align-middle mb-0 custom-table">
                                 <thead>
                                     <tr>
-                                        <th>Mã kỳ</th>
                                         <th>Tên kỳ</th>
                                         <th>Loại kỳ</th>
                                         <th>Năm</th>
@@ -111,7 +110,6 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="item in filteredItems" :key="item.id">
-                                        <td class="fw-semibold text-primary">{{ item.maKy }}</td>
                                         <td>{{ item.tenKy }}</td>
                                         <td>{{ mapLoaiKy(item.loaiKy) }}</td>
                                         <td>{{ item.nam }}</td>
@@ -731,4 +729,5 @@
         }
     }
 </style>
+
 

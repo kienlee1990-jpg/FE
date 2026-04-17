@@ -155,7 +155,6 @@
                                         {{ item.tenChiTieu || '-' }}
                                     </h5>
                                     <div class="text-muted small d-flex flex-wrap gap-3">
-                                        <span><strong>Mã:</strong> {{ item.maChiTieu || '-' }}</span>
                                         <span><strong>Đơn vị:</strong> {{ item.tenDonVi || '-' }}</span>
                                         <span><strong>Đợt giao:</strong> {{ item.tenDotGiao || '-' }}</span>
                                     </div>
@@ -265,14 +264,7 @@
                                     </thead>
                                     <tbody>
                                         <tr v-for="history in item.lichSu" :key="history.id">
-                                            <td>
-                                                <div class="fw-semibold">
-                                                    {{ history.tenKy || history.tenKyBaoCao || '-' }}
-                                                </div>
-                                                <small class="text-muted">
-                                                    {{ history.maKy || '-' }}
-                                                </small>
-                                            </td>
+                                            <td><div class="fw-semibold">{{ history.tenKy || history.tenKyBaoCao || history.maKy || '-' }}</div></td>
                                             <td>{{ formatNumber(history.giaTriDauKy) }}</td>
                                             <td>{{ formatNumber(history.giaTriThucHienTrongKy) }}</td>
                                             <td>{{ formatNumber(history.giaTriCuoiKy) }}</td>
@@ -903,4 +895,5 @@
         }
     }
 </style>
+
 

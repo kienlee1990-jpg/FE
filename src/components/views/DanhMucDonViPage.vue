@@ -97,7 +97,6 @@
                             <table class="table table-hover align-middle mb-0 custom-table">
                                 <thead>
                                     <tr>
-                                        <th>Mã đơn vị</th>
                                         <th>Tên đơn vị</th>
                                         <th>Loại đơn vị</th>
                                         <th>Đơn vị quản lý trực tiếp</th>
@@ -107,7 +106,6 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="item in filteredItems" :key="item.id">
-                                        <td class="fw-semibold text-primary">{{ item.maDonVi }}</td>
                                         <td>{{ item.tenDonVi }}</td>
                                         <td>{{ mapLoaiDonVi(item.loaiDonVi) }}</td>
                                         <td>{{ getParentName(item.donViChaId) }}</td>
@@ -623,4 +621,5 @@
         }
     }
 </style>
+
 

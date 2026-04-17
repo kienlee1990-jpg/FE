@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -104,7 +104,6 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
-                                        <th>Mã chỉ tiêu</th>
                                         <th>Tên chỉ tiêu chi tiết</th>
                                         <th>Đơn vị</th>
                                         <th>Đợt giao chỉ tiêu</th>
@@ -120,12 +119,11 @@
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="13" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="12" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
 
                                     <tr v-for="(row, index) in filteredRows" :key="row.groupKey">
                                         <td>{{ index + 1 }}</td>
-                                        <td>{{ row.maChiTieu || '-' }}</td>
                                         <td>
                                             <div>{{ row.tenChiTieu || '-' }}</div>
                                             <div v-if="row.tenChiTieuCha" class="sub-label">
@@ -133,21 +131,11 @@
                                             </div>
                                         </td>
                                         <td>{{ row.tenDonViNhan || '-' }}</td>
-                                        <td>
-                                            <div>{{ row.tenDotGiaoChiTieu || '-' }}</div>
-                                            <div class="sub-label">{{ buildDotGiaoMeta(row) }}</div>
-                                            <div class="sub-label">
-                                                {{ `${formatDate(row.ngayBatDauDotGiao)} - ${formatDate(row.ngayKetThucDotGiao)}` }}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</div>
-                                            <div class="sub-label">{{ buildLatestKyMeta(row) }}</div>
-                                        </td>
+                                        <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
+                                        <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriMucTieu) }}</td>
                                         <td class="text-right">
                                             <div>{{ formatNumber(row.giaTriThucHienCongDon) }}</div>
-                                            <div class="sub-label">{{ row.soKyDaTongHop }} kỳ đã tổng hợp</div>
                                         </td>
                                         <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai) }}</td>
@@ -157,8 +145,6 @@
                                             <span class="badge" :class="badgeClass(row.xepLoai)">
                                                 {{ getDanhGiaLabel(row.xepLoai) || '-' }}
                                             </span>
-                                            <div class="sub-label">{{ row.ketQuaDanhGia || '-' }}</div>
-                                            <div v-if="row.nhanXetDanhGia" class="sub-label">{{ row.nhanXetDanhGia }}</div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -493,3 +479,5 @@
         }
     }
 </style>
+
+

@@ -120,14 +120,7 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="item in filteredItems" :key="getId(item)">
-                                        <td>
-                                            <div class="fw-semibold">
-                                                {{ item.TenKyHienThi }}
-                                            </div>
-                                            <small class="text-muted">
-                                                {{ item.MaKy || item.maKy || '-' }}
-                                            </small>
-                                        </td>
+                                        <td><div class="fw-semibold">{{ item.TenKyHienThi }}</div></td>
                                         <td>
                                             <div class="fw-semibold text-primary">
                                                 {{ item.TenChiTieu || item.tenChiTieu || '-' }}
@@ -289,7 +282,17 @@
                                                 Hệ thống sẽ tự tính tỷ lệ hoàn thành dựa trên kết quả kỳ này, mốc so
                                                 sánh
                                                 <strong>{{ comparisonSourceLabel }}</strong> và chiều so sánh
-                                                <strong>{{ comparisonDirectionLabel }}</strong>.
+                                                <strong>{{ comparisonDirectionLabel }}</strong> theo quy tắc
+                                                <strong>{{ comparisonRuleLabel }}</strong>.
+                                            </div>
+                                        </div>
+
+                                        <div v-else class="col-12">
+                                            <div class="alert alert-secondary mb-0">
+                                                <i class="bi bi-speedometer2 me-2"></i>
+                                                Hệ thống sẽ đánh giá theo kết quả lũy kế, chiều đánh giá
+                                                <strong>{{ comparisonDirectionLabel }}</strong> và quy tắc
+                                                <strong>{{ comparisonRuleLabel }}</strong>.
                                             </div>
                                         </div>
 
@@ -433,8 +436,15 @@
         return Number(item?.DanhMucChiTieuId ?? item?.danhMucChiTieuId ?? 0)
     }
 
+    const normalizeCode = (value) => String(value || '').trim().toUpperCase()
+
     const getLoaiChiTieu = (item) => {
-        return String(item?.LoaiChiTieu || item?.loaiChiTieu || '').trim().toUpperCase()
+        return normalizeCode(
+            item?.TieuChiDanhGia ||
+            item?.tieuChiDanhGia ||
+            item?.LoaiChiTieu ||
+            item?.loaiChiTieu
+        )
     }
 
     const getDonViNhanId = (item) => {
@@ -546,7 +556,8 @@
         const map = {
             DAU_KY: 'đầu kỳ',
             CUNG_KY: 'cùng kỳ năm trước',
-            KY_TRUOC: 'kỳ trước'
+            KY_TRUOC: 'kỳ trước',
+            TONG_NAM_TRUOC: 'tổng năm trước'
         }
 
         return map[String(value || '').trim().toUpperCase()] || 'mốc cấu hình'
@@ -559,6 +570,16 @@
         }
 
         return map[String(value || '').trim().toUpperCase()] || 'so sánh'
+    }
+
+    const mapQuyTacDanhGia = (value) => {
+        const map = {
+            MAC_DINH: 'mặc định',
+            DAT_TOI_THIEU: 'đạt tối thiểu',
+            KHONG_VUOT_NGUONG: 'không vượt ngưỡng'
+        }
+
+        return map[String(value || '').trim().toUpperCase()] || 'đạt tối thiểu'
     }
 
     const qualitativeOptions = [
@@ -820,6 +841,37 @@
         return findDanhMucById(getDanhMucChiTieuId(chiTiet))
     })
 
+    const getTieuChiDanhGiaForChiTiet = (chiTiet) => {
+        return getLoaiChiTieu(chiTiet) || getLoaiChiTieu(selectedDanhMucChiTieu.value)
+    }
+
+    const getLoaiMocSoSanhForChiTiet = (chiTiet) => {
+        return normalizeCode(
+            chiTiet?.LoaiMocSoSanh ||
+            chiTiet?.loaiMocSoSanh ||
+            selectedDanhMucChiTieu.value?.LoaiMocSoSanh ||
+            selectedDanhMucChiTieu.value?.loaiMocSoSanh
+        )
+    }
+
+    const getChieuSoSanhForChiTiet = (chiTiet) => {
+        return normalizeCode(
+            chiTiet?.ChieuSoSanh ||
+            chiTiet?.chieuSoSanh ||
+            selectedDanhMucChiTieu.value?.ChieuSoSanh ||
+            selectedDanhMucChiTieu.value?.chieuSoSanh
+        )
+    }
+
+    const getQuyTacDanhGiaForChiTiet = (chiTiet) => {
+        const tieuChiDanhGia = getTieuChiDanhGiaForChiTiet(chiTiet)
+        return normalizeCode(
+            chiTiet?.QuyTacDanhGia ||
+            chiTiet?.quyTacDanhGia ||
+            (tieuChiDanhGia === 'DINH_TINH' ? 'MAC_DINH' : 'DAT_TOI_THIEU')
+        )
+    }
+
     const selectedKyBaoCao = computed(() => {
         return (
             kyBaoCaoOptions.value.find(
@@ -852,20 +904,17 @@
     })
 
     const currentLoaiChiTieu = computed(() => {
-        const loaiChiTieu = getLoaiChiTieu(selectedChiTietGiao.value)
-        return loaiChiTieu || getLoaiChiTieu(selectedDanhMucChiTieu.value)
+        return getTieuChiDanhGiaForChiTiet(selectedChiTietGiao.value)
     })
 
     const isDinhTinh = computed(() => currentLoaiChiTieu.value === 'DINH_TINH')
     const isDinhLuongSoSanh = computed(() => currentLoaiChiTieu.value === 'DINH_LUONG_SO_SANH')
 
-    const comparisonSourceLabel = computed(() =>
-        mapLoaiMocSoSanh(selectedDanhMucChiTieu.value?.LoaiMocSoSanh ?? selectedDanhMucChiTieu.value?.loaiMocSoSanh)
-    )
+    const comparisonSourceLabel = computed(() => mapLoaiMocSoSanh(getLoaiMocSoSanhForChiTiet(selectedChiTietGiao.value)))
 
-    const comparisonDirectionLabel = computed(() =>
-        mapChieuSoSanh(selectedDanhMucChiTieu.value?.ChieuSoSanh ?? selectedDanhMucChiTieu.value?.chieuSoSanh)
-    )
+    const comparisonDirectionLabel = computed(() => mapChieuSoSanh(getChieuSoSanhForChiTiet(selectedChiTietGiao.value)))
+
+    const comparisonRuleLabel = computed(() => mapQuyTacDanhGia(getQuyTacDanhGiaForChiTiet(selectedChiTietGiao.value)))
 
     const currentValueLabel = computed(() => {
         if (isDinhLuongSoSanh.value) {
@@ -1507,3 +1556,4 @@
         }
     }
 </style>
+

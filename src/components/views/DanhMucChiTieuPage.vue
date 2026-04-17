@@ -106,7 +106,6 @@
                             <table class="table table-hover align-middle mb-0 custom-table">
                                 <thead>
                                     <tr>
-                                        <th>Mã</th>
                                         <th>Tên chỉ tiêu</th>
                                         <th>Loại</th>
                                         <th>Bộ tiêu chí</th>
@@ -116,7 +115,6 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="item in items" :key="item.id">
-                                        <td class="fw-semibold text-primary">{{ item.maChiTieu }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ item.tenChiTieu }}</div>
                                             <div class="small text-muted mt-1">{{ item.nguonChiTieuLabel }} | {{
@@ -131,12 +129,7 @@
                                         </td>
                                         <td>{{ mapLoai(item.loaiChiTieu) }}</td>
                                         <td>
-                                            <div class="fw-semibold">{{ getCriteriaSummary(item) }}</div>
-                                            <small class="text-muted">
-                                                {{ item.batBuocDatTatCaTieuChiCon && item.tieuChiDanhGias.length
-                                                    ? 'Phải đạt tất cả tiêu chí con'
-                                                    : 'Đánh giá theo 1 tiêu chí' }}
-                                            </small>
+                                            <div class="fw-semibold">{{ getCriteriaSummary(item) }} • {{ item.batBuocDatTatCaTieuChiCon && item.tieuChiDanhGias.length ? 'Phải đạt tất cả tiêu chí con' : 'Đánh giá theo 1 tiêu chí' }}</div>
                                         </td>
                                         <td>
                                             <span class="badge rounded-pill"
@@ -1072,3 +1065,4 @@
         gap: 8px;
     }
 </style>
+

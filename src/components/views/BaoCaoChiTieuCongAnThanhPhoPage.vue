@@ -92,7 +92,6 @@
                             <thead>
                                 <tr>
                                     <th>STT</th>
-                                    <th>Mã chỉ tiêu</th>
                                     <th>Tên chỉ tiêu</th>
                                     <th>Đơn vị nhận</th>
                                     <th>Đợt giao chỉ tiêu</th>
@@ -105,12 +104,11 @@
                             </thead>
                             <tbody>
                                 <tr v-if="filteredRows.length === 0">
-                                    <td colspan="10" class="empty-cell">Không có dữ liệu</td>
+                                    <td colspan="9" class="empty-cell">Không có dữ liệu</td>
                                 </tr>
 
                                 <tr v-for="(row, index) in filteredRows" :key="row.id">
                                     <td>{{ index + 1 }}</td>
-                                    <td>{{ row.maChiTieu || '-' }}</td>
                                     <td>
                                         <div class="fw-semibold">{{ row.tenChiTieu || '-' }}</div>
                                         <div v-if="row.tenChiTieuCha" class="sub-label">
@@ -121,15 +119,11 @@
                                     <td>{{ row.tenDotGiaoChiTieu || row.maDotGiao || '-' }}</td>
                                     <td>{{ formatKyBaoCao(row.tanSuatBaoCao) }}</td>
                                     <td class="text-right">{{ formatTarget(row) }}</td>
-                                    <td>
-                                        <div>{{ row.maKy || '-' }}</div>
-                                        <div class="sub-label">{{ row.tenKy || 'Chưa có kỳ đánh giá' }}</div>
-                                    </td>
+                                    <td>{{ row.tenKy || row.maKy || 'Chưa có kỳ đánh giá' }}</td>
                                     <td>
                                         <span class="badge" :class="badgeClass(row.xepLoai)">
                                             {{ getDanhGiaLabel(row.xepLoai) || 'Chưa đánh giá' }}
                                         </span>
-                                        <div class="sub-label">{{ row.ketQua || '-' }}</div>
                                     </td>
                                     <td>{{ row.nhanXetDanhGia || '-' }}</td>
                                 </tr>
@@ -562,3 +556,4 @@
         }
     }
 </style>
+
