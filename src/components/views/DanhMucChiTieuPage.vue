@@ -52,19 +52,19 @@
                         </div>
 
                         <div class="import-guide-columns">
-                            <span class="guide-chip">MaChiTieu</span>
-                            <span class="guide-chip">TenChiTieu</span>
-                            <span class="guide-chip">NguonChiTieu</span>
-                            <span class="guide-chip">CheDoDanhGia</span>
-                            <span class="guide-chip">LoaiChiTieu</span>
-                            <span class="guide-chip">TrangThaiSuDung</span>
-                            <span class="guide-chip">LinhVucNghiepVu</span>
-                            <span class="guide-chip">DonViTinh</span>
-                            <span class="guide-chip">TieuChiDanhGiasJson</span>
+                            <span class="guide-chip">Mã chỉ tiêu (MaChiTieu)</span>
+                            <span class="guide-chip">Tên chỉ tiêu (TenChiTieu)</span>
+                            <span class="guide-chip">Nguồn chỉ tiêu (NguonChiTieu)</span>
+                            <span class="guide-chip">Chế độ đánh giá (CheDoDanhGia)</span>
+                            <span class="guide-chip">Loại chỉ tiêu (LoaiChiTieu)</span>
+                            <span class="guide-chip">Trạng thái sử dụng (TrangThaiSuDung)</span>
+                            <span class="guide-chip">Lĩnh vực nghiệp vụ (LinhVucNghiepVu)</span>
+                            <span class="guide-chip">Đơn vị tính (DonViTinh)</span>
+                            <span class="guide-chip">Tiêu chí con (TieuChiDanhGiasJson)</span>
                         </div>
 
                         <div class="text-muted small mt-2">
-                            `CheDoDanhGia` nhận <strong>DON</strong> hoặc <strong>PHAN_RA</strong>. Nếu là phân rã, cột
+                            Cột <strong>CheDoDanhGia</strong> nhận <strong>DON</strong> hoặc <strong>PHAN_RA</strong>. Nếu là phân rã, cột
                             <strong>TieuChiDanhGiasJson</strong> phải là mảng JSON tối thiểu 2 tiêu chí con.
                         </div>
                     </div>
@@ -187,7 +187,8 @@
                         </div>
 
                         <div v-else class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 custom-table">
+                            <ColumnVisibilityTools table-id="DanhMucChiTieuPage-table" />
+                            <table id="DanhMucChiTieuPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>Tên chỉ tiêu</th>
@@ -552,6 +553,7 @@
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import * as XLSX from 'xlsx'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
 
     const DEFAULT_CAP_AP_DUNG = 'THANH_PHO'
@@ -1696,4 +1698,8 @@
         color: #991b1b;
     }
 </style>
+
+
+
+
 

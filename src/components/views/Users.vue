@@ -1,53 +1,144 @@
 ﻿<template>
   <BaseLayout>
-    <div class="container mt-4">
-      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+    <div class="page-shell">
+      <div class="page-header">
         <div class="gov-banner">
           <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg" class="gov-emblem" alt="Vietnam emblem" />
           <div>
-            <div class="gov-title">DANH SÁCH NGƯỜI DÙNG</div>
-            <div class="gov-sub">Quản trị người dùng theo backend hiện tại</div>
+            <div class="gov-title">NGƯỜI DÙNG VÀ VAI TRÒ</div>
+            <div class="gov-sub">Quản lý tài khoản và gán vai trò cho từng người dùng</div>
           </div>
         </div>
-        <button @click="openAdd" class="btn btn-primary">+ Thêm</button>
+        <div class="header-actions">
+          <RouterLink to="/permissions" class="btn btn-outline-primary">Mở màn phân quyền chi tiết</RouterLink>
+          <button @click="openAdd" class="btn btn-primary">+ Thêm người dùng</button>
+        </div>
       </div>
 
-      <div class="alert alert-info">Backend hiện chưa có endpoint xóa user, nên màn này chỉ hỗ trợ thêm, sửa, khóa/mở và gán role.</div>
+      <div class="alert alert-info border-0 shadow-sm">
+        <strong>Màn này chỉ dùng để gán vai trò.</strong>
+        Quyền chi tiết theo user và theo role được cấu hình tại màn Phân quyền.
+      </div>
 
-      <div v-if="loading" class="text-center py-4"><div class="spinner-border"></div></div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span class="summary-label">Tổng người dùng</span>
+          <strong class="summary-value">{{ users.length }}</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Đang hoạt động</span>
+          <strong class="summary-value text-success">{{ activeUsersCount }}</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Ngừng hoạt động</span>
+          <strong class="summary-value text-danger">{{ inactiveUsersCount }}</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Có vai trò</span>
+          <strong class="summary-value text-primary">{{ usersWithRolesCount }}</strong>
+        </div>
+      </div>
 
-      <div v-else-if="users.length" class="card shadow-sm">
+      <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+          <div class="filter-grid">
+            <div>
+              <label class="form-label">Từ khóa</label>
+              <input
+                v-model.trim="searchTerm"
+                type="text"
+                class="form-control"
+                placeholder="Nhập họ tên, username, email hoặc số điện thoại"
+              />
+            </div>
+            <div>
+              <label class="form-label">Trạng thái</label>
+              <select v-model="statusFilter" class="form-select">
+                <option value="ALL">Tất cả</option>
+                <option value="ACTIVE">Đang hoạt động</option>
+                <option value="INACTIVE">Ngừng hoạt động</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Vai trò</label>
+              <select v-model="roleFilter" class="form-select">
+                <option value="ALL">Tất cả vai trò</option>
+                <option value="NONE">Chưa có vai trò</option>
+                <option v-for="role in availableRoles" :key="role" :value="role">{{ role }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner-border text-primary"></div>
+        <span>Đang tải danh sách người dùng...</span>
+      </div>
+
+      <div v-else-if="filteredUsers.length" class="card shadow-sm border-0">
         <div class="card-body p-0">
-          <table class="table table-hover mb-0 align-middle">
-            <thead class="table-info">
+          <ColumnVisibilityTools table-id="Users-table" />
+                            <table id="Users-table" class="table table-hover align-middle mb-0 permission-table managed-table">
+            <thead>
               <tr>
-                <th>Tên</th><th>UserName</th><th>Email</th><th>Địa chỉ</th><th>SĐT</th><th>Vai trò</th><th class="text-center">Trạng thái</th><th class="text-center">Cập nhật</th><th class="text-center">Xóa</th><th class="text-center">Phân quyền</th>
+                <th>Người dùng</th>
+                <th>Liên hệ</th>
+                <th>Vai trò</th>
+                <th>Quyền trực tiếp</th>
+                <th class="text-center">Trạng thái</th>
+                <th class="text-end">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in users" :key="item.id">
-                <td>{{ item.fullName || '-' }}</td>
-                <td>{{ item.userName || '-' }}</td>
-                <td>{{ item.email || '-' }}</td>
-                <td>{{ item.address || '-' }}</td>
-                <td>{{ item.phoneNumber || '-' }}</td>
+              <tr v-for="item in filteredUsers" :key="item.id">
+                <td class="user-cell">
+                  <strong class="d-block">{{ item.fullName || item.userName || item.email || "Chưa đặt tên" }}</strong>
+                  <span class="muted-line">@{{ item.userName || "không có username" }}</span>
+                </td>
                 <td>
-                  <span v-for="role in item.roles || []" :key="role" class="badge bg-info me-1">{{ role }}</span>
-                  <span v-if="!(item.roles || []).length" class="text-muted">Chưa có</span>
+                  <strong class="d-block">{{ item.email || "-" }}</strong>
+                  <span class="muted-line">{{ item.phoneNumber || item.address || "Chưa cập nhật liên hệ" }}</span>
+                </td>
+                <td>
+                  <div class="chip-wrap">
+                    <span v-for="role in item.roles || []" :key="role" class="badge role-chip">{{ role }}</span>
+                    <span v-if="!(item.roles || []).length" class="text-muted">Chưa có vai trò</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="chip-wrap">
+                    <span v-for="permission in item.permissions || []" :key="permission" class="badge permission-chip">{{ permission }}</span>
+                    <span v-if="!(item.permissions || []).length" class="text-muted">Không có quyền trực tiếp</span>
+                  </div>
                 </td>
                 <td class="text-center">
                   <template v-if="!isProtectedUser(item)">
-                    <span @click="confirmToggle(item)" :class="['badge px-3 py-2 d-inline-flex align-items-center gap-1', item.isActive ? 'bg-success' : 'bg-danger', item._loading ? 'opacity-50' : '', item._animate ? 'scale-effect' : '']" style="cursor:pointer">
+                    <button
+                      type="button"
+                      class="status-toggle"
+                      :class="item.isActive ? 'status-active' : 'status-inactive'"
+                      :disabled="item._loading"
+                      @click="confirmToggle(item)"
+                    >
                       <span v-if="item._loading" class="spinner-border spinner-border-sm"></span>
-                      <template v-else-if="item.isActive"><i class="fa-solid fa-circle-check"></i> Hoạt động</template>
-                      <template v-else><i class="fa-solid fa-ban"></i> Ngừng</template>
-                    </span>
+                      <span v-else>{{ item.isActive ? "Đang hoạt động" : "Ngừng hoạt động" }}</span>
+                    </button>
                   </template>
+                  <span v-else class="badge text-bg-warning">Tài khoản hệ thống</span>
                 </td>
-                <td class="text-center"><button @click="openEdit(item)" class="btn btn-warning btn-sm"><i class="fa-solid fa-pen text-white"></i></button></td>
-                <td class="text-center"><span class="badge text-bg-secondary">Chưa hỗ trợ</span></td>
-                <td class="text-center">
-                  <template v-if="!isProtectedUser(item)"><button @click="openRole(item)" class="btn btn-info btn-sm"><i class="fa-solid fa-user-gear text-white"></i></button></template>
+                <td class="text-end">
+                  <div class="action-stack">
+                    <button @click="openEdit(item)" class="btn btn-sm btn-outline-warning">Sửa</button>
+                    <button
+                      v-if="!isProtectedUser(item)"
+                      @click="openRole(item)"
+                      class="btn btn-sm btn-primary"
+                    >
+                      Gán vai trò
+                    </button>
+                    <span v-else class="text-muted small">Không chỉnh vai trò</span>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -55,57 +146,106 @@
         </div>
       </div>
 
-      <div v-else class="alert alert-light border">Chưa có người dùng nào để hiển thị.</div>
+      <div v-else class="alert alert-light border shadow-sm">
+        Không tìm thấy người dùng phù hợp với bộ lọc hiện tại.
+      </div>
 
       <div v-if="showForm" class="modal fade show d-block" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content shadow-lg border-0 rounded-4">
             <div class="modal-header bg-primary text-white rounded-top-4">
-              <h5 class="modal-title"><i class="bi bi-person-circle me-2"></i>{{ isEdit ? 'Sửa user' : 'Thêm user' }}</h5>
+              <h5 class="modal-title">{{ isEdit ? "Cập nhật người dùng" : "Thêm người dùng mới" }}</h5>
               <button class="btn-close btn-close-white" @click="closeForm"></button>
             </div>
             <div class="modal-body px-4 py-3">
               <template v-if="!isEdit">
-                <input v-model="form.fullName" placeholder="Họ tên" class="form-control mb-3 shadow-sm" />
-                <input v-model="form.userName" placeholder="UserName" class="form-control mb-3 shadow-sm" />
-                <input v-model="form.email" placeholder="Email" class="form-control mb-3 shadow-sm" />
-                <input type="password" v-model="form.password" placeholder="Mật khẩu" class="form-control mb-3 shadow-sm" />
-                <input v-model="form.address" placeholder="Địa chỉ" class="form-control mb-3 shadow-sm" />
-                <input v-model="form.phoneNumber" placeholder="SDT" class="form-control mb-2 shadow-sm" />
+                <div class="mb-3">
+                  <label class="form-label">Họ tên</label>
+                  <input v-model="form.fullName" placeholder="Nhập họ tên" class="form-control shadow-sm" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Tên đăng nhập</label>
+                  <input v-model="form.userName" placeholder="Nhập username" class="form-control shadow-sm" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input v-model="form.email" placeholder="Nhập email" class="form-control shadow-sm" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Mật khẩu</label>
+                  <input type="password" v-model="form.password" placeholder="Nhập mật khẩu" class="form-control shadow-sm" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Địa chỉ</label>
+                  <input v-model="form.address" placeholder="Nhập địa chỉ" class="form-control shadow-sm" />
+                </div>
+                <div>
+                  <label class="form-label">Số điện thoại</label>
+                  <input v-model="form.phoneNumber" placeholder="Nhập số điện thoại" class="form-control shadow-sm" />
+                </div>
               </template>
               <template v-else>
-                <input v-model="form.fullName" placeholder="Họ tên" class="form-control mb-3 shadow-sm" />
-                <input v-model="form.address" placeholder="Địa chỉ" class="form-control mb-3 shadow-sm" />
-                <input v-model="form.phoneNumber" placeholder="SDT" class="form-control mb-2 shadow-sm" />
+                <div class="mb-3">
+                  <label class="form-label">Họ tên</label>
+                  <input v-model="form.fullName" placeholder="Nhập họ tên" class="form-control shadow-sm" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Địa chỉ</label>
+                  <input v-model="form.address" placeholder="Nhập địa chỉ" class="form-control shadow-sm" />
+                </div>
+                <div>
+                  <label class="form-label">Số điện thoại</label>
+                  <input v-model="form.phoneNumber" placeholder="Nhập số điện thoại" class="form-control shadow-sm" />
+                </div>
               </template>
             </div>
             <div class="modal-footer border-0 px-4 pb-4">
               <button class="btn btn-outline-secondary rounded-pill px-4" @click="closeForm">Hủy</button>
-              <button class="btn btn-primary rounded-pill px-4 shadow-sm" @click="saveUser"><i class="bi bi-save me-1"></i> Lưu</button>
+              <button class="btn btn-primary rounded-pill px-4 shadow-sm" @click="saveUser">Lưu</button>
             </div>
           </div>
         </div>
       </div>
 
       <div v-if="showRoleForm" class="modal fade show d-block">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content shadow-lg border-0 rounded-4">
             <div class="modal-header bg-success text-white rounded-top-4">
-              <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>Phân quyền vai trò - {{ currentUserName }}</h5>
+              <div>
+                <h5 class="modal-title mb-1">Gán vai trò</h5>
+                <div class="small opacity-75">{{ currentUserName }}</div>
+              </div>
               <button class="btn-close btn-close-white" @click="showRoleForm = false"></button>
             </div>
             <div class="modal-body px-4 py-3">
-              <div v-if="roleLoading" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+              <div v-if="roleLoading" class="text-center py-4">
+                <div class="spinner-border text-primary"></div>
+              </div>
               <div v-else>
-                <div v-for="role in availableRoles" :key="role" class="form-check form-switch mb-2">
-                  <input class="form-check-input" type="checkbox" :value="role" v-model="selectedRoles" :id="`role-${role}`" />
-                  <label class="form-check-label ms-2" :for="`role-${role}`">{{ role }}</label>
+                <div class="role-modal-toolbar">
+                  <div class="alert alert-light border mb-0 flex-grow-1">
+                    Chọn vai trò cần gán cho người dùng này. Nếu cần phân quyền chi tiết hơn, mở màn Phân quyền để gán trực tiếp theo user hoặc role.
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-success btn-sm" @click="selectAllRoles">Chọn tất cả</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="clearRoles">Bỏ hết</button>
+                  </div>
+                </div>
+
+                <div class="role-grid mt-3">
+                  <label v-for="role in availableRoles" :key="role" class="role-option">
+                    <input type="checkbox" :value="role" v-model="selectedRoles" />
+                    <span>
+                      <strong class="d-block">{{ role }}</strong>
+                      <small class="text-muted">{{ selectedRoles.includes(role) ? "Đã chọn" : "Chưa chọn" }}</small>
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>
             <div class="modal-footer border-0 px-4 pb-4">
               <button class="btn btn-outline-secondary rounded-pill px-4" @click="showRoleForm = false">Hủy</button>
-              <button class="btn btn-success rounded-pill px-4 shadow-sm" @click="saveRole"><i class="bi bi-check2-circle me-1"></i> Lưu</button>
+              <button class="btn btn-success rounded-pill px-4 shadow-sm" @click="saveRole">Lưu vai trò</button>
             </div>
           </div>
         </div>
@@ -116,7 +256,9 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 import httpClient from '../../services/httpClient'
 
 const users = ref([])
@@ -125,27 +267,65 @@ const showForm = ref(false)
 const showRoleForm = ref(false)
 const roleLoading = ref(false)
 const isEdit = ref(false)
+const searchTerm = ref('')
+const statusFilter = ref('ALL')
+const roleFilter = ref('ALL')
 const defaultRoles = ['Admin', 'Công an Thành phố', 'Công an cấp Phòng', 'Công an cấp Xã/Phường']
 const selectedRoles = ref([])
 const currentUserId = ref(null)
 const currentUserName = ref('')
 const form = ref({ id: null, email: '', password: '', userName: '', fullName: '', phoneNumber: '', address: '', isActive: true })
 const protectedUserId = 'd12c48e3-825f-4799-b6f1-a55857131796'
+
 const isProtectedUser = (user) => user?.id === protectedUserId
+
 const availableRoles = computed(() => {
   const merged = new Set(defaultRoles)
   users.value.forEach(item => (item.roles || []).forEach(role => merged.add(role)))
-  return [...merged]
+  return [...merged].sort((left, right) => left.localeCompare(right, 'vi'))
+})
+
+const activeUsersCount = computed(() => users.value.filter(item => item.isActive).length)
+const inactiveUsersCount = computed(() => users.value.filter(item => !item.isActive).length)
+const usersWithRolesCount = computed(() => users.value.filter(item => (item.roles || []).length > 0).length)
+
+const filteredUsers = computed(() => {
+  const keyword = searchTerm.value.trim().toLowerCase()
+
+  return users.value.filter(item => {
+    const matchesKeyword = !keyword || [
+      item.fullName,
+      item.userName,
+      item.email,
+      item.phoneNumber,
+      item.address
+    ].some(value => String(value || '').toLowerCase().includes(keyword))
+
+    const matchesStatus =
+      statusFilter.value === 'ALL' ||
+      (statusFilter.value === 'ACTIVE' && item.isActive) ||
+      (statusFilter.value === 'INACTIVE' && !item.isActive)
+
+    const userRoles = item.roles || []
+    const matchesRole =
+      roleFilter.value === 'ALL' ||
+      (roleFilter.value === 'NONE' && !userRoles.length) ||
+      userRoles.includes(roleFilter.value)
+
+    return matchesKeyword && matchesStatus && matchesRole
+  })
 })
 
 const fetchUsers = async () => {
   loading.value = true
   try {
     const res = await httpClient.get('/admin/users')
-    users.value = (Array.isArray(res.data) ? res.data : []).map(item => ({ ...item, _loading: false, _animate: false })).sort((a, b) => a.id === protectedUserId ? -1 : b.id === protectedUserId ? 1 : 0)
+    users.value = (Array.isArray(res.data) ? res.data : [])
+      .map(item => ({ ...item, _loading: false }))
+      .sort((a, b) => (a.id === protectedUserId ? -1 : b.id === protectedUserId ? 1 : 0))
   } catch (err) {
     console.error(err)
-    alert('Không tải được danh sách user!')
+    alert('Không tải được danh sách người dùng.')
   } finally {
     loading.value = false
   }
@@ -159,27 +339,45 @@ const openAdd = () => {
 
 const openEdit = (user) => {
   isEdit.value = true
-  form.value = { id: user.id, fullName: user.fullName || '', address: user.address || '', phoneNumber: user.phoneNumber || '', isActive: user.isActive }
+  form.value = {
+    id: user.id,
+    fullName: user.fullName || '',
+    address: user.address || '',
+    phoneNumber: user.phoneNumber || '',
+    isActive: user.isActive
+  }
   showForm.value = true
 }
 
 const saveUser = async () => {
   try {
     if (isEdit.value) {
-      await httpClient.put(`/admin/users/${form.value.id}`, { fullName: form.value.fullName, address: form.value.address, phoneNumber: form.value.phoneNumber, isActive: form.value.isActive })
+      await httpClient.put(`/admin/users/${form.value.id}`, {
+        fullName: form.value.fullName,
+        address: form.value.address,
+        phoneNumber: form.value.phoneNumber,
+        isActive: form.value.isActive
+      })
     } else {
-      await httpClient.post('/auth/register', { email: form.value.email, password: form.value.password, userName: form.value.userName, fullName: form.value.fullName, phoneNumber: form.value.phoneNumber, address: form.value.address })
+      await httpClient.post('/auth/register', {
+        email: form.value.email,
+        password: form.value.password,
+        userName: form.value.userName,
+        fullName: form.value.fullName,
+        phoneNumber: form.value.phoneNumber,
+        address: form.value.address
+      })
     }
     showForm.value = false
     await fetchUsers()
   } catch (err) {
     console.error(err)
-    alert('Lưu user thất bại!')
+    alert('Lưu người dùng thất bại.')
   }
 }
 
 const confirmToggle = (user) => {
-  const ok = confirm(`Bạn có chắc muốn ${user.isActive ? 'ngừng' : 'kích hoạt'} user này không?`)
+  const ok = confirm(`Bạn có chắc muốn ${user.isActive ? 'ngừng' : 'kích hoạt'} người dùng này không?`)
   if (!ok) return
   toggleActive(user)
 }
@@ -187,13 +385,16 @@ const confirmToggle = (user) => {
 const toggleActive = async (user) => {
   try {
     user._loading = true
-    user._animate = true
-    await httpClient.put(`/admin/users/${user.id}`, { fullName: user.fullName, address: user.address, phoneNumber: user.phoneNumber, isActive: !user.isActive })
+    await httpClient.put(`/admin/users/${user.id}`, {
+      fullName: user.fullName,
+      address: user.address,
+      phoneNumber: user.phoneNumber,
+      isActive: !user.isActive
+    })
     user.isActive = !user.isActive
-    setTimeout(() => { user._animate = false }, 200)
   } catch (err) {
     console.error(err)
-    alert('Đổi trạng thái thất bại!')
+    alert('Đổi trạng thái thất bại.')
   } finally {
     user._loading = false
   }
@@ -201,9 +402,17 @@ const toggleActive = async (user) => {
 
 const openRole = (user) => {
   currentUserId.value = user.id
-  currentUserName.value = user.fullName || user.email || ''
+  currentUserName.value = user.fullName || user.email || user.userName || ''
   selectedRoles.value = [...(user.roles || [])]
   showRoleForm.value = true
+}
+
+const selectAllRoles = () => {
+  selectedRoles.value = [...availableRoles.value]
+}
+
+const clearRoles = () => {
+  selectedRoles.value = []
 }
 
 const saveRole = async () => {
@@ -214,29 +423,64 @@ const saveRole = async () => {
     const currentRoles = user?.roles || []
     const rolesToAdd = selectedRoles.value.filter(role => !currentRoles.includes(role))
     const rolesToRemove = currentRoles.filter(role => !selectedRoles.value.includes(role))
+
     for (const roleName of rolesToAdd) {
       await httpClient.post(`/admin/users/${currentUserId.value}/roles`, { roleName })
     }
     for (const roleName of rolesToRemove) {
       await httpClient.delete(`/admin/users/${currentUserId.value}/roles`, { data: { roleName } })
     }
+
     showRoleForm.value = false
     await fetchUsers()
-    alert('Cập nhật vai trò thành công!')
+    alert('Cập nhật vai trò thành công.')
   } catch (err) {
     console.error(err)
-    alert('Cập nhật vai trò thất bại!')
+    alert('Cập nhật vai trò thất bại.')
   } finally {
     roleLoading.value = false
   }
 }
 
-const closeForm = () => { showForm.value = false }
+const closeForm = () => {
+  showForm.value = false
+}
+
 onMounted(fetchUsers)
 </script>
 
 <style scoped>
-:deep(.table){margin-bottom:0;border-collapse:collapse}:deep(.table thead th){border-bottom:2px solid #dee2e6}:deep(.table td),:deep(.table th){border-right:1px solid #eee}:deep(.table td:last-child),:deep(.table th:last-child){border-right:none}:deep(.table tbody tr){border-bottom:1px solid #f1f1f1}:deep(.table-hover tbody tr:hover){background-color:rgba(0,0,0,.03)}.modal{background:rgba(137,210,239,.5)}.modal-content{animation:fadeInUp .3s ease}@keyframes fadeInUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.gov-banner{display:flex;align-items:center;gap:14px;width:400px;background:linear-gradient(180deg,#03943f 0%,#05ce48dd 100%);padding:14px 18px;border-radius:12px;color:#fff;box-shadow:0 6px 18px rgba(3,148,63,.25)}.gov-emblem{width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}.gov-title{font-size:18px;font-weight:700;letter-spacing:.5px}.gov-sub{font-size:12px;opacity:.9}
+.page-shell{padding:20px}
+.page-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.header-actions{display:flex;gap:12px;flex-wrap:wrap}
+.gov-banner{display:flex;align-items:center;gap:14px;max-width:520px;background:linear-gradient(180deg,#03943f 0%,#05ce48dd 100%);padding:14px 18px;border-radius:14px;color:#fff;box-shadow:0 10px 24px rgba(3,148,63,.22)}
+.gov-emblem{width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.gov-title{font-size:18px;font-weight:700;letter-spacing:.4px}
+.gov-sub{font-size:12px;opacity:.92}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
+.summary-card{padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #e9ecef;box-shadow:0 10px 20px rgba(15,23,42,.05)}
+.summary-label{display:block;font-size:12px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.summary-value{font-size:28px;line-height:1}
+.filter-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}
+.loading-state{display:flex;align-items:center;gap:10px;color:#475569;padding:18px 0}
+.permission-table thead th{background:#f8fafc;border-bottom:1px solid #dbe4ef;color:#0f172a;font-size:13px;text-transform:uppercase;letter-spacing:.03em}
+.permission-table td,.permission-table th{padding:16px;border-color:#eef2f7}
+.user-cell strong{font-size:15px}
+.muted-line{display:block;font-size:12px;color:#64748b;margin-top:3px}
+.chip-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.role-chip{background:#dbeafe;color:#1d4ed8}
+.permission-chip{background:#f8fafc;color:#334155;border:1px solid #cbd5e1}
+.status-toggle{border:none;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;min-width:140px}
+.status-active{background:#dcfce7;color:#166534}
+.status-inactive{background:#fee2e2;color:#991b1b}
+.action-stack{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.modal{background:rgba(15,23,42,.45)}
+.role-modal-toolbar{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.role-option{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer}
+.role-option:hover{border-color:#86efac;background:#f0fdf4}
+@media (max-width: 992px){.filter-grid{grid-template-columns:1fr}.permission-table{min-width:900px}}
 </style>
+
 
 

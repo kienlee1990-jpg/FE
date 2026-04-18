@@ -8,7 +8,7 @@
                     </div>
                     <div class="gov-text">
                         <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-                        <div class="gov-title">CHỈ TIÊU CHO CÁC ĐƠN VỊ XÃ PHƯỜNG</div>
+                        <div class="gov-title">CHỈ TIÊU CHO CÁC ĐƠN VỊ XÃ/PHƯỜNG</div>
                     </div>
                 </div>
 
@@ -116,7 +116,8 @@
                         </div>
 
                         <div v-else class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 custom-table">
+                            <ColumnVisibilityTools table-id="ChiTieuThanhPhoGiaoPage-table" />
+                            <table id="ChiTieuThanhPhoGiaoPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>Đợt giao</th>
@@ -312,6 +313,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
 
     const API_PATHS = {
@@ -1005,6 +1007,10 @@
         }
     }
 </style>
+
+
+
+
 
 
 

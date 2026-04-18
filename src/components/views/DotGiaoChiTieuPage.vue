@@ -26,36 +26,36 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Tra cuu nhanh theo nhieu tieu chi</small>
+                        <small class="text-muted">Tra cứu nhanh theo nhiều tiêu chí</small>
                     </div>
 
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Tu khoa</label>
-                                <input v-model="filters.keyword" type="text" class="form-control" placeholder="Ma hoac ten dot giao" />
+                                <label class="form-label">Từ khóa</label>
+                                <input v-model="filters.keyword" type="text" class="form-control" placeholder="Mã hoặc tên đợt giao" />
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-2">
-                                <label class="form-label">Năm ap dung</label>
-                                <input v-model="filters.namApDung" type="number" class="form-control" placeholder="Vi du: 2026" />
+                                <label class="form-label">Năm áp dụng</label>
+                                <input v-model="filters.namApDung" type="number" class="form-control" placeholder="Ví dụ: 2026" />
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-2">
                                 <label class="form-label">Nguồn đợt giao</label>
                                 <select v-model="filters.nguonDotGiao" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="BO_GIAO">Bo giao</option>
-                                    <option value="THANH_PHO_GIAO">Thanh pho giao</option>
+                                    <option value="BO_GIAO">Bộ giao</option>
+                                    <option value="THANH_PHO_GIAO">Thành phố giao</option>
                                 </select>
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-2">
-                                <label class="form-label">Cap giao</label>
+                                <label class="form-label">Cấp giao</label>
                                 <select v-model="filters.capGiao" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="BO">Bo</option>
-                                    <option value="THANH_PHO">Thanh pho</option>
+                                    <option value="BO">Bộ</option>
+                                    <option value="THANH_PHO">Thành phố</option>
                                 </select>
                             </div>
 
@@ -63,9 +63,9 @@
                                 <label class="form-label">Trạng thái</label>
                                 <select v-model="filters.trangThai" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="DRAFT">Nhap</option>
-                                    <option value="PUBLISHED">Da phat hanh</option>
-                                    <option value="CLOSED">Da dong</option>
+                                    <option value="DRAFT">Nháp</option>
+                                    <option value="PUBLISHED">Đã phát hành</option>
+                                    <option value="CLOSED">Đã đóng</option>
                                 </select>
                             </div>
                         </div>
@@ -87,9 +87,9 @@
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
                             <h5 class="mb-1">Danh sách đợt giao chỉ tiêu</h5>
-                            <small class="text-muted">Theo doi va quan ly du lieu dot giao</small>
+                            <small class="text-muted">Theo dõi và quản lý dữ liệu đợt giao</small>
                         </div>
-                        <span class="badge text-bg-light border">Tong: {{ items.length }}</span>
+                        <span class="badge text-bg-light border">Tổng: {{ items.length }}</span>
                     </div>
 
                     <div class="card-body p-0">
@@ -104,14 +104,15 @@
                         </div>
 
                         <div v-else class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 custom-table">
+                            <ColumnVisibilityTools table-id="DotGiaoChiTieuPage-table" />
+                            <table id="DotGiaoChiTieuPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
-                                        <th>Ma dot</th>
+                                        <th>Mã đợt</th>
                                         <th>Tên đợt giao</th>
-                                        <th>Năm ap dung</th>
+                                        <th>Năm áp dụng</th>
                                         <th>Nguồn đợt giao</th>
-                                        <th>Cap giao</th>
+                                        <th>Cấp giao</th>
                                         <th>Ngày bắt đầu</th>
                                         <th>Ngày kết thúc</th>
                                         <th>Trạng thái</th>
@@ -173,7 +174,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-4">
-                                        <label class="form-label">Năm ap dung <span class="text-danger">*</span></label>
+                                        <label class="form-label">Năm áp dụng <span class="text-danger">*</span></label>
                                         <input v-model="form.namApDung" type="number" class="form-control" min="2000" max="2100" />
                                     </div>
 
@@ -190,25 +191,25 @@
                                     <div class="col-12 col-md-4">
                                         <label class="form-label">Nguồn đợt giao <span class="text-danger">*</span></label>
                                         <select v-model="form.nguonDotGiao" class="form-select">
-                                            <option value="BO_GIAO">Bo giao</option>
-                                            <option value="THANH_PHO_GIAO">Thanh pho giao</option>
+                                            <option value="BO_GIAO">Bộ giao</option>
+                                            <option value="THANH_PHO_GIAO">Thành phố giao</option>
                                         </select>
                                     </div>
 
                                     <div class="col-12 col-md-4">
-                                        <label class="form-label">Cap giao <span class="text-danger">*</span></label>
+                                        <label class="form-label">Cấp giao <span class="text-danger">*</span></label>
                                         <select v-model="form.capGiao" class="form-select">
-                                            <option value="BO">Bo</option>
-                                            <option value="THANH_PHO">Thanh pho</option>
+                                            <option value="BO">Bộ</option>
+                                            <option value="THANH_PHO">Thành phố</option>
                                         </select>
                                     </div>
 
                                     <div class="col-12 col-md-4">
                                         <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
                                         <select v-model="form.trangThai" class="form-select">
-                                            <option value="DRAFT">Nhap</option>
-                                            <option value="PUBLISHED">Da phat hanh</option>
-                                            <option value="CLOSED">Da dong</option>
+                                            <option value="DRAFT">Nháp</option>
+                                            <option value="PUBLISHED">Đã phát hành</option>
+                                            <option value="CLOSED">Đã đóng</option>
                                         </select>
                                     </div>
 
@@ -244,6 +245,7 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
 import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 import { apiRequest } from '../../services/api.js'
 
 const loading = ref(false)
@@ -406,7 +408,7 @@ const validateForm = () => {
 
     const namApDung = Number(form.namApDung)
     if (!namApDung || namApDung < 2000 || namApDung > 2100) {
-        alert('Năm ap dung không hợp lệ.')
+        alert('Năm áp dụng không hợp lệ.')
         return false
     }
 
@@ -416,17 +418,17 @@ const validateForm = () => {
     }
 
     if (!['BO', 'THANH_PHO'].includes(form.capGiao)) {
-        alert('Cap giao không hợp lệ.')
+        alert('Cấp giao không hợp lệ.')
         return false
     }
 
     if (form.nguonDotGiao === 'BO_GIAO' && form.capGiao !== 'BO') {
-        alert('Nguồn Bo giao phai di kem cap giao la BO.')
+        alert('Nguồn Bộ giao phải đi kèm cấp giao là BO.')
         return false
     }
 
     if (form.nguonDotGiao === 'THANH_PHO_GIAO' && form.capGiao !== 'THANH_PHO') {
-        alert('Nguồn Thanh pho giao phai di kem cap giao la THANH_PHO.')
+        alert('Nguồn Thành phố giao phải đi kèm cấp giao là THANH_PHO.')
         return false
     }
 
@@ -442,7 +444,7 @@ const validateForm = () => {
     }
 
     if (form.ngayKetThuc && new Date(form.ngayKetThuc) < new Date(form.ngayBatDau)) {
-        alert('Ngày kết thúc phai lon hon hoac bang ngay bat dau.')
+        alert('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.')
         return false
     }
 
@@ -471,7 +473,7 @@ const handleSubmit = async () => {
         await fetchDotGiaoChiTieu()
     } catch (error) {
         console.error(error)
-        alert(error.message || 'Lưu đợt giao chi tieu that bai.')
+        alert(error.message || 'Lưu đợt giao chỉ tiêu thất bại.')
     } finally {
         saving.value = false
     }
@@ -499,9 +501,9 @@ const resetFilters = async () => {
     await fetchDotGiaoChiTieu()
 }
 
-const mapNguồnDotGiao = (value) => ({ BO_GIAO: 'Bo giao', THANH_PHO_GIAO: 'Thanh pho giao' }[value] || value || '-')
-const mapCapGiao = (value) => ({ BO: 'Bo', THANH_PHO: 'Thanh pho' }[value] || value || '-')
-const mapTrangThai = (value) => ({ DRAFT: 'Nhap', PUBLISHED: 'Da phat hanh', CLOSED: 'Da dong' }[value] || value || '-')
+const mapNguồnDotGiao = (value) => ({ BO_GIAO: 'Bộ giao', THANH_PHO_GIAO: 'Thành phố giao' }[value] || value || '-')
+const mapCapGiao = (value) => ({ BO: 'Bộ', THANH_PHO: 'Thành phố' }[value] || value || '-')
+const mapTrangThai = (value) => ({ DRAFT: 'Nháp', PUBLISHED: 'Đã phát hành', CLOSED: 'Đã đóng' }[value] || value || '-')
 const getStatusClass = (value) => ({ DRAFT: 'status-draft', PUBLISHED: 'status-published', CLOSED: 'status-closed' }[value] || 'status-default')
 
 const formatDateTime = (value) => {
@@ -659,6 +661,11 @@ onMounted(() => {
     }
 }
 </style>
+
+
+
+
+
 
 
 

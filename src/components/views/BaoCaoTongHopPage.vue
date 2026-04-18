@@ -100,7 +100,8 @@
                         <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                         <div v-else class="table-wrapper">
-                            <table>
+                            <ColumnVisibilityTools table-id="BaoCaoTongHopPage-table" />
+                            <table id="BaoCaoTongHopPage-table" class="managed-table">
                                 <thead>
                                     <tr>
                                         <th>STT</th>
@@ -159,6 +160,7 @@
 
 <script setup>
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
 
     const {
@@ -479,5 +481,8 @@
         }
     }
 </style>
+
+
+
 
 

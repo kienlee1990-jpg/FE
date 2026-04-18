@@ -89,7 +89,8 @@
                             Vui lòng chọn danh mục chỉ tiêu.
                         </div>
                         <div v-else class="table-wrapper">
-                            <table>
+                            <ColumnVisibilityTools table-id="XepHangDonViPage-table" />
+                            <table id="XepHangDonViPage-table" class="managed-table">
                                 <thead>
                                     <tr>
                                         <th>Hạng</th>
@@ -146,6 +147,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
     import {
         getDanhGiaBadgeClass,
@@ -870,4 +872,7 @@
         }
     }
 </style>
+
+
+
 

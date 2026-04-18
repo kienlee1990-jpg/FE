@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <BaseLayout>
         <div class="page-wrap">
             <div class="container-fluid py-4">
@@ -116,7 +116,8 @@
                     <div v-else-if="!selectedGroup" class="state empty">Chưa có nhóm thi đua để hiển thị</div>
                     <div v-else-if="rankedRows.length === 0" class="state empty">Không có dữ liệu phù hợp cho nhóm đang chọn</div>
                     <div v-else class="table-wrapper">
-                        <table>
+                        <ColumnVisibilityTools table-id="NhomThiDuaPage-table" />
+                            <table id="NhomThiDuaPage-table" class="managed-table">
                             <thead>
                                 <tr>
                                     <th v-if="visibleColumns.ranking">Hạng</th>
@@ -137,7 +138,7 @@
                                     </td>
                                     <td v-if="visibleColumns.unit">
                                         <div class="fw-semibold">{{ item.tenDonVi }}</div>
-                                        <div class="sub-label">{{ item.soKpi }} KPI được tính trong nhóm</div>
+                                            <div class="sub-label">{{ item.soKpi }} KPI được tính trong nhóm</div>
                                     </td>
                                     <td v-if="visibleColumns.soKpi" class="text-center">{{ item.soKpi }}</td>
                                     <td v-if="visibleColumns.hoanThanh" class="text-center">{{ item.hoanThanhDatChuan }}</td>
@@ -159,6 +160,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
 
@@ -374,15 +376,15 @@
     function exportCsv() {
         const rows = [
             [
-                'Hang',
-                'Don vi',
+                'Hạng',
+                'Đơn vị',
                 'So KPI',
-                'Hoan thanh/Vuot',
-                'Chua/Khong hoan thanh',
-                'Tong muc tieu',
-                'Tong luy ke',
-                'Ty le hoan thanh TB',
-                'Dot giao gan nhat'
+                'Hoàn thành/Vượt',
+                'Chưa/Không hoàn thành',
+                'Tổng mục tiêu',
+                'Tổng lũy kế',
+                'Tỷ lệ hoàn thành TB',
+                'Đợt giao gần nhất'
             ],
             ...rankedRows.value.map(item => [
                 item.ranking,
@@ -729,3 +731,6 @@
         }
     }
 </style>
+
+
+

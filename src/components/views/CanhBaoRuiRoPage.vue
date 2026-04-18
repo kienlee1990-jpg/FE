@@ -241,7 +241,8 @@
                             <div v-if="filteredRiskRows.length === 0" class="empty-panel">Không có dữ liệu cảnh báo
                             </div>
                             <div v-else class="table-wrapper">
-                                <table class="data-table">
+                                <ColumnVisibilityTools table-id="CanhBaoRuiRoPage-table" />
+                            <table id="CanhBaoRuiRoPage-table" class="data-table managed-table">
                                     <thead>
                                         <tr>
                                             <th>#</th>
@@ -296,6 +297,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
     import VueApexCharts from 'vue3-apexcharts'
     import {
@@ -1158,5 +1160,8 @@
         }
     }
 </style>
+
+
+
 
 

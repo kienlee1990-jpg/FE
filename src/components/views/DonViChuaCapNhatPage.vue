@@ -124,7 +124,8 @@
                         </div>
 
                         <div v-else class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 custom-table">
+                            <ColumnVisibilityTools table-id="DonViChuaCapNhatPage-table" />
+                            <table id="DonViChuaCapNhatPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>Kỳ báo cáo</th>
@@ -159,6 +160,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
 
     const API_PATHS = {
@@ -602,6 +604,9 @@
         }
     }
 </style>
+
+
+
 
 
 

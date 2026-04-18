@@ -250,7 +250,8 @@
                             </div>
 
                             <div v-if="expandedKeys.has(item.key)" class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 custom-table">
+                                <ColumnVisibilityTools table-id="TienDoThucHienPage-table" />
+                            <table id="TienDoThucHienPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
                                     <thead>
                                         <tr>
                                             <th>Kỳ báo cáo</th>
@@ -291,6 +292,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
 
     const API_PATHS = {
@@ -895,5 +897,8 @@
         }
     }
 </style>
+
+
+
 
 

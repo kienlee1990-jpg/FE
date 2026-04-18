@@ -88,7 +88,8 @@
                     <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                     <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                     <div v-else class="table-wrapper">
-                        <table>
+                        <ColumnVisibilityTools table-id="BaoCaoChiTieuCongAnThanhPhoPage-table" />
+                            <table id="BaoCaoChiTieuCongAnThanhPhoPage-table" class="managed-table">
                             <thead>
                                 <tr>
                                     <th>STT</th>
@@ -139,6 +140,7 @@
 <script setup>
     import { computed, onMounted } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import {
         countTrackedStatuses,
         DANH_GIA_STATUS_OPTIONS,
@@ -556,4 +558,7 @@
         }
     }
 </style>
+
+
+
 

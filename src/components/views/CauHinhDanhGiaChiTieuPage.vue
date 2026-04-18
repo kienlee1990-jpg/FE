@@ -99,7 +99,8 @@
                         </div>
 
                         <div v-else class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 custom-table">
+                            <ColumnVisibilityTools table-id="CauHinhDanhGiaChiTieuPage-table" />
+                            <table id="CauHinhDanhGiaChiTieuPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -273,6 +274,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
+import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
     import {
         DANH_GIA_TRACKED_STATUS_OPTIONS,
@@ -726,6 +728,7 @@
         }
     }
 </style>
+
 
 
 
