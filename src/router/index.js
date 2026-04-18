@@ -19,6 +19,8 @@ import GiaoChoPhongPage from "../components/views/GiaoChoPhongPage.vue"
 import GiaoChoCadpPhuongXaPage from "../components/views/GiaoChoCadpPhuongXaPage.vue"
 import KyBaoCaoPage from "../components/views/KyBaoCaoPage.vue"
 import NhapKetQuaPage from "../components/views/NhapKetQuaPage.vue"
+import NhomThiDuaPage from "../components/views/NhomThiDuaPage.vue"
+import ThietLapNhomThiDuaPage from "../components/views/ThietLapNhomThiDuaPage.vue"
 import NhatKyHeThongPage from "../components/views/NhatKyHeThongPage.vue"
 import Permissions from "../components/views/Permissions.vue"
 import SoSanhDonViPage from "../components/views/SoSanhDonViPage.vue"
@@ -148,6 +150,18 @@ const routes = [
         path: "/xep-hang-don-vi",
         name: "XepHangDonVi",
         component: XepHangDonViPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: "/thiet-lap-nhom-thi-dua",
+        name: "ThietLapNhomThiDua",
+        component: ThietLapNhomThiDuaPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: "/nhom-thi-dua",
+        name: "NhomThiDua",
+        component: NhomThiDuaPage,
         meta: { requiresAuth: true }
     },
     {

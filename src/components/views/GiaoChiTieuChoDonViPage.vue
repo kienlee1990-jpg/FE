@@ -268,18 +268,6 @@
                                     </div>
 
                                     <div class="col-12 col-md-3">
-                                        <label class="form-label">{{ scopeMeta.receiverLabel }} <span class="text-danger">*</span></label>
-                                        <select v-model.number="form.donViId" class="form-select">
-                                            <option :value="null">Chọn đơn vị</option>
-                                            <optgroup v-for="group in groupedDonViOptions" :key="group.key" :label="group.label">
-                                                <option v-for="item in group.items" :key="item.id" :value="item.id">
-                                                    {{ item.maDonVi ? `${item.maDonVi} - ` : '' }}{{ item.tenDonVi }}
-                                                </option>
-                                            </optgroup>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-3">
                                         <label class="form-label">Kỳ báo cáo <span
                                                 class="text-danger">*</span></label>
                                         <select v-model="form.tanSuatBaoCao" class="form-select">
@@ -289,7 +277,133 @@
                                         </select>
                                     </div>
 
-                                    <div v-if="selectedDot || selectedDanhMuc || selectedDonVi" class="col-12">
+                                    <div v-if="props.scope === 'CATP' || isEdit" class="col-12 col-md-6">
+                                        <label class="form-label">{{ scopeMeta.receiverLabel }} <span class="text-danger">*</span></label>
+                                        <select v-model.number="form.donViId" class="form-select" :disabled="props.scope === 'CATP'">
+                                            <option :value="null">Chọn đơn vị</option>
+                                            <optgroup v-for="group in groupedDonViOptions" :key="group.key" :label="group.label">
+                                                <option v-for="item in group.items" :key="item.id" :value="item.id">
+                                                    {{ item.maDonVi ? `${item.maDonVi} - ` : '' }}{{ item.tenDonVi }}
+                                                </option>
+                                            </optgroup>
+                                        </select>
+                                        <small v-if="props.scope === 'CATP'" class="text-muted d-block mt-1">
+                                            Màn này mặc định giao cho Công an thành phố.
+                                        </small>
+                                        <small v-else-if="isEdit" class="text-muted d-block mt-1">
+                                            Chế độ sửa giữ nguyên một đơn vị nhận của bản giao đã tạo.
+                                        </small>
+                                    </div>
+
+                                    <div v-else class="col-12">
+                                        <div class="receiver-picker">
+                                            <div class="receiver-picker-head">
+                                                <div>
+                                                    <div class="section-title mb-1">{{ scopeMeta.receiverLabel }}</div>
+                                                    <div class="text-muted small">
+                                                        Chọn nhiều đơn vị trực tiếp hoặc giao nhanh theo nhóm thi đua.
+                                                    </div>
+                                                </div>
+                                                <div class="receiver-mode-switch">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm"
+                                                        :class="form.phuongThucChonDonVi === 'DON_VI' ? 'btn-primary' : 'btn-outline-secondary'"
+                                                        @click="switchUnitSelectionMode('DON_VI')"
+                                                    >
+                                                        Chọn nhiều đơn vị
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm"
+                                                        :class="form.phuongThucChonDonVi === 'NHOM_THI_DUA' ? 'btn-primary' : 'btn-outline-secondary'"
+                                                        @click="switchUnitSelectionMode('NHOM_THI_DUA')"
+                                                    >
+                                                        Theo nhóm thi đua
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="form.phuongThucChonDonVi === 'NHOM_THI_DUA'" class="row g-3">
+                                                <div class="col-12 col-lg-5">
+                                                    <label class="form-label">Nhóm thi đua <span class="text-danger">*</span></label>
+                                                    <select v-model.number="form.nhomThiDuaId" class="form-select">
+                                                        <option :value="null">Chọn nhóm thi đua</option>
+                                                        <option v-for="group in scopedNhomThiDuaOptions" :key="group.id" :value="group.id">
+                                                            {{ group.tenNhom }} ({{ group.donVis.length }} đơn vị)
+                                                        </option>
+                                                    </select>
+                                                    <small class="text-muted d-block mt-1">
+                                                        Khi lưu, hệ thống sẽ tạo một bản giao riêng cho từng đơn vị thuộc nhóm đã chọn.
+                                                    </small>
+                                                </div>
+                                                <div class="col-12 col-lg-7">
+                                                    <label class="form-label">Đơn vị thuộc nhóm</label>
+                                                    <div class="selected-unit-board">
+                                                        <div v-if="selectedNhomThiDuaTargetUnits.length" class="selected-unit-list">
+                                                            <span v-for="unit in selectedNhomThiDuaTargetUnits" :key="`group-${unit.id}`" class="selected-unit-chip">
+                                                                {{ unit.maDonVi ? `${unit.maDonVi} - ` : '' }}{{ unit.tenDonVi }}
+                                                            </span>
+                                                        </div>
+                                                        <div v-else class="text-muted small">
+                                                            Chưa có đơn vị nào hợp lệ trong nhóm thi đua đang chọn.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div v-else class="row g-3">
+                                                <div class="col-12 col-lg-4">
+                                                    <label class="form-label">Tìm đơn vị</label>
+                                                    <input
+                                                        v-model.trim="unitSelectionKeyword"
+                                                        type="text"
+                                                        class="form-control"
+                                                        placeholder="Nhập mã hoặc tên đơn vị"
+                                                    />
+                                                </div>
+                                                <div class="col-12 col-lg-8">
+                                                    <label class="form-label">Đơn vị được chọn</label>
+                                                    <div class="selected-unit-board">
+                                                        <div v-if="selectedTargetUnits.length" class="selected-unit-list">
+                                                            <span v-for="unit in selectedTargetUnits" :key="unit.id" class="selected-unit-chip">
+                                                                {{ unit.maDonVi ? `${unit.maDonVi} - ` : '' }}{{ unit.tenDonVi }}
+                                                                <button type="button" class="btn-close btn-close-sm ms-2" aria-label="Bỏ chọn" @click="toggleDonViSelection(unit.id)"></button>
+                                                            </span>
+                                                        </div>
+                                                        <div v-else class="text-muted small">
+                                                            Chưa chọn đơn vị nào.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="selection-actions">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="toggleVisibleSelectableUnits(true)">
+                                                            Chọn tất cả đang lọc
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="toggleVisibleSelectableUnits(false)">
+                                                            Bỏ tất cả
+                                                        </button>
+                                                    </div>
+                                                    <div class="receiver-checkbox-list mt-2">
+                                                        <label v-for="unit in filteredSelectableUnits" :key="`pick-${unit.id}`" class="receiver-checkbox-item">
+                                                            <input
+                                                                :checked="form.donViIds.includes(unit.id)"
+                                                                type="checkbox"
+                                                                @change="toggleDonViSelection(unit.id)"
+                                                            />
+                                                            <span>
+                                                                <strong>{{ unit.tenDonVi }}</strong>
+                                                                <small>{{ unit.maDonVi || 'Chưa có mã' }} • {{ getDonViGroupLabel(unit.loaiDonVi, unit.tenDonVi) }}</small>
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="selectedDot || selectedDanhMuc || selectedTargetUnits.length || selectedNhomThiDua || selectedDonVi" class="col-12">
                                         <div class="selection-summary">
                                             <div v-if="selectedDot" class="selection-card">
                                                 <div class="selection-label">Đợt giao đã chọn</div>
@@ -303,7 +417,26 @@
                                                     {{ mapLoai(form.tieuChiDanhGia || selectedDanhMuc.tieuChiDanhGia || selectedDanhMuc.loaiChiTieu) }}{{ selectedDanhMuc.tieuChiDanhGias.length ? ` • ${selectedDanhMuc.tieuChiDanhGias.length} tiêu chí con` : '' }}
                                                 </div>
                                             </div>
-                                            <div v-if="selectedDonVi" class="selection-card">
+                                            <div v-if="selectedNhomThiDua && !isEdit && props.scope !== 'CATP' && form.phuongThucChonDonVi === 'NHOM_THI_DUA'" class="selection-card">
+                                                <div class="selection-label">Nhóm thi đua nhận chỉ tiêu</div>
+                                                <div class="selection-value">{{ selectedNhomThiDua.tenNhom }}</div>
+                                                <div class="selection-meta">{{ selectedNhomThiDuaTargetUnits.length }} đơn vị sẽ được tạo giao chỉ tiêu</div>
+                                            </div>
+                                            <div v-else-if="selectedTargetUnits.length" class="selection-card">
+                                                <div class="selection-label">{{ scopeMeta.receiverLabel }}</div>
+                                                <div class="selection-value">
+                                                    {{ selectedTargetUnits.length === 1 ? selectedTargetUnits[0].tenDonVi : `${selectedTargetUnits.length} đơn vị được chọn` }}
+                                                </div>
+                                                <div class="selection-meta">
+                                                    <template v-if="selectedTargetUnits.length === 1">
+                                                        {{ selectedTargetUnits[0].maDonVi || 'Chưa khai báo mã đơn vị' }} • {{ getDonViGroupLabel(selectedTargetUnits[0].loaiDonVi, selectedTargetUnits[0].tenDonVi) }}
+                                                    </template>
+                                                    <template v-else>
+                                                        {{ selectedTargetUnits.slice(0, 3).map(unit => unit.tenDonVi).join(', ') }}<span v-if="selectedTargetUnits.length > 3">...</span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <div v-else-if="selectedDonVi" class="selection-card">
                                                 <div class="selection-label">{{ scopeMeta.receiverLabel }}</div>
                                                 <div class="selection-value">{{ selectedDonVi.tenDonVi }}</div>
                                                 <div class="selection-meta">{{ selectedDonVi.maDonVi || 'Chưa khai báo mã đơn vị' }} • {{ getDonViGroupLabel(selectedDonVi.loaiDonVi, selectedDonVi.tenDonVi) }}</div>
@@ -575,7 +708,8 @@
         chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
         dotGiaoChiTieu: '/dot-giao-chi-tieu',
         danhMucChiTieu: '/danh-muc-chi-tieu',
-        donVi: '/DonVi'
+        donVi: '/DonVi',
+        nhomThiDua: '/NhomThiDua'
     }
 
     const CATP_TEN_DON_VI = 'Công an thành phố Đà Nẵng'
@@ -628,6 +762,8 @@
     const dotOptions = ref([])
     const danhMucOptions = ref([])
     const donViOptions = ref([])
+    const nhomThiDuaOptions = ref([])
+    const unitSelectionKeyword = ref('')
 
     const filters = reactive({
         dotGiaoChiTieuId: null,
@@ -640,6 +776,9 @@
         dotGiaoChiTieuId: null,
         danhMucChiTieuId: null,
         donViId: null,
+        donViIds: [],
+        nhomThiDuaId: null,
+        phuongThucChonDonVi: props.scope === 'CATP' ? 'DON_VI' : 'DON_VI',
         tanSuatBaoCao: '',
         tieuChiDanhGia: '',
         loaiMocSoSanh: '',
@@ -687,6 +826,16 @@
         tenDonVi: String(pick(item, 'tenDonVi', 'TenDonVi') || ''),
         loaiDonVi: String(pick(item, 'loaiDonVi', 'LoaiDonVi') || ''),
         tenDonViCha: String(pick(item, 'tenDonViCha', 'TenDonViCha') || '')
+    })
+
+    const normalizeNhomThiDua = (item) => ({
+        id: Number(pick(item, 'id', 'Id') || 0),
+        tenNhom: String(pick(item, 'tenNhom', 'TenNhom') || ''),
+        moTa: String(pick(item, 'moTa', 'MoTa') || ''),
+        donVis: normalizeList(pick(item, 'donVis', 'DonVis')).map((member) => ({
+            id: Number(pick(member, 'id', 'Id') || 0),
+            donViId: Number(pick(member, 'donViId', 'DonViId', 'id', 'Id') || 0)
+        }))
     })
 
     const normalizeCatalogChild = (item, index = 1) => ({
@@ -964,6 +1113,71 @@
         return scopedDonViOptions.value.find(item => item.id === Number(form.donViId)) || null
     })
 
+    const scopedNhomThiDuaOptions = computed(() =>
+        nhomThiDuaOptions.value
+            .map((group) => {
+                const donVis = group.donVis.filter((member) => {
+                    const donVi = findDonViById(member.donViId)
+                    return donVi && matchesScopeForDonVi(donVi)
+                })
+                return {
+                    ...group,
+                    donVis
+                }
+            })
+            .filter(group => group.donVis.length > 0)
+            .sort((left, right) => left.tenNhom.localeCompare(right.tenNhom, 'vi'))
+    )
+
+    const selectedNhomThiDua = computed(() => {
+        if (!form.nhomThiDuaId) return null
+        return scopedNhomThiDuaOptions.value.find(item => item.id === Number(form.nhomThiDuaId)) || null
+    })
+
+    const selectedNhomThiDuaUnitIds = computed(() => {
+        if (!selectedNhomThiDua.value) return []
+        return [...new Set(selectedNhomThiDua.value.donVis.map(item => Number(item.donViId)).filter(Boolean))]
+    })
+
+    const selectedNhomThiDuaTargetUnits = computed(() =>
+        selectedNhomThiDuaUnitIds.value
+            .map(id => findDonViById(id))
+            .filter(Boolean)
+    )
+
+    const filteredSelectableUnits = computed(() => {
+        const keyword = normalizeSearch(unitSelectionKeyword.value)
+        if (!keyword) {
+            return scopedDonViOptions.value
+        }
+
+        return scopedDonViOptions.value.filter((item) =>
+            [item.maDonVi, item.tenDonVi, item.loaiDonVi].some((value) => normalizeSearch(value).includes(keyword))
+        )
+    })
+
+    const selectedTargetUnitIds = computed(() => {
+        if (isEdit.value) {
+            return form.donViId ? [Number(form.donViId)] : []
+        }
+
+        if (props.scope === 'CATP' && defaultScopedDonVi.value) {
+            return [Number(defaultScopedDonVi.value.id)]
+        }
+
+        if (form.phuongThucChonDonVi === 'NHOM_THI_DUA') {
+            return selectedNhomThiDuaUnitIds.value
+        }
+
+        return [...new Set((form.donViIds || []).map(value => Number(value)).filter(Boolean))]
+    })
+
+    const selectedTargetUnits = computed(() =>
+        selectedTargetUnitIds.value
+            .map(id => findDonViById(id))
+            .filter(Boolean)
+    )
+
     const scopedDonViOptions = computed(() => {
         return donViOptions.value.filter(matchesScopeForDonVi)
     })
@@ -1128,6 +1342,44 @@
         hydrateTargetsFromDanhMuc()
     })
 
+    const switchUnitSelectionMode = (mode) => {
+        if (props.scope === 'CATP' || isEdit.value) return
+        form.phuongThucChonDonVi = mode
+        if (mode === 'DON_VI') {
+            form.nhomThiDuaId = null
+        } else {
+            form.donViIds = []
+        }
+    }
+
+    const toggleDonViSelection = (donViId) => {
+        const normalizedId = Number(donViId)
+        const currentValues = new Set((form.donViIds || []).map(value => Number(value)).filter(Boolean))
+
+        if (currentValues.has(normalizedId)) {
+            currentValues.delete(normalizedId)
+        } else {
+            currentValues.add(normalizedId)
+        }
+
+        form.donViIds = Array.from(currentValues)
+    }
+
+    const toggleVisibleSelectableUnits = (shouldSelect) => {
+        const visibleIds = filteredSelectableUnits.value.map(item => Number(item.id)).filter(Boolean)
+        const currentValues = new Set((form.donViIds || []).map(value => Number(value)).filter(Boolean))
+
+        visibleIds.forEach((id) => {
+            if (shouldSelect) {
+                currentValues.add(id)
+            } else {
+                currentValues.delete(id)
+            }
+        })
+
+        form.donViIds = Array.from(currentValues)
+    }
+
     const ensureCriterionDefaults = (target) => {
         const criterion = target?.tieuChiDanhGia || target?.loaiChiTieu
         if (!criterion) return
@@ -1181,14 +1433,15 @@
     const applyScopeDefaultDonVi = () => {
         if (props.scope === 'CATP' && defaultScopedDonVi.value) {
             form.donViId = Number(defaultScopedDonVi.value.id)
+            form.donViIds = [Number(defaultScopedDonVi.value.id)]
         }
     }
 
-    const buildPayload = () => ({
+    const buildPayloadForDonVi = (donViId) => ({
         dotGiaoChiTieuId: form.dotGiaoChiTieuId,
         danhMucChiTieuId: form.danhMucChiTieuId,
-        donViNhanId: getResolvedDonViId(),
-        donViThucHienChinhId: getResolvedDonViId(),
+        donViNhanId: Number(donViId),
+        donViThucHienChinhId: Number(donViId),
         tanSuatBaoCao: form.tanSuatBaoCao || null,
         tieuChiDanhGia: form.tieuChiDanhGia || null,
         quyTacDanhGia: isQualitative(form.tieuChiDanhGia || selectedDanhMuc.value?.loaiChiTieu) ? null : form.quyTacDanhGia || null,
@@ -1260,8 +1513,8 @@
             return false
         }
 
-        if (!getResolvedDonViId()) {
-            alert(`Vui lòng chọn ${scopeMeta.value.receiverLabel.toLowerCase()}.`)
+        if (!selectedTargetUnitIds.value.length) {
+            alert(`Vui lòng chọn ít nhất một ${scopeMeta.value.receiverLabel.toLowerCase()}.`)
             return false
         }
 
@@ -1347,17 +1600,19 @@
     const loadData = async () => {
         try {
             loading.value = true
-            const [chiTietData, dotData, danhMucData, donViData] = await Promise.all([
+            const [chiTietData, dotData, danhMucData, donViData, nhomThiDuaData] = await Promise.all([
                 apiRequest(API_PATHS.chiTietGiaoChiTieu),
                 apiRequest(API_PATHS.dotGiaoChiTieu),
                 apiRequest(API_PATHS.danhMucChiTieu),
-                apiRequest(API_PATHS.donVi)
+                apiRequest(API_PATHS.donVi),
+                apiRequest(API_PATHS.nhomThiDua)
             ])
 
             items.value = normalizeList(chiTietData).map(normalizeAssignment)
             dotOptions.value = normalizeList(dotData).map(normalizeDot)
             danhMucOptions.value = normalizeList(danhMucData).map(normalizeDanhMuc)
             donViOptions.value = normalizeList(donViData).map(normalizeDonVi)
+            nhomThiDuaOptions.value = normalizeList(nhomThiDuaData).map(normalizeNhomThiDua)
             applyScopeDefaultDonVi()
         } catch (error) {
             console.error(error)
@@ -1366,6 +1621,7 @@
             dotOptions.value = []
             danhMucOptions.value = []
             donViOptions.value = []
+            nhomThiDuaOptions.value = []
         } finally {
             loading.value = false
         }
@@ -1387,6 +1643,9 @@
             dotGiaoChiTieuId: item.dotGiaoChiTieuId,
             danhMucChiTieuId: item.danhMucChiTieuId,
             donViId: item.donViNhanId,
+            donViIds: item.donViNhanId ? [item.donViNhanId] : [],
+            nhomThiDuaId: null,
+            phuongThucChonDonVi: 'DON_VI',
             tanSuatBaoCao: item.tanSuatBaoCao,
             tieuChiDanhGia: item.tieuChiDanhGia || item.loaiChiTieu || '',
             loaiMocSoSanh: item.loaiMocSoSanh || '',
@@ -1416,12 +1675,16 @@
 
         try {
             saving.value = true
-            const payload = buildPayload()
 
             if (isEdit.value && editingId.value) {
+                const payload = buildPayloadForDonVi(getResolvedDonViId())
                 await apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/${editingId.value}`, 'PUT', payload)
             } else {
-                await apiRequest(API_PATHS.chiTietGiaoChiTieu, 'POST', payload)
+                const targetIds = selectedTargetUnitIds.value
+                for (const donViId of targetIds) {
+                    const payload = buildPayloadForDonVi(donViId)
+                    await apiRequest(API_PATHS.chiTietGiaoChiTieu, 'POST', payload)
+                }
             }
 
             closeModal()
@@ -1472,9 +1735,18 @@
         () => {
             if (props.scope === 'CATP' && defaultScopedDonVi.value) {
                 form.donViId = Number(defaultScopedDonVi.value.id)
+                form.donViIds = [Number(defaultScopedDonVi.value.id)]
             }
         },
         { immediate: true }
+    )
+
+    watch(
+        () => form.nhomThiDuaId,
+        () => {
+            if (form.phuongThucChonDonVi !== 'NHOM_THI_DUA') return
+            form.donViIds = []
+        }
     )
 
     onMounted(() => {
@@ -1634,6 +1906,101 @@
         color: #64748b;
         font-size: 0.875rem;
         margin-top: 4px;
+    }
+
+    .receiver-picker {
+        border: 1px solid #dbeafe;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-radius: 20px;
+        padding: 18px;
+    }
+
+    .receiver-picker-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .receiver-mode-switch {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .selected-unit-board {
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 1px solid #dbe3ef;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .selected-unit-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .selected-unit-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e3a8a;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .selection-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .receiver-checkbox-list {
+        max-height: 260px;
+        overflow: auto;
+        border: 1px solid #dbe3ef;
+        border-radius: 16px;
+        background: #fff;
+        padding: 10px;
+    }
+
+    .receiver-checkbox-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 8px;
+        border-radius: 12px;
+    }
+
+    .receiver-checkbox-item:hover {
+        background: #f8fbff;
+    }
+
+    .receiver-checkbox-item input {
+        margin-top: 4px;
+        flex-shrink: 0;
+    }
+
+    .receiver-checkbox-item span {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .receiver-checkbox-item small {
+        color: #64748b;
+    }
+
+    @media (max-width: 767.98px) {
+        .receiver-picker-head {
+            flex-direction: column;
+        }
     }
 </style>
 

@@ -19,10 +19,94 @@
                             class="gov-emblem" />
                     </div>
 
-                    <button class="btn btn-primary btn-action" @click="openCreateModal">
-                        <i class="bi bi-plus-circle me-2"></i>
-                        Tạo đơn vị
-                    </button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-outline-primary btn-action" @click="openImportFilePicker" :disabled="importing">
+                            <i class="bi bi-file-earmark-excel me-2"></i>
+                            {{ importing ? 'Đang nhập...' : 'Nhập từ Excel' }}
+                        </button>
+                        <button class="btn btn-primary btn-action" @click="openCreateModal">
+                            <i class="bi bi-plus-circle me-2"></i>
+                            Tạo đơn vị
+                        </button>
+                    </div>
+                </div>
+
+                <input
+                    ref="importFileInput"
+                    type="file"
+                    class="d-none"
+                    accept=".xlsx,.xls"
+                    @change="handleImportFileChange"
+                />
+
+                <div class="card custom-card mb-4 import-guide-card">
+                    <div class="card-body">
+                        <div class="import-guide-head">
+                            <div>
+                                <h5 class="mb-1">Hướng dẫn nhập Excel</h5>
+                                <small class="text-muted">Hệ thống đọc sheet đầu tiên và tạo đơn vị theo từng dòng.</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
+                                <i class="bi bi-download me-1"></i>
+                                Tải mẫu CSV
+                            </button>
+                        </div>
+
+                        <div class="import-guide-columns">
+                            <span class="guide-chip">Mã đơn vị</span>
+                            <span class="guide-chip">Tên đơn vị</span>
+                            <span class="guide-chip">Loại đơn vị</span>
+                            <span class="guide-chip">Mã đơn vị cha</span>
+                            <span class="guide-chip">Người đại diện</span>
+                            <span class="guide-chip">Số điện thoại</span>
+                            <span class="guide-chip">Email</span>
+                            <span class="guide-chip">Địa chỉ</span>
+                            <span class="guide-chip">Ghi chú</span>
+                        </div>
+
+                        <div class="text-muted small mt-2">
+                            Loại đơn vị chấp nhận: <strong>THANH_PHO</strong>, <strong>PHONG</strong>, <strong>XA</strong>
+                            hoặc nhãn tương đương như <strong>Thành phố</strong>, <strong>Cấp phòng</strong>, <strong>Xã/Phường</strong>.
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="importResult" class="card custom-card mb-4">
+                    <div class="card-body">
+                        <div class="import-result-head">
+                            <div>
+                                <h5 class="mb-1">Kết quả nhập Excel</h5>
+                                <small class="text-muted">{{ importResult.fileName }}</small>
+                            </div>
+                            <span class="badge text-bg-light border">Tổng dòng: {{ importResult.totalRows }}</span>
+                        </div>
+
+                        <div class="import-result-grid">
+                            <div class="result-box success">
+                                <span>Thành công</span>
+                                <strong>{{ importResult.createdCount }}</strong>
+                            </div>
+                            <div class="result-box warning">
+                                <span>Bỏ qua</span>
+                                <strong>{{ importResult.skippedCount }}</strong>
+                            </div>
+                            <div class="result-box danger">
+                                <span>Lỗi</span>
+                                <strong>{{ importResult.failedCount }}</strong>
+                            </div>
+                        </div>
+
+                        <div v-if="importResult.messages.length" class="import-message-list">
+                            <div
+                                v-for="(message, index) in importResult.messages"
+                                :key="`${message.type}-${index}`"
+                                class="import-message-item"
+                                :class="message.type"
+                            >
+                                {{ message.text }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card custom-card mb-4">
@@ -228,15 +312,19 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
+    import * as XLSX from 'xlsx'
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api.js'
 
     const loading = ref(false)
     const saving = ref(false)
+    const importing = ref(false)
     const showModal = ref(false)
     const isEdit = ref(false)
     const editingId = ref(null)
     const items = ref([])
+    const importFileInput = ref(null)
+    const importResult = ref(null)
 
     const filters = reactive({
         keyword: '',
@@ -254,6 +342,21 @@
         soDienThoai: '',
         email: '',
         ghiChu: ''
+    })
+
+    const createEmptyImportRow = (rowNumber) => ({
+        rowNumber,
+        maDonVi: '',
+        tenDonVi: '',
+        loaiDonVi: '',
+        maDonViCha: '',
+        donViChaId: null,
+        nguoiDaiDien: '',
+        soDienThoai: '',
+        email: '',
+        diaChi: '',
+        ghiChu: '',
+        errors: []
     })
 
     const form = reactive(createDefaultForm())
@@ -299,6 +402,292 @@
         email: form.email?.trim() || null,
         ghiChu: form.ghiChu?.trim() || null
     })
+
+    const normalizeImportHeader = (value) =>
+        String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^A-Za-z0-9]/g, '')
+            .trim()
+            .toUpperCase()
+
+    const normalizeImportValue = (value) => String(value || '').trim().toUpperCase()
+
+    const getImportCell = (source, keys) => {
+        for (const key of keys) {
+            const value = source.get(key)
+            if (value !== undefined && value !== null && String(value).trim() !== '') {
+                return String(value).trim()
+            }
+        }
+        return ''
+    }
+
+    const getNumericImportCell = (source, keys) => {
+        const rawValue = getImportCell(source, keys)
+        if (!rawValue) return null
+        const parsedValue = Number(rawValue)
+        return Number.isFinite(parsedValue) ? parsedValue : null
+    }
+
+    const normalizeImportedLoaiDonVi = (value) => {
+        const normalized = normalizeImportHeader(value)
+        if (!normalized) return ''
+        if (['THANHPHO', 'CAPTHANHPHO', 'THANH_PHO', 'TP'].includes(normalized)) return 'THANH_PHO'
+        if (['PHONG', 'CAPPHONG'].includes(normalized)) return 'PHONG'
+        if (['XA', 'PHUONG', 'XAPHUONG', 'CAPXA', 'CAPPHUONG'].includes(normalized)) return 'XA'
+        return ''
+    }
+
+    const mapImportRow = (row, rowNumber) => {
+        const mapped = createEmptyImportRow(rowNumber)
+        const source = new Map(
+            Object.entries(row).map(([key, value]) => [normalizeImportHeader(key), value])
+        )
+
+        mapped.maDonVi = getImportCell(source, ['MADONVI', 'MA_DON_VI'])
+        mapped.tenDonVi = getImportCell(source, ['TENDONVI', 'TEN_DON_VI'])
+        mapped.loaiDonVi = normalizeImportedLoaiDonVi(getImportCell(source, ['LOAIDONVI', 'LOAI_DON_VI']))
+        mapped.maDonViCha = getImportCell(source, ['MADONVICHA', 'MA_DON_VI_CHA', 'DONVICHAMA', 'DON_VI_CHA_MA'])
+        mapped.donViChaId = getNumericImportCell(source, ['DONVICHAID', 'DON_VI_CHA_ID'])
+        mapped.nguoiDaiDien = getImportCell(source, ['NGUOIDAIDIEN', 'NGUOI_DAI_DIEN'])
+        mapped.soDienThoai = getImportCell(source, ['SODIENTHOAI', 'SO_DIEN_THOAI'])
+        mapped.email = getImportCell(source, ['EMAIL'])
+        mapped.diaChi = getImportCell(source, ['DIACHI', 'DIA_CHI'])
+        mapped.ghiChu = getImportCell(source, ['GHICHU', 'GHI_CHU'])
+
+        if (!mapped.maDonVi) mapped.errors.push('Thiếu mã đơn vị.')
+        if (!mapped.tenDonVi) mapped.errors.push('Thiếu tên đơn vị.')
+        if (!mapped.loaiDonVi) mapped.errors.push('Loại đơn vị không hợp lệ.')
+        if (mapped.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mapped.email)) {
+            mapped.errors.push('Email không đúng định dạng.')
+        }
+
+        return mapped
+    }
+
+    const prepareImportRows = (rows) => {
+        const duplicatedCodes = new Set()
+        const seenCodes = new Set()
+
+        const prepared = rows.map((row, index) => {
+            const mapped = mapImportRow(row, index + 2)
+            const normalizedCode = normalizeImportValue(mapped.maDonVi)
+
+            if (normalizedCode) {
+                if (seenCodes.has(normalizedCode)) duplicatedCodes.add(normalizedCode)
+                seenCodes.add(normalizedCode)
+            }
+
+            return mapped
+        })
+
+        prepared.forEach((item) => {
+            if (duplicatedCodes.has(normalizeImportValue(item.maDonVi))) {
+                item.errors.push(`Mã đơn vị "${item.maDonVi}" bị trùng trong file import.`)
+            }
+        })
+
+        return prepared
+    }
+
+    const executeImportRows = async (rows) => {
+        const summary = {
+            fileName: '',
+            totalRows: rows.length,
+            createdCount: 0,
+            skippedCount: 0,
+            failedCount: 0,
+            messages: []
+        }
+
+        const unitByCode = new Map(
+            items.value
+                .filter(item => item.maDonVi)
+                .map(item => [normalizeImportValue(item.maDonVi), item])
+        )
+
+        const pending = [...rows]
+        const unresolved = []
+
+        while (pending.length) {
+            let progress = false
+            const currentBatch = [...pending]
+            pending.length = 0
+
+            for (const row of currentBatch) {
+                const rowCode = normalizeImportValue(row.maDonVi)
+                if (unitByCode.has(rowCode)) {
+                    summary.skippedCount += 1
+                    summary.messages.push({
+                        type: 'warning',
+                        text: `Dòng ${row.rowNumber}: mã đơn vị "${row.maDonVi}" đã tồn tại, bỏ qua.`
+                    })
+                    progress = true
+                    continue
+                }
+
+                let parentId = row.donViChaId
+                if (!parentId && row.maDonViCha) {
+                    const parent = unitByCode.get(normalizeImportValue(row.maDonViCha))
+                    if (!parent) {
+                        pending.push(row)
+                        continue
+                    }
+                    parentId = parent.id
+                }
+
+                try {
+                    const created = await apiRequest('/DonVi', 'POST', {
+                        maDonVi: row.maDonVi,
+                        tenDonVi: row.tenDonVi,
+                        loaiDonVi: row.loaiDonVi,
+                        donViChaId: parentId || null,
+                        diaChi: row.diaChi || null,
+                        nguoiDaiDien: row.nguoiDaiDien || null,
+                        soDienThoai: row.soDienThoai || null,
+                        email: row.email || null,
+                        ghiChu: row.ghiChu || null
+                    })
+
+                    const normalizedCreated = {
+                        ...created,
+                        id: created?.id ?? created?.Id ?? 0,
+                        maDonVi: created?.maDonVi ?? created?.MaDonVi ?? row.maDonVi,
+                        tenDonVi: created?.tenDonVi ?? created?.TenDonVi ?? row.tenDonVi
+                    }
+
+                    if (normalizedCreated.id) {
+                        unitByCode.set(normalizeImportValue(normalizedCreated.maDonVi), normalizedCreated)
+                    }
+
+                    summary.createdCount += 1
+                    summary.messages.push({
+                        type: 'success',
+                        text: `Dòng ${row.rowNumber}: đã tạo đơn vị "${row.tenDonVi}".`
+                    })
+                    progress = true
+                } catch (error) {
+                    summary.failedCount += 1
+                    summary.messages.push({
+                        type: 'danger',
+                        text: `Dòng ${row.rowNumber}: ${error?.message || 'tạo đơn vị thất bại'}.`
+                    })
+                    progress = true
+                }
+            }
+
+            if (!progress) {
+                unresolved.push(...pending.splice(0, pending.length))
+                break
+            }
+        }
+
+        unresolved.forEach((row) => {
+            summary.failedCount += 1
+            summary.messages.push({
+                type: 'danger',
+                text: `Dòng ${row.rowNumber}: không tìm thấy mã đơn vị cha "${row.maDonViCha}" để tạo bản ghi này.`
+            })
+        })
+
+        return summary
+    }
+
+    const importDonViFromExcel = async (file) => {
+        try {
+            importing.value = true
+            importResult.value = null
+
+            const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+            const firstSheetName = workbook.SheetNames?.[0]
+            if (!firstSheetName) {
+                alert('Không tìm thấy sheet nào trong file Excel.')
+                return
+            }
+
+            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { defval: '' })
+            if (!rows.length) {
+                alert('File Excel không có dữ liệu để nhập.')
+                return
+            }
+
+            const preparedRows = prepareImportRows(rows)
+            const validRows = preparedRows.filter(item => item.errors.length === 0)
+            const invalidRows = preparedRows.filter(item => item.errors.length > 0)
+
+            const previewMessage = [
+                `File: ${file.name}`,
+                `Tổng dòng dữ liệu: ${rows.length}`,
+                `Hợp lệ: ${validRows.length}`,
+                `Lỗi khi đọc file: ${invalidRows.length}`,
+                '',
+                'Tiếp tục nhập các dòng hợp lệ vào hệ thống?'
+            ].join('\n')
+
+            if (!window.confirm(previewMessage)) {
+                return
+            }
+
+            const summary = await executeImportRows(validRows)
+            summary.messages.unshift(
+                ...invalidRows.flatMap(item => item.errors.map(error => ({
+                    type: 'danger',
+                    text: `Dòng ${item.rowNumber}: ${error}`
+                })))
+            )
+            summary.failedCount += invalidRows.length
+            summary.totalRows = rows.length
+            summary.fileName = file.name
+            importResult.value = summary
+
+            await fetchDonVi()
+            alert(`Nhập Excel hoàn tất. Thành công: ${summary.createdCount}, bỏ qua: ${summary.skippedCount}, lỗi: ${summary.failedCount}.`)
+        } catch (error) {
+            console.error(error)
+            alert(error.message || 'Nhập dữ liệu từ Excel thất bại.')
+        } finally {
+            importing.value = false
+        }
+    }
+
+    const openImportFilePicker = () => {
+        importFileInput.value?.click()
+    }
+
+    const handleImportFileChange = async (event) => {
+        const file = event.target?.files?.[0]
+        if (!file) return
+
+        try {
+            await importDonViFromExcel(file)
+        } finally {
+            event.target.value = ''
+        }
+    }
+
+    const downloadImportTemplate = () => {
+        const headers = ['MaDonVi', 'TenDonVi', 'LoaiDonVi', 'MaDonViCha', 'NguoiDaiDien', 'SoDienThoai', 'Email', 'DiaChi', 'GhiChu']
+        const sampleRows = [
+            ['CATP', 'Công an thành phố Đà Nẵng', 'THANH_PHO', '', '', '', '', '', ''],
+            ['P01', 'Phòng An ninh nội địa', 'PHONG', 'CATP', '', '', '', '', ''],
+            ['CA_HAI_CHAU', 'Công an phường Hải Châu', 'XA', 'CATP', '', '', '', '', '']
+        ]
+
+        const csvContent = [headers, ...sampleRows]
+            .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+            .join('\n')
+
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', 'mau-import-don-vi.csv')
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+    }
 
     const fetchDonVi = async () => {
         try {
@@ -578,6 +967,106 @@
         flex-direction: column;
         color: #64748b;
         font-weight: 500;
+    }
+
+    .import-guide-head,
+    .import-result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 14px;
+    }
+
+    .import-guide-columns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .guide-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .import-result-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .result-box {
+        min-width: 140px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid #dbe2ea;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .result-box span {
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .result-box strong {
+        font-size: 1.35rem;
+        color: #1f2937;
+    }
+
+    .result-box.success {
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+    }
+
+    .result-box.warning {
+        border-color: #fde68a;
+        background: #fffbeb;
+    }
+
+    .result-box.danger {
+        border-color: #fecaca;
+        background: #fef2f2;
+    }
+
+    .import-message-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 16px;
+        max-height: 280px;
+        overflow: auto;
+    }
+
+    .import-message-item {
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+    }
+
+    .import-message-item.success {
+        background: #f0fdf4;
+        color: #166534;
+    }
+
+    .import-message-item.warning {
+        background: #fffbeb;
+        color: #92400e;
+    }
+
+    .import-message-item.danger {
+        background: #fef2f2;
+        color: #991b1b;
     }
 
     .custom-modal {

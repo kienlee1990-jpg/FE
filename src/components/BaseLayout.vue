@@ -132,6 +132,12 @@
                         <RouterLink to="/xep-hang-don-vi" class="sub-item" active-class="active">
                             Xếp hạng đơn vị
                         </RouterLink>
+                        <RouterLink to="/thiet-lap-nhom-thi-dua" class="sub-item" active-class="active">
+                            Thiết lập nhóm thi đua
+                        </RouterLink>
+                        <RouterLink to="/nhom-thi-dua" class="sub-item" active-class="active">
+                            Nhóm thi đua
+                        </RouterLink>
                     </div>
                 </div>
             </nav>
