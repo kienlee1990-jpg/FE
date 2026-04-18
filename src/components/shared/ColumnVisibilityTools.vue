@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
-.table-tools{position:relative;display:flex;justify-content:flex-end;margin-bottom:14px}
+.table-tools{position:sticky;left:0;display:flex;justify-content:flex-end;align-items:center;width:100%;margin-bottom:14px;padding-left:12px;z-index:5}
 .table-tools-trigger{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border:1px solid #d7deea;border-radius:999px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);color:#0f172a;font-size:13px;font-weight:700;box-shadow:0 10px 22px rgba(15,23,42,.06);transition:all .18s ease}
 .table-tools-trigger:hover{background:#eef6ff;border-color:#bfdbfe;transform:translateY(-1px)}
 .table-tools-menu{position:absolute;right:0;top:calc(100% + 8px);width:300px;max-height:360px;overflow:auto;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 18px 40px rgba(15,23,42,.16);z-index:40}

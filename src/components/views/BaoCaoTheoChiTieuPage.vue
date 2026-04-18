@@ -80,7 +80,8 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
-                                        <th>Tên chỉ tiêu</th>
+                                        <th>Danh mục chỉ tiêu</th>
+                                        <th>Chỉ tiêu giao</th>
                                         <th>Số đơn vị đánh giá</th>
                                         <th>Tổng mục tiêu</th>
                                         <th>Tổng đầu kỳ</th>
@@ -97,11 +98,12 @@
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="14" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="15" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
                                     <tr v-for="(row, index) in filteredRows" :key="row.maChiTieu || index">
                                         <td>{{ index + 1 }}</td>
-                                        <td>{{ row.tenChiTieu || '-' }}</td>
+                                        <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
+                                        <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
                                         <td class="text-center">{{ row.soDonVi }}</td>
                                         <td class="text-right">{{ formatNumber(row.tongMucTieu) }}</td>
                                         <td class="text-right">{{ formatNumber(row.tongDauKy) }}</td>
@@ -173,7 +175,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             if (!grouped.has(key)) {
                 grouped.set(key, {
                     maChiTieu: item.maChiTieu || '',
+                    tenDanhMucChiTieu: item.tenDanhMucChiTieu || item.tenChiTieu || '',
                     tenChiTieu: item.tenChiTieu || '',
+                    tenChiTieuGiao: item.tenChiTieuGiao || item.tenChiTieuCha || '',
+                    tenChiTieuCha: item.tenChiTieuCha || '',
                     soDonVi: 0,
                     tongMucTieu: 0,
                     tongDauKy: 0,
@@ -216,7 +221,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
             return {
                 maChiTieu: item.maChiTieu,
+                tenDanhMucChiTieu: item.tenDanhMucChiTieu,
                 tenChiTieu: item.tenChiTieu,
+                tenChiTieuGiao: item.tenChiTieuGiao,
+                tenChiTieuCha: item.tenChiTieuCha,
                 soDonVi: item.soDonVi,
                 tongMucTieu: item.tongMucTieu,
                 tongDauKy: item.tongDauKy,
@@ -239,7 +247,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         if (filters.keyword) {
             const keyword = normalizeText(filters.keyword)
             data = data.filter(item =>
-                [item.maChiTieu, item.tenChiTieu]
+                [item.maChiTieu, item.tenDanhMucChiTieu, item.tenChiTieu, item.tenChiTieuGiao, item.tenChiTieuCha]
                     .filter(Boolean)
                     .some(value => normalizeText(value).includes(keyword))
             )

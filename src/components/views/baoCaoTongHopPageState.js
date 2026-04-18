@@ -246,8 +246,10 @@ export function useBaoCaoTongHopPage() {
       groupKey: String(assignment.id),
       chiTietGiaoChiTieuId: assignment.id,
       maChiTieu: assignment.maChiTieu || '-',
-      tenChiTieu: assignment.tenChiTieu || '-',
+      tenDanhMucChiTieu: assignment.tenDanhMucChiTieu || assignment.tenChiTieu || '-',
+      tenChiTieu: assignment.tenDanhMucChiTieu || assignment.tenChiTieu || '-',
       tenChiTieuCha: assignment.tenChiTieuCha || '',
+      tenChiTieuGiao: assignment.giaTriMucTieuText || assignment.tenChiTieuCha || '',
       tenDonViNhan: assignment.tenDonViNhan || '-',
       maDotGiaoChiTieu: assignment.maDotGiaoChiTieu || '',
       tenDotGiaoChiTieu: assignment.tenDotGiaoChiTieu || '-',
@@ -392,11 +394,19 @@ export function useBaoCaoTongHopPage() {
         pick(rawItem, 'maDanhMucChiTieu', 'MaDanhMucChiTieu', 'maChiTieu', 'MaChiTieu') ||
         pick(danhMuc, 'maChiTieu', 'MaChiTieu') ||
         '',
+      tenDanhMucChiTieu:
+        pick(rawItem, 'tenDanhMucChiTieu', 'TenDanhMucChiTieu', 'tenChiTieu', 'TenChiTieu') ||
+        pick(danhMuc, 'tenChiTieu', 'TenChiTieu') ||
+        '',
       tenChiTieu:
         pick(rawItem, 'tenDanhMucChiTieu', 'TenDanhMucChiTieu', 'tenChiTieu', 'TenChiTieu') ||
         pick(danhMuc, 'tenChiTieu', 'TenChiTieu') ||
         '',
       tenChiTieuCha: parentAssignment?.tenChiTieu || '',
+      giaTriMucTieuText:
+        pick(rawItem, 'giaTriMucTieuText', 'GiaTriMucTieuText') ||
+        parentAssignment?.giaTriMucTieuText ||
+        '',
       maDotGiaoChiTieu:
         pick(rawItem, 'maDotGiaoChiTieu', 'MaDotGiaoChiTieu') ||
         pick(dotGiao, 'maDotGiao', 'MaDotGiao') ||
@@ -603,8 +613,8 @@ export function useBaoCaoTongHopPage() {
   function exportCsv() {
     const headers = [
       'Mã chỉ tiêu',
-      'Tên chỉ tiêu',
-      'Chỉ tiêu cha',
+      'Tên danh mục chỉ tiêu',
+      'Chỉ tiêu giao',
       'Đơn vị',
       'Mã đợt giao',
       'Đợt giao chỉ tiêu',
@@ -633,8 +643,8 @@ export function useBaoCaoTongHopPage() {
 
     const csvRows = filteredRows.value.map(item => [
       item.maChiTieu || '',
-      item.tenChiTieu || '',
-      item.tenChiTieuCha || '',
+      item.tenDanhMucChiTieu || item.tenChiTieu || '',
+      item.tenChiTieuGiao || item.tenChiTieuCha || '',
       item.tenDonViNhan || '',
       item.maDotGiaoChiTieu || '',
       item.tenDotGiaoChiTieu || '',

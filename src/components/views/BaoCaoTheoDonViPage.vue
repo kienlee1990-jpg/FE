@@ -298,7 +298,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     function buildItemLabel(item) {
         if (!item) return ''
-        return [item.maChiTieu, item.tenChiTieu].filter(Boolean).join(' - ')
+        const tenDanhMuc = item.tenDanhMucChiTieu || item.tenChiTieu || ''
+        const chiTieuGiao = item.tenChiTieuGiao || item.tenChiTieuCha || ''
+        return [
+            item.maChiTieu,
+            tenDanhMuc,
+            chiTieuGiao ? `Chỉ tiêu giao: ${chiTieuGiao}` : ''
+        ].filter(Boolean).join(' - ')
     }
 
     function getDominantStatus(statusCounts) {

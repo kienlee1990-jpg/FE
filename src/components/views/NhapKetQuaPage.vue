@@ -113,9 +113,11 @@
                                         <th>Kỳ báo cáo</th>
                                         <th>Chỉ tiêu giao</th>
                                         <th>Đầu kỳ</th>
+                                        <th>Phát sinh trong kỳ</th>
                                         <th>Thực hiện trong kỳ</th>
                                         <th>Cuối kỳ</th>
                                         <th>Lũy kế</th>
+                                        <th>Phát sinh lũy kế</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
                                 </thead>
@@ -137,10 +139,12 @@
                                             </small>
                                         </td>
                                         <td>{{ formatNumber(item.GiaTriDauKy ?? item.giaTriDauKy) }}</td>
+                                        <td>{{ formatNumber(item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy) }}</td>
                                         <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy) }}
                                         </td>
                                         <td>{{ formatNumber(item.GiaTriCuoiKy ?? item.giaTriCuoiKy) }}</td>
                                         <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe) }}</td>
+                                        <td>{{ formatNumber(item.GiaTriPhatSinhLuyKe ?? item.giaTriPhatSinhLuyKe) }}</td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
                                                 <button class="btn btn-sm btn-outline-primary"
@@ -277,7 +281,16 @@
                                     </div>
 
                                     <template v-else>
-                                        <div v-if="isDinhLuongSoSanh" class="col-12">
+                                        <div v-if="isTyLeSoSanh" class="col-12">
+                                            <div class="alert alert-secondary mb-0">
+                                                <i class="bi bi-percent me-2"></i>
+                                                Hệ thống sẽ tự tính <strong>{{ comparisonKindLabel }}</strong> theo công thức
+                                                <strong>thực hiện lũy kế / phát sinh lũy kế</strong>, sau đó so với mục tiêu
+                                                <strong>{{ comparisonRuleLabel }}</strong>.
+                                            </div>
+                                        </div>
+
+                                        <div v-else-if="isDinhLuongSoSanh" class="col-12">
                                             <div class="alert alert-secondary mb-0">
                                                 <i class="bi bi-graph-up-arrow me-2"></i>
                                                 Hệ thống sẽ tự tính tỷ lệ hoàn thành dựa trên kết quả kỳ này, mốc so
@@ -308,6 +321,14 @@
                                             </small>
                                         </div>
 
+                                        <div v-if="isTyLeSoSanh" class="col-12 col-md-4">
+                                            <label class="form-label">
+                                                Giá trị phát sinh trong kỳ <span class="text-danger">*</span>
+                                            </label>
+                                            <input v-model.number="form.giaTriPhatSinhTrongKy" type="number" step="0.01"
+                                                min="0" class="form-control" placeholder="Nhập giá trị phát sinh trong kỳ báo cáo" />
+                                        </div>
+
                                         <div class="col-12 col-md-4">
                                             <label class="form-label">
                                                 {{ currentValueLabel }} <span class="text-danger">*</span>
@@ -320,6 +341,17 @@
                                             <label class="form-label">Giá trị cuối kỳ</label>
                                             <input :value="formatEditableNumber(giaTriCuoiKyPreview)" type="text"
                                                 class="form-control" readonly />
+                                        </div>
+
+                                        <div v-if="isTyLeSoSanh" class="col-12 col-md-4">
+                                            <label class="form-label">Phát sinh lũy kế</label>
+                                            <input :value="formatEditableNumber(giaTriPhatSinhLuyKePreview)" type="text"
+                                                class="form-control" readonly />
+                                        </div>
+
+                                        <div v-if="isTyLeSoSanh" class="col-12 col-md-4">
+                                            <label class="form-label">Tỷ lệ lũy kế dự kiến</label>
+                                            <input :value="tyLeTySoPreviewText" type="text" class="form-control" readonly />
                                         </div>
                                     </template>
 
@@ -388,6 +420,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         donViNhanId: null,
         chiTietGiaoChiTieuId: null,
         kyBaoCaoKPIId: null,
+        giaTriPhatSinhTrongKy: 0,
         giaTriThucHienTrongKy: 0,
         nhanXet: ''
     })
@@ -563,6 +596,17 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
 
         return map[String(value || '').trim().toUpperCase()] || 'mốc cấu hình'
+    }
+
+    const mapKieuSoSanh = (value) => {
+        switch (normalizeCode(value)) {
+        case 'TY_LE':
+            return 'Tỷ lệ thực hiện / phát sinh'
+        case 'CHENH_LECH':
+            return 'Chênh lệch theo mốc'
+        default:
+            return value || '-'
+        }
     }
 
     const mapChieuSoSanh = (value) => {
@@ -856,6 +900,19 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         )
     }
 
+    const getKieuSoSanhForChiTiet = (chiTiet) => {
+        if (getTieuChiDanhGiaForChiTiet(chiTiet) !== 'DINH_LUONG_SO_SANH') {
+            return ''
+        }
+
+        return normalizeCode(
+            chiTiet?.KieuSoSanh ||
+            chiTiet?.kieuSoSanh ||
+            selectedDanhMucChiTieu.value?.KieuSoSanh ||
+            selectedDanhMucChiTieu.value?.kieuSoSanh
+        ) || 'CHENH_LECH'
+    }
+
     const getChieuSoSanhForChiTiet = (chiTiet) => {
         return normalizeCode(
             chiTiet?.ChieuSoSanh ||
@@ -911,14 +968,21 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const isDinhTinh = computed(() => currentLoaiChiTieu.value === 'DINH_TINH')
     const isDinhLuongSoSanh = computed(() => currentLoaiChiTieu.value === 'DINH_LUONG_SO_SANH')
+    const currentKieuSoSanh = computed(() => getKieuSoSanhForChiTiet(selectedChiTietGiao.value))
+    const isTyLeSoSanh = computed(() => isDinhLuongSoSanh.value && currentKieuSoSanh.value === 'TY_LE')
 
     const comparisonSourceLabel = computed(() => mapLoaiMocSoSanh(getLoaiMocSoSanhForChiTiet(selectedChiTietGiao.value)))
+    const comparisonKindLabel = computed(() => mapKieuSoSanh(currentKieuSoSanh.value))
 
     const comparisonDirectionLabel = computed(() => mapChieuSoSanh(getChieuSoSanhForChiTiet(selectedChiTietGiao.value)))
 
     const comparisonRuleLabel = computed(() => mapQuyTacDanhGia(getQuyTacDanhGiaForChiTiet(selectedChiTietGiao.value)))
 
     const currentValueLabel = computed(() => {
+        if (isTyLeSoSanh.value) {
+            return 'Giá trị thực hiện trong kỳ'
+        }
+
         if (isDinhLuongSoSanh.value) {
             return 'Kết quả đạt được trong kỳ'
         }
@@ -927,6 +991,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     })
 
     const currentValuePlaceholder = computed(() => {
+        if (isTyLeSoSanh.value) {
+            return 'Nhập giá trị thực hiện trong kỳ báo cáo'
+        }
+
         if (isDinhLuongSoSanh.value) {
             return 'Nhập kết quả đạt được trong kỳ báo cáo'
         }
@@ -955,8 +1023,52 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const giaTriCuoiKyPreview = computed(() => {
         const dauKy = Number(fixedGiaTriDauKy.value ?? 0)
-        const thucHien = Number(form.giaTriThucHienTrongKy ?? 0)
-        return dauKy + thucHien
+        return dauKy + giaTriLuyKePreview.value
+    })
+
+    const priorRecordsForPreview = computed(() => {
+        const selectedKyId = Number(form.kyBaoCaoKPIId ?? 0)
+        const currentEditId = Number(editingId.value ?? 0)
+        if (!selectedKyId) return []
+
+        const selectedKy = kyBaoCaoOptions.value.find((x) => getId(x) === selectedKyId)
+        const selectedThuTu = getThuTuKy(selectedKy)
+        const selectedNam = Number(selectedKy?.Nam ?? selectedKy?.nam ?? 0)
+
+        return recordsForSelectedChiTiet.value.filter((item) => {
+            if (currentEditId && getId(item) === currentEditId) return false
+            const kyId = Number(item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? 0)
+            const ky = kyBaoCaoOptions.value.find((x) => getId(x) === kyId)
+            const nam = Number(ky?.Nam ?? ky?.nam ?? 0)
+            const thuTu = getThuTuKy(ky)
+            return nam < selectedNam || (nam === selectedNam && thuTu < selectedThuTu)
+        })
+    })
+
+    const giaTriLuyKePreview = computed(() => {
+        const previous = priorRecordsForPreview.value.reduce((sum, item) => sum + Number(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0), 0)
+        return previous + Number(form.giaTriThucHienTrongKy ?? 0)
+    })
+
+    const giaTriPhatSinhLuyKePreview = computed(() => {
+        const previous = priorRecordsForPreview.value.reduce((sum, item) => sum + Number(item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy ?? 0), 0)
+        return previous + Number(form.giaTriPhatSinhTrongKy ?? 0)
+    })
+
+    const tyLeTySoPreview = computed(() => {
+        if (!isTyLeSoSanh.value || giaTriPhatSinhLuyKePreview.value <= 0) {
+            return null
+        }
+
+        return (giaTriLuyKePreview.value / giaTriPhatSinhLuyKePreview.value) * 100
+    })
+
+    const tyLeTySoPreviewText = computed(() => {
+        if (tyLeTySoPreview.value === null) {
+            return 'Chưa xác định'
+        }
+
+        return `${Number(tyLeTySoPreview.value).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`
     })
 
     const nopDuocTheoNgayKetThucDotGiao = computed(() => {
@@ -1037,6 +1149,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const buildPayload = () => ({
         chiTietGiaoChiTieuId: form.chiTietGiaoChiTieuId,
         kyBaoCaoKPIId: form.kyBaoCaoKPIId,
+        giaTriPhatSinhTrongKy: isTyLeSoSanh.value ? Number(form.giaTriPhatSinhTrongKy ?? 0) : null,
         giaTriThucHienTrongKy: isDinhTinh.value ? 0 : Number(form.giaTriThucHienTrongKy ?? 0),
         nhanXet: String(form.nhanXet || '').trim() || null
     })
@@ -1127,6 +1240,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             donViNhanId: getDonViNhanId(chiTiet) || null,
             chiTietGiaoChiTieuId: chiTietId || null,
             kyBaoCaoKPIId: item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? null,
+            giaTriPhatSinhTrongKy: item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy ?? 0,
             giaTriThucHienTrongKy: item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0,
             nhanXet: item.NhanXet ?? item.nhanXet ?? ''
         })
@@ -1198,6 +1312,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         } else {
             if (Number(fixedGiaTriDauKy.value) < 0) {
                 alert('Giá trị đầu kỳ cố định không hợp lệ.')
+                return false
+            }
+
+            if (isTyLeSoSanh.value && Number(form.giaTriPhatSinhTrongKy) < 0) {
+                alert('Giá trị phát sinh trong kỳ không hợp lệ.')
                 return false
             }
 
@@ -1290,6 +1409,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             if (isHydratingForm.value) return
             form.chiTietGiaoChiTieuId = null
             form.kyBaoCaoKPIId = null
+            form.giaTriPhatSinhTrongKy = 0
             form.giaTriThucHienTrongKy = 0
             form.nhanXet = ''
         }
@@ -1317,6 +1437,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 form.kyBaoCaoKPIId = null
             }
 
+            form.giaTriPhatSinhTrongKy = 0
             form.giaTriThucHienTrongKy = 0
             form.nhanXet = ''
         }
@@ -1327,6 +1448,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         () => {
             if (isHydratingForm.value) return
             if (!form.kyBaoCaoKPIId) {
+                form.giaTriPhatSinhTrongKy = 0
                 form.giaTriThucHienTrongKy = 0
             }
         }

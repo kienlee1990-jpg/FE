@@ -35,6 +35,11 @@ export const LOAI_MOC_SO_SANH_OPTIONS = [
   { value: 'TONG_NAM_TRUOC', label: 'Tổng năm trước' }
 ]
 
+export const KIEU_SO_SANH_OPTIONS = [
+  { value: 'CHENH_LECH', label: 'Chênh lệch theo mốc' },
+  { value: 'TY_LE', label: 'Tỷ lệ thực hiện / phát sinh' }
+]
+
 export const CHIEU_SO_SANH_OPTIONS = [
   { value: 'TANG', label: 'Tăng' },
   { value: 'GIAM', label: 'Giảm' }
@@ -170,6 +175,11 @@ export function getLoaiMocSoSanhLabel(value) {
   return LOAI_MOC_SO_SANH_OPTIONS.find(item => item.value === normalized)?.label || value || '-'
 }
 
+export function getKieuSoSanhLabel(value) {
+  const normalized = normalizeDanhGiaText(value)
+  return KIEU_SO_SANH_OPTIONS.find(item => item.value === normalized)?.label || value || '-'
+}
+
 export function getChieuSoSanhLabel(value) {
   const normalized = normalizeDanhGiaText(value)
   return CHIEU_SO_SANH_OPTIONS.find(item => item.value === normalized)?.label || value || '-'
@@ -190,6 +200,14 @@ export function isDinhLuongSoSanhCriterion(value) {
 
 export function isDinhLuongTichLuyCriterion(value) {
   return normalizeDanhGiaText(value) === 'DINH_LUONG_TICH_LUY'
+}
+
+export function isTyLeComparisonKind(value) {
+  return normalizeDanhGiaText(value) === 'TY_LE'
+}
+
+export function isChenhLechComparisonKind(value) {
+  return normalizeDanhGiaText(value) === 'CHENH_LECH'
 }
 
 export function isQuantitativeCriterion(value) {

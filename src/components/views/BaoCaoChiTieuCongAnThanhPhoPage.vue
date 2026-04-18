@@ -93,7 +93,8 @@
                             <thead>
                                 <tr>
                                     <th>STT</th>
-                                    <th>Tên chỉ tiêu</th>
+                                    <th>Danh mục chỉ tiêu</th>
+                                    <th>Chỉ tiêu giao</th>
                                     <th>Đơn vị nhận</th>
                                     <th>Đợt giao chỉ tiêu</th>
                                     <th>Kỳ báo cáo</th>
@@ -105,17 +106,13 @@
                             </thead>
                             <tbody>
                                 <tr v-if="filteredRows.length === 0">
-                                    <td colspan="9" class="empty-cell">Không có dữ liệu</td>
+                                    <td colspan="10" class="empty-cell">Không có dữ liệu</td>
                                 </tr>
 
                                 <tr v-for="(row, index) in filteredRows" :key="row.id">
                                     <td>{{ index + 1 }}</td>
-                                    <td>
-                                        <div class="fw-semibold">{{ row.tenChiTieu || '-' }}</div>
-                                        <div v-if="row.tenChiTieuCha" class="sub-label">
-                                            Thuộc chỉ tiêu cha: {{ row.tenChiTieuCha }}
-                                        </div>
-                                    </td>
+                                    <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
+                                    <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
                                     <td>{{ row.tenDonViNhan || '-' }}</td>
                                     <td>{{ row.tenDotGiaoChiTieu || row.maDotGiao || '-' }}</td>
                                     <td>{{ formatKyBaoCao(row.tanSuatBaoCao) }}</td>
@@ -184,7 +181,9 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             rows = rows.filter(item =>
                 [
                     item.maChiTieu,
+                    item.tenDanhMucChiTieu,
                     item.tenChiTieu,
+                    item.tenChiTieuGiao,
                     item.tenChiTieuCha,
                     item.tenDonViNhan,
                     item.tenDotGiaoChiTieu,
