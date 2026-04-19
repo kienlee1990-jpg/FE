@@ -192,6 +192,7 @@
                                 <thead>
                                     <tr>
                                         <th>Tên chỉ tiêu</th>
+                                        <th>Đơn vị tính</th>
                                         <th>Loại</th>
                                         <th>Bộ tiêu chí</th>
                                         <th>Trạng thái</th>
@@ -208,8 +209,17 @@
                                                 <span v-for="child in item.tieuChiDanhGias"
                                                     :key="child.id || child.maChiTieu"
                                                     class="badge text-bg-light border">
-                                                    {{ child.tenChiTieu }}
+                                                    {{ child.tenChiTieu }}{{ child.donViTinh ? ` (${child.donViTinh})` : '' }}
                                                 </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ item.donViTinh || '-' }}</div>
+                                            <div v-if="item.tieuChiDanhGias.length" class="small text-muted mt-1">
+                                                {{ item.tieuChiDanhGias
+                                                    .map(child => child.donViTinh)
+                                                    .filter(Boolean)
+                                                    .join(', ') || 'Theo từng tiêu chí con' }}
                                             </div>
                                         </td>
                                         <td>{{ mapLoai(item.loaiChiTieu) }}</td>

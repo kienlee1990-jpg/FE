@@ -80,7 +80,8 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
-                                        <th>Tên chỉ tiêu chi tiết</th>
+                                        <th>Danh mục chỉ tiêu</th>
+                                        <th>Chỉ tiêu giao</th>
                                         <th>Đơn vị</th>
                                         <th>Đợt giao chỉ tiêu</th>
                                         <th>Kỳ cập nhật gần nhất</th>
@@ -95,7 +96,7 @@
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="12" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="13" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
 
                                     <tr v-for="(row, index) in filteredRows" :key="row.groupKey">
@@ -106,14 +107,15 @@
                                                 Thuộc chỉ tiêu cha: {{ row.tenChiTieuCha }}
                                             </div>
                                         </td>
+                                        <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
                                         <td>{{ row.tenDonViNhan || '-' }}</td>
                                         <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
                                         <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriMucTieu) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriDauKyGanNhat) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.soDuMucTieu) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriDauKyGanNhat, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                         <td>
                                             <span class="badge" :class="badgeClass(row.xepLoai)">

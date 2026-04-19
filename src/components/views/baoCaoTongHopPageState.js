@@ -260,6 +260,7 @@ export function useBaoCaoTongHopPage() {
       ngayKetThucDotGiao: assignment.ngayKetThucDotGiao || '',
       trangThaiDotGiao: assignment.trangThaiDotGiao || '',
       tieuChiDanhGia: assignment.tieuChiDanhGia || '',
+      donViTinh: assignment.donViTinh || '',
       giaTriMucTieu: assignment.giaTriMucTieu,
       giaTriDauKyGanNhat,
       giaTriThucHienCongDon,
@@ -401,6 +402,11 @@ export function useBaoCaoTongHopPage() {
       tenChiTieu:
         pick(rawItem, 'tenDanhMucChiTieu', 'TenDanhMucChiTieu', 'tenChiTieu', 'TenChiTieu') ||
         pick(danhMuc, 'tenChiTieu', 'TenChiTieu') ||
+        '',
+      donViTinh:
+        pick(rawItem, 'donViTinh', 'DonViTinh') ||
+        pick(danhMuc, 'donViTinh', 'DonViTinh') ||
+        parentAssignment?.donViTinh ||
         '',
       tenChiTieuCha: parentAssignment?.tenChiTieu || '',
       giaTriMucTieuText:
@@ -560,11 +566,12 @@ export function useBaoCaoTongHopPage() {
     return Number(Number(value || 0).toFixed(2))
   }
 
-  function formatNumber(value) {
+  function formatNumber(value, donViTinh = '') {
     if (value === null || value === undefined || value === '') return '-'
     const parsed = parseNumber(value)
     if (!Number.isFinite(parsed)) return '-'
-    return parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    const formatted = parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    return appendUnit(formatted, donViTinh)
   }
 
   function formatPercent(value) {
@@ -576,6 +583,11 @@ export function useBaoCaoTongHopPage() {
 
   function badgeClass(xepLoai) {
     return getDanhGiaBadgeClass(xepLoai)
+  }
+
+  function appendUnit(formattedValue, donViTinh) {
+    const unit = String(donViTinh || '').trim()
+    return unit ? `${formattedValue} ${unit}` : formattedValue
   }
 
   function getKyLabel(item) {

@@ -131,13 +131,13 @@
                                         <td>{{ row.tenDonViNhan || '-' }}</td>
                                         <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
                                         <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriMucTieu) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
                                         <td class="text-right">
-                                            <div>{{ formatNumber(row.giaTriThucHienCongDon) }}</div>
+                                            <div>{{ formatNumber(row.giaTriThucHienCongDon, row.donViTinh) }}</div>
                                         </td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.soDuMucTieu) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                         <td>
                                             <span class="badge" :class="badgeClass(row.xepLoai)">

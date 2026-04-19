@@ -105,13 +105,13 @@
                                         <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
                                         <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
                                         <td class="text-center">{{ row.soDonVi }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongMucTieu) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongDauKy) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongCuoiKy) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.tongCungKyNamTruoc) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.chenhLechSoVoiDauKy) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.tongMucTieu, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.tongDauKy, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.tongCuoiKy, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.tongCungKyNamTruoc, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.chenhLechSoVoiDauKy, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeTangTruongSoVoiDauKy) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.chenhLechSoVoiCungKyNamTruoc) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.chenhLechSoVoiCungKyNamTruoc, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeTangTruongSoVoiCungKyNamTruoc)
                                             }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanhBinhQuan) }}</td>
@@ -179,6 +179,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     tenChiTieu: item.tenChiTieu || '',
                     tenChiTieuGiao: item.tenChiTieuGiao || item.tenChiTieuCha || '',
                     tenChiTieuCha: item.tenChiTieuCha || '',
+                    donViTinh: item.donViTinh || '',
                     soDonVi: 0,
                     tongMucTieu: 0,
                     tongDauKy: 0,
@@ -225,6 +226,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 tenChiTieu: item.tenChiTieu,
                 tenChiTieuGiao: item.tenChiTieuGiao,
                 tenChiTieuCha: item.tenChiTieuCha,
+                donViTinh: item.donViTinh,
                 soDonVi: item.soDonVi,
                 tongMucTieu: item.tongMucTieu,
                 tongDauKy: item.tongDauKy,
@@ -306,12 +308,14 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         return parts.length ? parts.join(' | ') : '-'
     }
 
-    function formatNumber(value) {
+    function formatNumber(value, donViTinh = '') {
         if (value === null || value === undefined || value === '') return '-'
-        return Number(value).toLocaleString('vi-VN', {
+        const formatted = Number(value).toLocaleString('vi-VN', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2
         })
+        const unit = String(donViTinh || '').trim()
+        return unit ? `${formatted} ${unit}` : formatted
     }
 
     function formatPercent(value) {

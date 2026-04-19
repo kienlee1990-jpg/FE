@@ -138,13 +138,13 @@
                                                 Kết quả nhập: {{ item.NhanXet || item.nhanXet }}
                                             </small>
                                         </td>
-                                        <td>{{ formatNumber(item.GiaTriDauKy ?? item.giaTriDauKy) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy) }}
+                                        <td>{{ formatNumber(item.GiaTriDauKy ?? item.giaTriDauKy, item.DonViTinh || item.donViTinh) }}</td>
+                                        <td>{{ formatNumber(item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy, item.DonViTinh || item.donViTinh) }}</td>
+                                        <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy, item.DonViTinh || item.donViTinh) }}
                                         </td>
-                                        <td>{{ formatNumber(item.GiaTriCuoiKy ?? item.giaTriCuoiKy) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriPhatSinhLuyKe ?? item.giaTriPhatSinhLuyKe) }}</td>
+                                        <td>{{ formatNumber(item.GiaTriCuoiKy ?? item.giaTriCuoiKy, item.DonViTinh || item.donViTinh) }}</td>
+                                        <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe, item.DonViTinh || item.donViTinh) }}</td>
+                                        <td>{{ formatNumber(item.GiaTriPhatSinhLuyKe ?? item.giaTriPhatSinhLuyKe, item.DonViTinh || item.donViTinh) }}</td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
                                                 <button class="btn btn-sm btn-outline-primary"
@@ -314,7 +314,7 @@
                                             <label class="form-label">
                                                 Giá trị đầu kỳ cố định
                                             </label>
-                                            <input :value="formatEditableNumber(fixedGiaTriDauKy)" type="text"
+                                            <input :value="formatDisplayNumber(fixedGiaTriDauKy, selectedDonViTinh)" type="text"
                                                 class="form-control" readonly />
                                             <small class="text-muted">
                                                 Giá trị này lấy từ bản giao chỉ tiêu và được giữ cố định cho mọi kỳ báo cáo.
@@ -339,13 +339,13 @@
 
                                         <div class="col-12 col-md-4">
                                             <label class="form-label">Giá trị cuối kỳ</label>
-                                            <input :value="formatEditableNumber(giaTriCuoiKyPreview)" type="text"
+                                            <input :value="formatDisplayNumber(giaTriCuoiKyPreview, selectedDonViTinh)" type="text"
                                                 class="form-control" readonly />
                                         </div>
 
                                         <div v-if="isTyLeSoSanh" class="col-12 col-md-4">
                                             <label class="form-label">Phát sinh lũy kế</label>
-                                            <input :value="formatEditableNumber(giaTriPhatSinhLuyKePreview)" type="text"
+                                            <input :value="formatDisplayNumber(giaTriPhatSinhLuyKePreview, selectedDonViTinh)" type="text"
                                                 class="form-control" readonly />
                                         </div>
 
@@ -721,6 +721,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     dotGiao?.TenDotGiao ||
                     dotGiao?.tenDotGiao ||
                     '',
+                DonViTinhHienThi:
+                    item.DonViTinh ||
+                    item.donViTinh ||
+                    danhMuc?.DonViTinh ||
+                    danhMuc?.donViTinh ||
+                    parent?.DonViTinhHienThi ||
+                    '',
                 LaTieuChiCon: !!parent,
                 MaChiTieuChaHienThi:
                     parent?.MaChiTieu ||
@@ -1086,6 +1093,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             return {
                 ...item,
                 DonViNhanId: getDonViNhanId(chiTiet),
+                DonViTinh: item.DonViTinh || item.donViTinh || chiTiet?.DonViTinhHienThi || '',
                 MaChiTieu: item.MaChiTieu || item.maChiTieu || chiTiet?.MaChiTieuHienThi || '-',
                 TenChiTieu: item.TenChiTieu || item.tenChiTieu || chiTiet?.TenChiTieuHienThi || '-',
                 TenDonViNhan: item.TenDonViNhan || item.tenDonViNhan || chiTiet?.TenDonViNhanHienThi || '-',
@@ -1117,6 +1125,15 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             editingRecord?.GiaTriDauKy ??
             editingRecord?.giaTriDauKy ??
             0
+        )
+    })
+
+    const selectedDonViTinh = computed(() => {
+        return (
+            selectedChiTietGiao.value?.DonViTinhHienThi ||
+            selectedChiTietGiao.value?.DonViTinh ||
+            selectedChiTietGiao.value?.donViTinh ||
+            ''
         )
     })
 
@@ -1379,9 +1396,21 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         filters.keyword = ''
     }
 
-    const formatNumber = (value) => {
+    const formatNumber = (value, donViTinh = '') => {
         if (value === null || value === undefined || value === '') return '-'
-        return Number(value).toLocaleString('vi-VN')
+        const formatted = Number(value).toLocaleString('vi-VN')
+        const unit = String(donViTinh || '').trim()
+        return unit ? `${formatted} ${unit}` : formatted
+    }
+
+    const formatDisplayNumber = (value, donViTinh = '') => {
+        if (value === null || value === undefined || value === '' || Number.isNaN(Number(value))) return ''
+        const formatted = Number(value).toLocaleString('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        })
+        const unit = String(donViTinh || '').trim()
+        return unit ? `${formatted} ${unit}` : formatted
     }
 
     const formatEditableNumber = (value) => {

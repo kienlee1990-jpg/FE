@@ -133,8 +133,10 @@ export function useTongHopDanhGiaPage() {
           maChiTieu: assignment.maChiTieu || pick(rawItem, 'maChiTieu', 'MaChiTieu') || '',
           tenChiTieu: assignment.tenChiTieu || pick(rawItem, 'tenChiTieu', 'TenChiTieu') || '',
           tenChiTieuCha: assignment.tenChiTieuCha || '',
+          tenChiTieuGiao: assignment.giaTriMucTieuText || assignment.tenChiTieuCha || '',
           tenDonViNhan: assignment.tenDonViNhan || '-',
           tenDotGiaoChiTieu: assignment.tenDotGiaoChiTieu || '-',
+          donViTinh: assignment.donViTinh || '',
           danhMucChiTieuId: assignment.danhMucChiTieuId,
           loaiChiTieu: assignment.loaiChiTieu || '',
           giaTriMucTieu: assignment.giaTriMucTieu,
@@ -193,6 +195,7 @@ export function useTongHopDanhGiaPage() {
         item.maChiTieu,
         item.tenChiTieu,
         item.tenChiTieuCha,
+        item.tenChiTieuGiao,
         item.tenDonViNhan,
         item.tenDotGiaoChiTieu,
         item.maKyGanNhat,
@@ -224,8 +227,10 @@ export function useTongHopDanhGiaPage() {
       maChiTieu: group.maChiTieu || '-',
       tenChiTieu: group.tenChiTieu || '-',
       tenChiTieuCha: group.tenChiTieuCha || '',
+      tenChiTieuGiao: group.tenChiTieuGiao || group.tenChiTieuCha || '',
       tenDonViNhan: group.tenDonViNhan || '-',
       tenDotGiaoChiTieu: group.tenDotGiaoChiTieu || '-',
+      donViTinh: latest.donViTinh || group.donViTinh || '',
       giaTriMucTieu: group.giaTriMucTieu,
       giaTriDauKyGanNhat: latest.giaTriDauKy,
       giaTriCuoiKyGanNhat: latest.giaTriCuoiKy,
@@ -503,6 +508,15 @@ export function useTongHopDanhGiaPage() {
       donViNhanId,
       maChiTieu: pick(rawItem, 'maChiTieu', 'MaChiTieu') || pick(danhMuc, 'maChiTieu', 'MaChiTieu') || '',
       tenChiTieu: pick(rawItem, 'tenChiTieu', 'TenChiTieu') || pick(danhMuc, 'tenChiTieu', 'TenChiTieu') || '',
+      giaTriMucTieuText:
+        pick(rawItem, 'giaTriMucTieuText', 'GiaTriMucTieuText') ||
+        parentAssignment?.giaTriMucTieuText ||
+        '',
+      donViTinh:
+        pick(rawItem, 'donViTinh', 'DonViTinh') ||
+        pick(danhMuc, 'donViTinh', 'DonViTinh') ||
+        parentAssignment?.donViTinh ||
+        '',
       tenChiTieuCha: parentAssignment?.tenChiTieu || '',
       tenDotGiaoChiTieu:
         pick(rawItem, 'tenDotGiaoChiTieu', 'TenDotGiaoChiTieu') ||
@@ -529,6 +543,8 @@ export function useTongHopDanhGiaPage() {
       donViNhanId: Number(pick(rawItem, 'donViNhanId', 'DonViNhanId') || 0),
       maChiTieu: pick(rawItem, 'maChiTieu', 'MaChiTieu') || '',
       tenChiTieu: pick(rawItem, 'tenChiTieu', 'TenChiTieu') || '',
+      giaTriMucTieuText: pick(rawItem, 'giaTriMucTieuText', 'GiaTriMucTieuText') || '',
+      donViTinh: pick(rawItem, 'donViTinh', 'DonViTinh') || '',
       tenChiTieuCha: '',
       tenDotGiaoChiTieu:
         pick(rawItem, 'tenDotGiaoChiTieu', 'TenDotGiaoChiTieu', 'dotGiaoChiTieu', 'DotGiaoChiTieu') || '-',
@@ -567,11 +583,12 @@ export function useTongHopDanhGiaPage() {
     return parts.join(' | ') || '-'
   }
 
-  function formatNumber(value) {
+  function formatNumber(value, donViTinh = '') {
     if (value === null || value === undefined || value === '') return '-'
     const parsed = parseNumber(value)
     if (!Number.isFinite(parsed)) return '-'
-    return parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    const formatted = parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    return appendUnit(formatted, donViTinh)
   }
 
   function formatPercent(value) {
@@ -581,6 +598,11 @@ export function useTongHopDanhGiaPage() {
     return `${parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`
   }
 
+  function appendUnit(formattedValue, donViTinh) {
+    const unit = String(donViTinh || '').trim()
+    return unit ? `${formattedValue} ${unit}` : formattedValue
+  }
+
   function badgeClass(xepLoai) {
     return getDanhGiaBadgeClass(xepLoai)
   }
@@ -588,8 +610,8 @@ export function useTongHopDanhGiaPage() {
   function exportCsv() {
     const headers = [
       'Mã chỉ tiêu',
-      'Tên chỉ tiêu',
-      'Chỉ tiêu cha',
+      'Danh mục chỉ tiêu',
+      'Chỉ tiêu giao',
       'Đơn vị',
       'Đợt giao chỉ tiêu',
       'Mã kỳ gần nhất',
@@ -611,7 +633,7 @@ export function useTongHopDanhGiaPage() {
     const csvRows = filteredRows.value.map(item => [
       item.maChiTieu || '',
       item.tenChiTieu || '',
-      item.tenChiTieuCha || '',
+      item.tenChiTieuGiao || item.tenChiTieuCha || '',
       item.tenDonViNhan || '',
       item.tenDotGiaoChiTieu || '',
       item.maKyGanNhat || '',

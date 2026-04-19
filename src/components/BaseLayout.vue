@@ -1,6 +1,6 @@
 ﻿<template>
     <div class="app-shell">
-        <aside :class="['sidebar', { collapsed: isCollapsed }]">
+        <aside :class="['sidebar', sidebarThemeClass, { collapsed: isCollapsed }]">
             <div class="brand">
                 <button class="icon-btn" @click="toggleSidebar" aria-label="Thu gọn menu">
                     <i class="bi bi-list"></i>
@@ -209,6 +209,11 @@
                 </div>
 
                 <div class="topbar-right">
+                    <button type="button" class="font-toggle-btn" @click="toggleSidebarTheme">
+                        <i class="bi bi-palette"></i>
+                        <span>{{ sidebarThemeLabel }}</span>
+                    </button>
+
                     <div class="context-badge">
                         <span class="label">Đơn vị</span>
                         <strong>{{ user?.email || '---' }}</strong>
@@ -256,8 +261,10 @@
     const router = useRouter()
     const { getMe, logout: authLogout, user } = useAuth()
 
+    const SIDEBAR_THEME_KEY = 'ui_sidebar_theme'
     const dropdownOpen = ref(false)
     const isCollapsed = ref(false)
+    const sidebarTheme = ref('default')
     const now = ref(new Date())
     let timer = null
 
@@ -304,6 +311,19 @@
         })
     })
 
+    const sidebarThemeLabel = computed(() =>
+        sidebarTheme.value === 'alt' ? 'Sidebar xanh dương' : 'Sidebar xanh green'
+    )
+
+    const sidebarThemeClass = computed(() =>
+        sidebarTheme.value === 'alt' ? 'theme-alt' : 'theme-default'
+    )
+
+    const toggleSidebarTheme = () => {
+        sidebarTheme.value = sidebarTheme.value === 'alt' ? 'default' : 'alt'
+        localStorage.setItem(SIDEBAR_THEME_KEY, sidebarTheme.value)
+    }
+
     const toggleSidebar = () => {
         isCollapsed.value = !isCollapsed.value
     }
@@ -331,6 +351,8 @@
     }
 
     onMounted(async () => {
+        sidebarTheme.value = localStorage.getItem(SIDEBAR_THEME_KEY) || 'default'
+
         timer = setInterval(() => {
             now.value = new Date()
         }, 1000)
@@ -361,13 +383,15 @@
     .app-shell {
         min-height: 100vh;
         display: flex;
-        background: #f3f6fb;
-        color: #1f3729;
+        background: linear-gradient(180deg, #f7f2e7 0%, #eef3fb 42%, #f7f9fd 100%);
+        color: #1a263d;
     }
 
     .sidebar {
         width: 280px;
-        background: linear-gradient(180deg, #0b5d2a 0%, #0f7a35 100%);
+        background:
+            radial-gradient(circle at top left, rgba(216, 173, 82, 0.26), transparent 24%),
+            linear-gradient(180deg, #0b4a29 0%, #0d5f33 52%, #0f7340 100%);
         color: #fff;
         padding: 20px 14px;
         transition: width 0.25s ease;
@@ -375,6 +399,12 @@
         position: sticky;
         top: 0;
         height: 100vh;
+    }
+
+    .sidebar.theme-alt {
+        background:
+            radial-gradient(circle at top left, rgba(216, 173, 82, 0.18), transparent 26%),
+            linear-gradient(180deg, #0a1735 0%, #0c244f 48%, #12366f 100%);
     }
 
     .sidebar.collapsed {
@@ -386,8 +416,12 @@
         align-items: flex-start;
         gap: 12px;
         padding: 4px 8px 18px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        border-bottom: 1px solid rgba(230, 193, 106, 0.22);
         margin-bottom: 18px;
+    }
+
+    .sidebar.theme-alt .brand {
+        border-bottom-color: rgba(139, 174, 241, 0.22);
     }
 
     .brand-text h1 {
@@ -399,8 +433,12 @@
     .brand-text p {
         margin: 4px 0 0;
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.78);
+        color: rgba(244, 229, 189, 0.82);
         line-height: 1.5;
+    }
+
+    .sidebar.theme-alt .brand-text p {
+        color: rgba(213, 228, 255, 0.82);
     }
 
     .icon-btn {
@@ -408,9 +446,15 @@
         height: 42px;
         border: none;
         border-radius: 12px;
-        background: rgba(255, 255, 255, 0.12);
-        color: #fff;
+        background: linear-gradient(180deg, rgba(216, 173, 82, 0.24), rgba(255, 255, 255, 0.08));
+        color: #fff8e6;
         cursor: pointer;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .sidebar.theme-alt .icon-btn {
+        background: linear-gradient(180deg, rgba(114, 150, 224, 0.24), rgba(255, 255, 255, 0.08));
+        color: #eef5ff;
     }
 
     .section-label {
@@ -418,7 +462,11 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(243, 221, 166, 0.7);
+    }
+
+    .sidebar.theme-alt .section-label {
+        color: rgba(200, 220, 255, 0.74);
     }
 
     .nav-section {
@@ -442,18 +490,27 @@
         gap: 12px;
         border: none;
         background: transparent;
-        color: #fff;
+        color: #f8fbff;
         padding: 12px 14px;
         border-radius: 14px;
         cursor: pointer;
         font-size: 14px;
         margin-bottom: 4px;
+        box-shadow: inset 0 0 0 1px transparent;
     }
 
     .nav-item:hover,
     .nav-item.active,
     .nav-toggle:hover {
-        background: rgba(255, 255, 255, 0.14);
+        background: linear-gradient(90deg, rgba(216, 173, 82, 0.22), rgba(255, 255, 255, 0.08));
+        box-shadow: inset 0 0 0 1px rgba(232, 200, 125, 0.18);
+    }
+
+    .sidebar.theme-alt .nav-item:hover,
+    .sidebar.theme-alt .nav-item.active,
+    .sidebar.theme-alt .nav-toggle:hover {
+        background: linear-gradient(90deg, rgba(111, 143, 216, 0.22), rgba(255, 255, 255, 0.08));
+        box-shadow: inset 0 0 0 1px rgba(160, 188, 243, 0.18);
     }
 
     .nav-left {
@@ -465,12 +522,16 @@
     .sub-menu {
         margin: 6px 0 10px 14px;
         padding-left: 10px;
-        border-left: 1px solid rgba(255, 255, 255, 0.18);
+        border-left: 1px solid rgba(228, 191, 102, 0.26);
+    }
+
+    .sidebar.theme-alt .sub-menu {
+        border-left-color: rgba(145, 176, 239, 0.22);
     }
 
     .sub-item {
         display: block;
-        color: rgba(255, 255, 255, 0.88);
+        color: rgba(246, 241, 227, 0.9);
         padding: 10px 12px;
         border-radius: 12px;
         font-size: 13px;
@@ -478,8 +539,14 @@
 
     .sub-item:hover,
     .sub-item.active {
-        background: rgba(255, 255, 255, 0.12);
-        color: #fff;
+        background: linear-gradient(90deg, rgba(216, 173, 82, 0.18), rgba(255, 255, 255, 0.08));
+        color: #fffdf5;
+    }
+
+    .sidebar.theme-alt .sub-item:hover,
+    .sidebar.theme-alt .sub-item.active {
+        background: linear-gradient(90deg, rgba(111, 143, 216, 0.18), rgba(255, 255, 255, 0.08));
+        color: #f7fbff;
     }
 
     .content-shell {
@@ -491,26 +558,29 @@
 
     .topbar {
         height: 76px;
-        background: #fef3c7;
-        border-bottom: 1px solid #e5e7eb;
+        background:
+            linear-gradient(90deg, rgba(255, 248, 230, 0.96), rgba(247, 239, 212, 0.96)),
+            linear-gradient(180deg, #fef3c7, #f8e0a2);
+        border-bottom: 1px solid rgba(200, 155, 60, 0.24);
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 0 24px;
         gap: 20px;
+        box-shadow: 0 10px 20px rgba(8, 21, 47, 0.05);
     }
 
     .topbar-left h2 {
         margin: 0;
         font-size: 22px;
         font-weight: 700;
-        color: #0f172a;
+        color: #0f2759;
     }
 
     .topbar-left p {
         margin: 4px 0 0;
         font-size: 13px;
-        color: #64748b;
+        color: #6c7287;
     }
 
     .topbar-right {
@@ -519,24 +589,44 @@
         gap: 12px;
     }
 
+    .font-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(200, 155, 60, 0.2);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 240, 219, 0.9));
+        color: #102753;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 10px 22px rgba(8, 21, 47, 0.08);
+    }
+
+    .font-toggle-btn:hover {
+        background: linear-gradient(180deg, rgba(255, 251, 240, 1), rgba(242, 228, 186, 0.96));
+    }
+
     .context-badge {
         min-width: 150px;
         padding: 10px 14px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 241, 219, 0.88));
+        border: 1px solid rgba(200, 155, 60, 0.18);
         border-radius: 14px;
+        box-shadow: 0 10px 18px rgba(8, 21, 47, 0.06);
     }
 
     .context-badge .label {
         display: block;
         font-size: 11px;
-        color: #64748b;
+        color: #7b6d4d;
         margin-bottom: 4px;
     }
 
     .context-badge strong {
         font-size: 13px;
-        color: #0f172a;
+        color: #122d61;
     }
 
     .user-menu-wrapper {
@@ -549,14 +639,15 @@
         gap: 10px;
         padding: 10px 14px;
         border-radius: 16px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
+        border: 1px solid rgba(200, 155, 60, 0.2);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 240, 219, 0.9));
         cursor: pointer;
+        box-shadow: 0 10px 22px rgba(8, 21, 47, 0.08);
     }
 
     .user-menu i.bi-person-circle {
         font-size: 28px;
-        color: #0f3d91;
+        color: #c89b3c;
     }
 
     .user-meta {
@@ -567,12 +658,12 @@
 
     .user-meta strong {
         font-size: 13px;
-        color: #111827;
+        color: #102753;
     }
 
     .user-meta span {
         font-size: 12px;
-        color: #6b7280;
+        color: #6c7287;
     }
 
     .user-dropdown-menu {
@@ -580,8 +671,8 @@
         right: 0;
         top: calc(100% + 8px);
         min-width: 220px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 246, 233, 0.96));
+        border: 1px solid rgba(200, 155, 60, 0.18);
         border-radius: 16px;
         box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
         overflow: hidden;
@@ -595,13 +686,13 @@
         padding: 12px 14px;
         border: none;
         background: transparent;
-        color: #111827;
+        color: #122348;
         cursor: pointer;
         font-size: 14px;
     }
 
     .dropdown-item:hover {
-        background: #f8fafc;
+        background: rgba(216, 173, 82, 0.12);
     }
 
     .dropdown-item.danger {
@@ -684,7 +775,7 @@
     .vn-header p {
         margin: 0;
         font-size: 12px;
-        color: #6b7280;
+        color: #7b6d4d;
     }
 </style>
 

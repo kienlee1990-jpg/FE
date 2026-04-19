@@ -233,7 +233,7 @@
                                     <span v-for="history in item.lichSu" :key="history.id"
                                         class="badge text-bg-light border">
                                         {{ history.tenKy || history.tenKyBaoCao || '-' }}:
-                                        {{ formatNumber(history.giaTriLuyKe) }}
+                                        {{ formatNumber(history.giaTriLuyKe, history.donViTinh || item.donViTinh) }}
                                     </span>
                                 </div>
                             </div>
@@ -266,10 +266,10 @@
                                     <tbody>
                                         <tr v-for="history in item.lichSu" :key="history.id">
                                             <td><div class="fw-semibold">{{ history.tenKy || history.tenKyBaoCao || history.maKy || '-' }}</div></td>
-                                            <td>{{ formatNumber(history.giaTriDauKy) }}</td>
-                                            <td>{{ formatNumber(history.giaTriThucHienTrongKy) }}</td>
-                                            <td>{{ formatNumber(history.giaTriCuoiKy) }}</td>
-                                            <td>{{ formatNumber(history.giaTriLuyKe) }}</td>
+                                            <td>{{ formatNumber(history.giaTriDauKy, history.donViTinh || item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(history.giaTriThucHienTrongKy, history.donViTinh || item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(history.giaTriCuoiKy, history.donViTinh || item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(history.giaTriLuyKe, history.donViTinh || item.donViTinh) }}</td>
                                             <td>
                                                 <span class="badge rounded-pill"
                                                     :class="getTrangThaiClass(history.trangThai)">
@@ -461,6 +461,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     chiTiet?.GiaTriMucTieuText ||
                     chiTiet?.giaTriMucTieuText ||
                     '',
+                donViTinh:
+                    item.DonViTinh ||
+                    item.donViTinh ||
+                    chiTiet?.DonViTinh ||
+                    chiTiet?.donViTinh ||
+                    '',
                 giaTriDauKy: Number(item.GiaTriDauKy ?? item.giaTriDauKy ?? 0),
                 giaTriThucHienTrongKy: Number(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0),
                 giaTriCuoiKy: Number(item.GiaTriCuoiKy ?? item.giaTriCuoiKy ?? 0),
@@ -514,6 +520,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     tenDotGiao: item.tenDotGiao,
                     giaTriMucTieu: item.giaTriMucTieu,
                     giaTriMucTieuText: item.giaTriMucTieuText,
+                    donViTinh: item.donViTinh || '',
                     lichSu: []
                 })
             }
@@ -662,9 +669,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         return map[value] || 'text-bg-light'
     }
 
-    const formatNumber = (value) => {
+    const formatNumber = (value, donViTinh = '') => {
         if (value === null || value === undefined || value === '') return '-'
-        return Number(value).toLocaleString('vi-VN')
+        const formatted = Number(value).toLocaleString('vi-VN')
+        const unit = String(donViTinh || '').trim()
+        return unit ? `${formatted} ${unit}` : formatted
     }
 
     const formatPercent = (value) => {

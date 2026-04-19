@@ -58,6 +58,7 @@ export function useCatpKpiData() {
         tenChiTieu: item.tenChiTieu,
         tenChiTieuCha: item.tenChiTieuCha,
         tenChiTieuGiao: item.giaTriMucTieuText || item.tenChiTieuCha || '',
+        donViTinh: item.donViTinh || '',
         tenDonViNhan: item.tenDonViNhan,
         tenDonViThucHienChinh: item.tenDonViThucHienChinh,
         tanSuatBaoCao: item.tanSuatBaoCao,
@@ -138,10 +139,12 @@ export function buildKyLabel(item) {
 
 export function formatTarget(row) {
   if (row?.giaTriMucTieu !== null && row?.giaTriMucTieu !== undefined && row?.giaTriMucTieu !== '') {
-    return Number(row.giaTriMucTieu).toLocaleString('vi-VN', {
+    const formatted = Number(row.giaTriMucTieu).toLocaleString('vi-VN', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     })
+    const unit = String(row?.donViTinh || '').trim()
+    return unit ? `${formatted} ${unit}` : formatted
   }
 
   return row?.giaTriMucTieuText || '-'
@@ -168,6 +171,7 @@ function flattenAssignments(items, parent = null) {
       maChiTieu: item.maChiTieu || item.MaChiTieu || item.maDanhMucChiTieu || item.MaDanhMucChiTieu || '',
       tenDanhMucChiTieu: item.tenDanhMucChiTieu || item.TenDanhMucChiTieu || item.tenChiTieu || item.TenChiTieu || '',
       tenChiTieu: item.tenChiTieu || item.TenChiTieu || item.tenDanhMucChiTieu || item.TenDanhMucChiTieu || '',
+      donViTinh: item.donViTinh || item.DonViTinh || parent?.donViTinh || '',
       tenChiTieuCha: parent?.tenChiTieu || '',
       tenDotGiaoChiTieu: item.tenDotGiaoChiTieu || item.TenDotGiaoChiTieu || item.tenDotGiao || item.TenDotGiao || '',
       tenDonViNhan: item.tenDonViNhan || item.TenDonViNhan || '',
