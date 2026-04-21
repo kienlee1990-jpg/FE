@@ -7,19 +7,13 @@
                         <i class="bi bi-exclamation-circle"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">ĐƠN VỊ CHƯA NỘP BÁO CÁO KPI</div>
                         <div class="gov-sub">
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <button class="btn btn-primary btn-action" @click="fetchData">
                         <i class="bi bi-arrow-repeat me-2"></i>
                         Tải lại dữ liệu

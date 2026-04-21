@@ -3,10 +3,15 @@
         <div class="page-wrap">
             <div class="container-fluid py-4">
                 <div class="hero-card">
-                    <div>
-                        <div class="hero-kicker">ĐÁNH GIÁ VÀ SO SÁNH</div>
-                        <h1>Nhóm thi đua</h1>
-                        <p>Xếp hạng đơn vị trong một nhóm thi đua theo đúng đơn vị và chỉ tiêu chi tiết đã cấu hình.</p>
+                    <div class="hero-head">
+                        <div class="hero-icon">
+                            <i class="bi bi-diagram-3-fill"></i>
+                        </div>
+                        <div>
+                            <div class="hero-kicker">ĐÁNH GIÁ VÀ SO SÁNH</div>
+                            <h1>Nhóm thi đua</h1>
+                            <p>Xếp hạng đơn vị trong một nhóm thi đua theo đúng đơn vị và chỉ tiêu chi tiết đã cấu hình.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -439,8 +444,27 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     .hero-card {
-        padding: 24px;
-        margin-bottom: 24px;
+          padding: 24px;
+          margin-bottom: 24px;
+      }
+
+    .hero-head {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .hero-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(180deg, #03943f 0%, #05ce48dd 100%);
+        color: #fff;
+        font-size: 30px;
+        box-shadow: 0 10px 24px rgba(3, 148, 63, 0.22);
     }
 
     .hero-kicker {
@@ -714,6 +738,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         .table-card,
         .hero-card {
             padding: 18px;
+        }
+
+        .hero-head {
+            align-items: flex-start;
         }
 
         .actions {

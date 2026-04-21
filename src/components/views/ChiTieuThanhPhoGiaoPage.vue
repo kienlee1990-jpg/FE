@@ -7,17 +7,11 @@
                         <i class="bi bi-diagram-2-fill"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">CHỈ TIÊU CHO CÁC ĐƠN VỊ XÃ/PHƯỜNG</div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Tạo giao chỉ tiêu
@@ -330,6 +324,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const showModal = ref(false)
     const isEdit = ref(false)
     const editingId = ref(null)
+    const syncingForm = ref(false)
 
     const items = ref([])
     const dotOptions = ref([])
@@ -599,6 +594,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     watch(
         () => form.danhMucChiTieuId,
         (newValue, oldValue) => {
+            if (syncingForm.value) return
             if (!newValue) {
                 form.giaTriMucTieu = null
                 return
@@ -674,6 +670,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const openEditModal = (item) => {
         isEdit.value = true
         editingId.value = getId(item)
+        syncingForm.value = true
 
         const danhMucId = item.DanhMucChiTieuId ?? item.danhMucChiTieuId ?? null
         const danhMuc = findDanhMucById(danhMucId)
@@ -691,6 +688,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             ghiChu: item.GhiChu || item.ghiChu || ''
         })
 
+        syncingForm.value = false
         showModal.value = true
     }
 

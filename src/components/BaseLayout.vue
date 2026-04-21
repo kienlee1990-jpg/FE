@@ -1,6 +1,6 @@
 ﻿<template>
     <div class="app-shell">
-        <aside :class="['sidebar', sidebarThemeClass, { collapsed: isCollapsed }]">
+        <aside :class="['sidebar', { collapsed: isCollapsed }]">
             <div class="brand">
                 <button class="icon-btn" @click="toggleSidebar" aria-label="Thu gọn menu">
                     <i class="bi bi-list"></i>
@@ -11,15 +11,15 @@
                 </div>
             </div>
 
-            <nav class="nav-section">
+            <nav v-if="hasAnyPermission(['ViewDashboard', 'ViewCatpIndicatorReport'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Tổng quan</p>
-                <RouterLink to="/dashboard" class="nav-item" active-class="active">
+                <RouterLink v-if="hasPermission('ViewDashboard')" to="/dashboard" class="nav-item" active-class="active">
                     <span class="nav-left">
                         <i class="bi bi-grid-1x2"></i>
                         <span v-if="!isCollapsed">Bảng điều khiển</span>
                     </span>
                 </RouterLink>
-                <RouterLink to="/bao-cao-chi-tieu-cong-an-thanh-pho" class="nav-item" active-class="active">
+                <RouterLink v-if="hasPermission('ViewCatpIndicatorReport')" to="/bao-cao-chi-tieu-cong-an-thanh-pho" class="nav-item" active-class="active">
                     <span class="nav-left">
                         <i class="bi bi-clipboard2-data"></i>
                         <span v-if="!isCollapsed">Báo cáo chỉ tiêu CATP</span>
@@ -27,7 +27,7 @@
                 </RouterLink>
             </nav>
 
-            <nav class="nav-section">
+            <nav v-if="hasAnyPermission(['ManageIndicatorCatalog', 'ManageUnitCatalog', 'ManageReportingPeriods'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Thiết lập nền</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('thietLapNen')">
@@ -39,20 +39,20 @@
                             :class="['bi', menus.thietLapNen ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.thietLapNen && !isCollapsed" class="sub-menu">
-                        <RouterLink to="/danh-muc-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageIndicatorCatalog')" to="/danh-muc-chi-tieu" class="sub-item" active-class="active">
                             Danh mục chỉ tiêu
                         </RouterLink>
-                        <RouterLink to="/don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageUnitCatalog')" to="/don-vi" class="sub-item" active-class="active">
                             Danh mục đơn vị
                         </RouterLink>
-                        <RouterLink to="/ky-bao-cao" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageReportingPeriods')" to="/ky-bao-cao" class="sub-item" active-class="active">
                             Kỳ báo cáo
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav class="nav-section">
+            <nav v-if="hasAnyPermission(['ManageAssignmentWaves', 'AssignTargetsToCatp', 'AssignTargetsToPhong', 'AssignTargetsToCadp', 'ViewAssignedTargetsList'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Giao và phân bổ</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('giaoVaPhanBo')">
@@ -64,23 +64,26 @@
                             :class="['bi', menus.giaoVaPhanBo ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.giaoVaPhanBo && !isCollapsed" class="sub-menu">
-                        <RouterLink to="/dot-giao-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageAssignmentWaves')" to="/dot-giao-chi-tieu" class="sub-item" active-class="active">
                             Đợt giao chỉ tiêu
                         </RouterLink>
-                        <RouterLink to="/giao-cho-catp" class="sub-item" active-class="active">
-                            Giao cho CATP
+                        <RouterLink v-if="hasPermission('AssignTargetsToCatp')" to="/giao-cho-catp" class="sub-item" active-class="active">
+                            Bộ giao CATP
                         </RouterLink>
-                        <RouterLink to="/giao-cho-phong" class="sub-item" active-class="active">
-                            Giao cho Phòng
+                        <RouterLink v-if="hasPermission('AssignTargetsToPhong')" to="/giao-cho-phong" class="sub-item" active-class="active">
+                            Giao Công an cấp Phòng
                         </RouterLink>
-                        <RouterLink to="/giao-cho-cadp-phuong-xa" class="sub-item" active-class="active">
-                            Giao cho CADP phường/xã
+                        <RouterLink v-if="hasPermission('AssignTargetsToCadp')" to="/giao-cho-cadp-phuong-xa" class="sub-item" active-class="active">
+                            Giao CADP cấp Phường/Xã
+                        </RouterLink>
+                        <RouterLink v-if="hasPermission('ViewAssignedTargetsList')" to="/danh-sach-chi-tieu-duoc-giao" class="sub-item" active-class="active">
+                            Danh sách chỉ tiêu được giao
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav class="nav-section">
+            <nav v-if="hasAnyPermission(['SubmitPeriodicReports', 'ViewExecutionProgress', 'ViewUnitsPendingUpdate'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Theo dõi thực hiện</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('theoDoiThucHien')">
@@ -92,20 +95,20 @@
                             :class="['bi', menus.theoDoiThucHien ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.theoDoiThucHien && !isCollapsed" class="sub-menu">
-                        <RouterLink to="/nhap-ket-qua" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('SubmitPeriodicReports')" to="/nhap-ket-qua" class="sub-item" active-class="active">
                             Nhập báo cáo định kỳ
                         </RouterLink>
-                        <RouterLink to="/tien-do-thuc-hien" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewExecutionProgress')" to="/tien-do-thuc-hien" class="sub-item" active-class="active">
                             Tiến độ thực hiện
                         </RouterLink>
-                        <RouterLink to="/don-vi-chua-cap-nhat" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewUnitsPendingUpdate')" to="/don-vi-chua-cap-nhat" class="sub-item" active-class="active">
                             Đơn vị chưa cập nhật
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav class="nav-section">
+            <nav v-if="hasAnyPermission(['ConfigureEvaluationThresholds', 'ViewAccumulatedEvaluation', 'ViewRiskWarnings', 'CompareUnits', 'RankUnits', 'ConfigureCompetitionGroups', 'ViewCompetitionGroups'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Đánh giá</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('danhGia')">
@@ -117,32 +120,32 @@
                             :class="['bi', menus.danhGia ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.danhGia && !isCollapsed" class="sub-menu">
-                        <RouterLink to="/cau-hinh-danh-gia-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ConfigureEvaluationThresholds')" to="/cau-hinh-danh-gia-chi-tieu" class="sub-item" active-class="active">
                             Cấu hình ngưỡng đánh giá
                         </RouterLink>
-                        <RouterLink to="/tong-hop-danh-gia-luy-ke" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewAccumulatedEvaluation')" to="/tong-hop-danh-gia-luy-ke" class="sub-item" active-class="active">
                             Tổng hợp đánh giá lũy kế
                         </RouterLink>
-                        <RouterLink to="/canh-bao-rui-ro" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewRiskWarnings')" to="/canh-bao-rui-ro" class="sub-item" active-class="active">
                             Cảnh báo rủi ro
                         </RouterLink>
-                        <RouterLink to="/so-sanh-don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('CompareUnits')" to="/so-sanh-don-vi" class="sub-item" active-class="active">
                             So sánh đơn vị
                         </RouterLink>
-                        <RouterLink to="/xep-hang-don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('RankUnits')" to="/xep-hang-don-vi" class="sub-item" active-class="active">
                             Xếp hạng đơn vị
                         </RouterLink>
-                        <RouterLink to="/thiet-lap-nhom-thi-dua" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ConfigureCompetitionGroups')" to="/thiet-lap-nhom-thi-dua" class="sub-item" active-class="active">
                             Thiết lập nhóm thi đua
                         </RouterLink>
-                        <RouterLink to="/nhom-thi-dua" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewCompetitionGroups')" to="/nhom-thi-dua" class="sub-item" active-class="active">
                             Nhóm thi đua
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav class="nav-section">
+            <nav v-if="hasAnyPermission(['ViewSummaryReports', 'ViewReportsByUnit', 'ViewReportsByIndicator', 'ExportReports'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Báo cáo</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('baoCao')">
@@ -154,23 +157,23 @@
                             :class="['bi', menus.baoCao ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.baoCao && !isCollapsed" class="sub-menu">
-                        <RouterLink to="/bao-cao-tong-hop" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewSummaryReports')" to="/bao-cao-tong-hop" class="sub-item" active-class="active">
                             Báo cáo tổng hợp
                         </RouterLink>
-                        <RouterLink to="/bao-cao-theo-don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewReportsByUnit')" to="/bao-cao-theo-don-vi" class="sub-item" active-class="active">
                             Báo cáo theo đơn vị
                         </RouterLink>
-                        <RouterLink to="/bao-cao-theo-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewReportsByIndicator')" to="/bao-cao-theo-chi-tieu" class="sub-item" active-class="active">
                             Báo cáo theo chỉ tiêu
                         </RouterLink>
-                        <RouterLink to="/xuat-bao-cao" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ExportReports')" to="/xuat-bao-cao" class="sub-item" active-class="active">
                             Xuất Excel / PDF
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav class="nav-section">
+            <nav v-if="hasAnyPermission(['ManageUsers', 'ManagePermissions', 'ViewSystemLogs'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Quản trị</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('heThong')">
@@ -182,13 +185,16 @@
                             :class="['bi', menus.heThong ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.heThong && !isCollapsed" class="sub-menu">
-                        <RouterLink to="/users" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageUsers')" to="/users" class="sub-item" active-class="active">
                             Người dùng
                         </RouterLink>
-                        <RouterLink to="/permissions" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasAdminRole && hasPermission('ResetUserPasswords')" to="/cap-lai-mat-khau" class="sub-item" active-class="active">
+                            Cấp lại mật khẩu
+                        </RouterLink>
+                        <RouterLink v-if="hasPermission('ManagePermissions')" to="/permissions" class="sub-item" active-class="active">
                             Phân quyền
                         </RouterLink>
-                        <RouterLink to="/nhat-ky-he-thong" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewSystemLogs')" to="/nhat-ky-he-thong" class="sub-item" active-class="active">
                             Nhật ký hệ thống
                         </RouterLink>
                     </div>
@@ -202,21 +208,16 @@
                     <div class="vn-header">
                         <img src="https://flagcdn.com/w40/vn.png" alt="VN" class="vn-flag" />
                         <div>
-                            <h2>Theo dõi đánh giá kết quả thực hiện chỉ tiêu công tác</h2>
+                            <h2>HỆ THỐNG THEO DÕI CHỈ TIÊU</h2>
                             <p>{{ currentDateTime }}</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="topbar-right">
-                    <button type="button" class="font-toggle-btn" @click="toggleSidebarTheme">
-                        <i class="bi bi-palette"></i>
-                        <span>{{ sidebarThemeLabel }}</span>
-                    </button>
-
-                    <div class="context-badge">
+                    <div class="context-badge unit-badge">
                         <span class="label">Đơn vị</span>
-                        <strong>{{ user?.email || '---' }}</strong>
+                        <strong :title="currentUnitLabel">{{ currentUnitLabel }}</strong>
                     </div>
 
                     <div class="context-badge">
@@ -228,16 +229,13 @@
                         <button type="button" class="user-menu" @click="toggleDropdown">
                             <i class="bi bi-person-circle"></i>
                             <div class="user-meta">
-                                <strong>{{ user?.fullName || 'Tài khoản' }}</strong>
+                                <strong :title="currentUserDisplayName">{{ currentUserDisplayName }}</strong>
                                 <span>{{ user?.email || '---' }}</span>
                             </div>
                             <i class="bi bi-chevron-down"></i>
                         </button>
 
                         <div v-if="dropdownOpen" class="user-dropdown-menu">
-                            <button type="button" class="dropdown-item" @click.stop="changePassword">
-                                Đổi mật khẩu
-                            </button>
                             <button type="button" class="dropdown-item danger" @click.stop="logout">
                                 Đăng xuất
                             </button>
@@ -257,14 +255,13 @@
     import { computed, onMounted, onUnmounted, ref, reactive, watch } from 'vue'
     import { RouterLink, useRouter } from 'vue-router'
     import { useAuth } from '../composables/useAuth'
+    import { canAccessAnyPermission, canAccessPermission, hasRole, resolveEffectivePermissions } from '../utils/accessControl'
 
     const router = useRouter()
     const { getMe, logout: authLogout, user } = useAuth()
 
-    const SIDEBAR_THEME_KEY = 'ui_sidebar_theme'
     const dropdownOpen = ref(false)
     const isCollapsed = ref(false)
-    const sidebarTheme = ref('default')
     const now = ref(new Date())
     let timer = null
 
@@ -299,6 +296,22 @@
         return user.value.roles.join(', ')
     })
 
+    const currentUnitLabel = computed(() => {
+        if (!user.value) return '---'
+        return user.value.donVi || 'Chưa gán đơn vị'
+    })
+
+    const currentUserDisplayName = computed(() => {
+        if (!user.value) return '---'
+        return user.value.fullName || user.value.userName || user.value.email || '---'
+    })
+
+    const userPermissions = computed(() => resolveEffectivePermissions(user.value))
+
+    const hasPermission = (permission) => canAccessPermission(userPermissions.value, permission, user.value)
+    const hasAnyPermission = (permissions) => canAccessAnyPermission(userPermissions.value, permissions, user.value)
+    const hasAdminRole = computed(() => hasRole(user.value, 'Admin'))
+
     const currentDateTime = computed(() => {
         return now.value.toLocaleString('vi-VN', {
             weekday: 'long',
@@ -310,19 +323,6 @@
             second: '2-digit',
         })
     })
-
-    const sidebarThemeLabel = computed(() =>
-        sidebarTheme.value === 'alt' ? 'Sidebar xanh dương' : 'Sidebar xanh green'
-    )
-
-    const sidebarThemeClass = computed(() =>
-        sidebarTheme.value === 'alt' ? 'theme-alt' : 'theme-default'
-    )
-
-    const toggleSidebarTheme = () => {
-        sidebarTheme.value = sidebarTheme.value === 'alt' ? 'default' : 'alt'
-        localStorage.setItem(SIDEBAR_THEME_KEY, sidebarTheme.value)
-    }
 
     const toggleSidebar = () => {
         isCollapsed.value = !isCollapsed.value
@@ -341,18 +341,12 @@
         dropdownOpen.value = false
     }
 
-    const changePassword = () => {
-        alert('Đổi mật khẩu')
-    }
-
     const logout = async () => {
         localStorage.removeItem('sidebar_menus')
         await authLogout()
     }
 
     onMounted(async () => {
-        sidebarTheme.value = localStorage.getItem(SIDEBAR_THEME_KEY) || 'default'
-
         timer = setInterval(() => {
             now.value = new Date()
         }, 1000)
@@ -401,12 +395,6 @@
         height: 100vh;
     }
 
-    .sidebar.theme-alt {
-        background:
-            radial-gradient(circle at top left, rgba(216, 173, 82, 0.18), transparent 26%),
-            linear-gradient(180deg, #0a1735 0%, #0c244f 48%, #12366f 100%);
-    }
-
     .sidebar.collapsed {
         width: 84px;
     }
@@ -418,10 +406,6 @@
         padding: 4px 8px 18px;
         border-bottom: 1px solid rgba(230, 193, 106, 0.22);
         margin-bottom: 18px;
-    }
-
-    .sidebar.theme-alt .brand {
-        border-bottom-color: rgba(139, 174, 241, 0.22);
     }
 
     .brand-text h1 {
@@ -437,10 +421,6 @@
         line-height: 1.5;
     }
 
-    .sidebar.theme-alt .brand-text p {
-        color: rgba(213, 228, 255, 0.82);
-    }
-
     .icon-btn {
         width: 42px;
         height: 42px;
@@ -452,21 +432,12 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
-    .sidebar.theme-alt .icon-btn {
-        background: linear-gradient(180deg, rgba(114, 150, 224, 0.24), rgba(255, 255, 255, 0.08));
-        color: #eef5ff;
-    }
-
     .section-label {
         margin: 18px 10px 10px;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: rgba(243, 221, 166, 0.7);
-    }
-
-    .sidebar.theme-alt .section-label {
-        color: rgba(200, 220, 255, 0.74);
     }
 
     .nav-section {
@@ -506,13 +477,6 @@
         box-shadow: inset 0 0 0 1px rgba(232, 200, 125, 0.18);
     }
 
-    .sidebar.theme-alt .nav-item:hover,
-    .sidebar.theme-alt .nav-item.active,
-    .sidebar.theme-alt .nav-toggle:hover {
-        background: linear-gradient(90deg, rgba(111, 143, 216, 0.22), rgba(255, 255, 255, 0.08));
-        box-shadow: inset 0 0 0 1px rgba(160, 188, 243, 0.18);
-    }
-
     .nav-left {
         display: flex;
         align-items: center;
@@ -523,30 +487,44 @@
         margin: 6px 0 10px 14px;
         padding-left: 10px;
         border-left: 1px solid rgba(228, 191, 102, 0.26);
-    }
-
-    .sidebar.theme-alt .sub-menu {
-        border-left-color: rgba(145, 176, 239, 0.22);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .sub-item {
-        display: block;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        min-height: 44px;
         color: rgba(246, 241, 227, 0.9);
-        padding: 10px 12px;
+        padding: 10px 14px;
         border-radius: 12px;
         font-size: 13px;
+        line-height: 1.4;
+        position: relative;
+        transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .sub-item::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(246, 241, 227, 0.58);
+        margin-right: 10px;
+        flex-shrink: 0;
     }
 
     .sub-item:hover,
     .sub-item.active {
         background: linear-gradient(90deg, rgba(216, 173, 82, 0.18), rgba(255, 255, 255, 0.08));
         color: #fffdf5;
+        box-shadow: inset 0 0 0 1px rgba(232, 200, 125, 0.14);
     }
 
-    .sidebar.theme-alt .sub-item:hover,
-    .sidebar.theme-alt .sub-item.active {
-        background: linear-gradient(90deg, rgba(111, 143, 216, 0.18), rgba(255, 255, 255, 0.08));
-        color: #f7fbff;
+    .sub-item.active::before {
+        background: #f7d88c;
     }
 
     .content-shell {
@@ -587,25 +565,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-    }
-
-    .font-toggle-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        border-radius: 14px;
-        border: 1px solid rgba(200, 155, 60, 0.2);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 240, 219, 0.9));
-        color: #102753;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 10px 22px rgba(8, 21, 47, 0.08);
-    }
-
-    .font-toggle-btn:hover {
-        background: linear-gradient(180deg, rgba(255, 251, 240, 1), rgba(242, 228, 186, 0.96));
+        min-width: 0;
     }
 
     .context-badge {
@@ -617,6 +577,11 @@
         box-shadow: 0 10px 18px rgba(8, 21, 47, 0.06);
     }
 
+    .unit-badge {
+        min-width: 220px;
+        max-width: 320px;
+    }
+
     .context-badge .label {
         display: block;
         font-size: 11px;
@@ -625,8 +590,13 @@
     }
 
     .context-badge strong {
+        display: block;
         font-size: 13px;
         color: #122d61;
+        max-width: 190px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .user-menu-wrapper {
@@ -643,6 +613,8 @@
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 240, 219, 0.9));
         cursor: pointer;
         box-shadow: 0 10px 22px rgba(8, 21, 47, 0.08);
+        min-width: 220px;
+        max-width: 320px;
     }
 
     .user-menu i.bi-person-circle {
@@ -654,16 +626,28 @@
         display: flex;
         flex-direction: column;
         align-items: flex-start;
+        min-width: 0;
+        flex: 1;
     }
 
     .user-meta strong {
+        display: block;
         font-size: 13px;
         color: #102753;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .user-meta span {
+        display: block;
         font-size: 12px;
         color: #6c7287;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .user-dropdown-menu {
@@ -778,7 +762,3 @@
         color: #7b6d4d;
     }
 </style>
-
-
-
-

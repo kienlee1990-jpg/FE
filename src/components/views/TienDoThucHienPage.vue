@@ -7,18 +7,12 @@
                         <i class="bi bi-graph-up-arrow"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">TIẾN ĐỘ THỰC HIỆN KPI</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <button class="btn btn-primary btn-action" @click="fetchData">
                         <i class="bi bi-arrow-repeat me-2"></i>
                         Tải lại dữ liệu
@@ -56,8 +50,8 @@
 
                             <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Đơn vị</label>
-                                <select v-model.number="filters.donViId" class="form-select">
-                                    <option :value="null">Tất cả</option>
+                                <select v-model.number="filters.donViId" class="form-select" :disabled="!canManageAllUnits">
+                                    <option :value="null">{{ canManageAllUnits ? 'Tất cả' : currentUnitName }}</option>
                                     <option v-for="item in donViOptions" :key="getId(item)" :value="getId(item)">
                                         {{ item.TenDonVi || item.tenDonVi || '-' }}
                                     </option>
@@ -294,6 +288,7 @@
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
+    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
@@ -307,6 +302,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const loading = ref(false)
     const expandedKeys = ref(new Set())
+    const currentProfile = ref(getStoredUserProfile())
 
     const progressItems = ref([])
     const chiTietGiaoChiTieuOptions = ref([])
@@ -321,6 +317,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         kyBaoCaoKPIId: null,
         keyword: ''
     })
+
+    const currentDonViId = computed(() => Number(currentProfile.value?.donViId || 0))
+    const currentUnitName = computed(() => currentProfile.value?.donVi || 'Đơn vị hiện tại')
+    const canManageAllUnits = computed(() =>
+        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
+    )
 
     const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
 
@@ -352,7 +354,9 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 donViResponse
             ] = await Promise.all([
                 apiRequest(API_PATHS.theoDoiThucHienKPI),
-                apiRequest(API_PATHS.chiTietGiaoChiTieu),
+                canManageAllUnits.value
+                    ? apiRequest(API_PATHS.chiTietGiaoChiTieu)
+                    : apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/by-donvi-nhan/${currentDonViId.value}`),
                 apiRequest(API_PATHS.kyBaoCaoKPI),
                 apiRequest(API_PATHS.dotGiaoChiTieu),
                 apiRequest(API_PATHS.donVi)
@@ -362,7 +366,14 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             chiTietGiaoChiTieuOptions.value = normalizeList(chiTietResponse)
             kyBaoCaoOptions.value = normalizeList(kyBaoCaoResponse)
             dotOptions.value = normalizeList(dotResponse)
-            donViOptions.value = normalizeList(donViResponse)
+            const normalizedDonViOptions = normalizeList(donViResponse)
+            donViOptions.value = canManageAllUnits.value
+                ? normalizedDonViOptions
+                : normalizedDonViOptions.filter((item) => Number(getId(item)) === currentDonViId.value)
+
+            if (!canManageAllUnits.value && currentDonViId.value) {
+                filters.donViId = currentDonViId.value
+            }
         } catch (error) {
             console.error('fetchData error:', error)
             alert(error.message || 'Không tải được dữ liệu tiến độ KPI.')
@@ -497,10 +508,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             const matchDot = !filters.dotGiaoChiTieuId || Number(filters.dotGiaoChiTieuId) === item.dotGiaoChiTieuId
             const matchChiTiet =
                 !filters.chiTietGiaoChiTieuId || Number(filters.chiTietGiaoChiTieuId) === item.chiTietGiaoChiTieuId
+            const forcedUnitMatch = canManageAllUnits.value ? true : item.donViId === currentDonViId.value
             const matchDonVi = !filters.donViId || Number(filters.donViId) === item.donViId
             const matchKy = !filters.kyBaoCaoKPIId || Number(filters.kyBaoCaoKPIId) === item.kyBaoCaoKPIId
 
-            return matchKeyword && matchDot && matchChiTiet && matchDonVi && matchKy
+            return forcedUnitMatch && matchKeyword && matchDot && matchChiTiet && matchDonVi && matchKy
         })
     })
 
@@ -684,7 +696,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const resetFilters = () => {
         filters.dotGiaoChiTieuId = null
         filters.chiTietGiaoChiTieuId = null
-        filters.donViId = null
+        filters.donViId = canManageAllUnits.value ? null : currentDonViId.value || null
         filters.kyBaoCaoKPIId = null
         filters.keyword = ''
     }

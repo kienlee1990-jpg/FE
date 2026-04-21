@@ -139,10 +139,16 @@ export function useTongHopDanhGiaPage() {
           donViTinh: assignment.donViTinh || '',
           danhMucChiTieuId: assignment.danhMucChiTieuId,
           loaiChiTieu: assignment.loaiChiTieu || '',
+          tieuChiDanhGia: assignment.tieuChiDanhGia || assignment.loaiChiTieu || '',
+          kieuSoSanh: assignment.kieuSoSanh || '',
+          loaiMocSoSanh: assignment.loaiMocSoSanh || '',
+          chieuSoSanh: assignment.chieuSoSanh || '',
+          quyTacDanhGia: assignment.quyTacDanhGia || '',
           giaTriMucTieu: assignment.giaTriMucTieu,
           giaTriDauKy: getNumberOrNull(pick(rawItem, 'giaTriDauKy', 'GiaTriDauKy')),
           giaTriCuoiKy: getNumberOrNull(pick(rawItem, 'giaTriCuoiKy', 'GiaTriCuoiKy')),
           giaTriLuyKe: getNumberOrNull(pick(rawItem, 'giaTriLuyKe', 'GiaTriLuyKe')),
+          giaTriPhatSinhLuyKe: getNumberOrNull(pick(rawItem, 'giaTriPhatSinhLuyKe', 'GiaTriPhatSinhLuyKe')),
           nhanXet: String(pick(rawItem, 'nhanXet', 'NhanXet') || '').trim(),
           maKy: pick(rawItem, 'maKy', 'MaKy') || pick(kyBaoCao, 'maKy', 'MaKy') || '',
           tenKy: pick(rawItem, 'tenKy', 'TenKy') || pick(kyBaoCao, 'tenKy', 'TenKy') || '',
@@ -213,7 +219,8 @@ export function useTongHopDanhGiaPage() {
   function finalizeGroup(group) {
     const latest = group.latest
     const giaTriLuyKeHienTai = latest.giaTriLuyKe ?? latest.giaTriCuoiKy
-    const tyLeHoanThanh = calculateCompletionRate(giaTriLuyKeHienTai, group.giaTriMucTieu, group.loaiChiTieu)
+    const metricSnapshot = calculateTargetProgress(group, latest, normalizedTheoDoiRows.value)
+    const tyLeHoanThanh = metricSnapshot.tyLeHoanThanh
     const evaluation = calculateComputedEvaluation({
       danhMucChiTieuId: group.danhMucChiTieuId,
       loaiChiTieu: group.loaiChiTieu,
@@ -232,13 +239,11 @@ export function useTongHopDanhGiaPage() {
       tenDotGiaoChiTieu: group.tenDotGiaoChiTieu || '-',
       donViTinh: latest.donViTinh || group.donViTinh || '',
       giaTriMucTieu: group.giaTriMucTieu,
+      isComparisonTarget: metricSnapshot.isComparisonTarget,
       giaTriDauKyGanNhat: latest.giaTriDauKy,
       giaTriCuoiKyGanNhat: latest.giaTriCuoiKy,
       giaTriLuyKeHienTai,
-      soDuMucTieu:
-        group.giaTriMucTieu === null || giaTriLuyKeHienTai === null
-          ? null
-          : group.giaTriMucTieu - giaTriLuyKeHienTai,
+      soDuMucTieu: metricSnapshot.soDuMucTieu,
       tyLeHoanThanh,
       maKyGanNhat: latest.maKy || '-',
       tenKyGanNhat: latest.tenKy || '-',
@@ -530,6 +535,12 @@ export function useTongHopDanhGiaPage() {
         '-',
       loaiChiTieu:
         normalizeCode(pick(rawItem, 'loaiChiTieu', 'LoaiChiTieu') || pick(danhMuc, 'loaiChiTieu', 'LoaiChiTieu')) || '',
+      tieuChiDanhGia:
+        normalizeCode(pick(rawItem, 'tieuChiDanhGia', 'TieuChiDanhGia') || pick(danhMuc, 'tieuChiDanhGia', 'TieuChiDanhGia')) || '',
+      kieuSoSanh: normalizeCode(pick(rawItem, 'kieuSoSanh', 'KieuSoSanh')) || '',
+      loaiMocSoSanh: normalizeCode(pick(rawItem, 'loaiMocSoSanh', 'LoaiMocSoSanh')) || '',
+      chieuSoSanh: normalizeCode(pick(rawItem, 'chieuSoSanh', 'ChieuSoSanh')) || '',
+      quyTacDanhGia: normalizeCode(pick(rawItem, 'quyTacDanhGia', 'QuyTacDanhGia')) || '',
       giaTriMucTieu: getNumberOrNull(pick(rawItem, 'giaTriMucTieu', 'GiaTriMucTieu'))
     }
   }
@@ -550,6 +561,11 @@ export function useTongHopDanhGiaPage() {
         pick(rawItem, 'tenDotGiaoChiTieu', 'TenDotGiaoChiTieu', 'dotGiaoChiTieu', 'DotGiaoChiTieu') || '-',
       tenDonViNhan: pick(rawItem, 'tenDonViNhan', 'TenDonViNhan') || '-',
       loaiChiTieu: normalizeCode(pick(rawItem, 'loaiChiTieu', 'LoaiChiTieu')) || '',
+      tieuChiDanhGia: normalizeCode(pick(rawItem, 'tieuChiDanhGia', 'TieuChiDanhGia')) || '',
+      kieuSoSanh: normalizeCode(pick(rawItem, 'kieuSoSanh', 'KieuSoSanh')) || '',
+      loaiMocSoSanh: normalizeCode(pick(rawItem, 'loaiMocSoSanh', 'LoaiMocSoSanh')) || '',
+      chieuSoSanh: normalizeCode(pick(rawItem, 'chieuSoSanh', 'ChieuSoSanh')) || '',
+      quyTacDanhGia: normalizeCode(pick(rawItem, 'quyTacDanhGia', 'QuyTacDanhGia')) || '',
       giaTriMucTieu: getNumberOrNull(pick(rawItem, 'giaTriMucTieu', 'GiaTriMucTieu'))
     }
   }
@@ -562,11 +578,149 @@ export function useTongHopDanhGiaPage() {
     return ngayCuoiKy < ngayKetThucDotGiao ? 'CHUA_DEN_HAN' : 'DA_DEN_HAN'
   }
 
-  function calculateCompletionRate(giaTriLuyKe, giaTriMucTieu, loaiChiTieu) {
-    if (normalizeCode(loaiChiTieu) === 'DINH_TINH') return null
-    const mucTieu = getNumberOrNull(giaTriMucTieu)
-    if (mucTieu === null || mucTieu === 0) return null
-    return ((giaTriLuyKe ?? 0) / mucTieu) * 100
+  function calculateTargetProgress(group, latest, theoDoiItems) {
+    if (normalizeCode(group?.tieuChiDanhGia || group?.loaiChiTieu) === 'DINH_TINH') {
+      return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: false }
+    }
+
+    const mucTieu = getNumberOrNull(group?.giaTriMucTieu)
+    if (mucTieu === null || mucTieu <= 0) {
+      return {
+        tyLeHoanThanh: null,
+        soDuMucTieu: null,
+        isComparisonTarget: isComparisonCriterion(group)
+      }
+    }
+
+    if (isComparisonCriterion(group)) {
+      const tyLeThucTe = calculateComparisonActualPercent(group, latest, theoDoiItems)
+      if (tyLeThucTe === null) {
+        return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: true }
+      }
+
+      const nguongDat = calculateComparisonThreshold(group, mucTieu)
+      return {
+        tyLeHoanThanh: roundNumber(calculateComparisonProgress(tyLeThucTe, mucTieu, group)),
+        soDuMucTieu: roundNumber(calculateComparisonGap(tyLeThucTe, nguongDat, group)),
+        isComparisonTarget: true
+      }
+    }
+
+    const giaTriLuyKe = getNumberOrNull(latest?.giaTriLuyKe ?? latest?.giaTriCuoiKy)
+    if (giaTriLuyKe === null) {
+      return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: false }
+    }
+
+    return {
+      tyLeHoanThanh: roundNumber(calculateProgressByRule(giaTriLuyKe, mucTieu, group?.quyTacDanhGia)),
+      soDuMucTieu: roundNumber(mucTieu - giaTriLuyKe),
+      isComparisonTarget: false
+    }
+  }
+
+  function calculateComparisonActualPercent(group, latest, theoDoiItems) {
+    if (!latest) return null
+
+    if (normalizeCode(group?.kieuSoSanh) === 'TY_LE') {
+      const phatSinhLuyKe = getNumberOrNull(latest.giaTriPhatSinhLuyKe)
+      const giaTriLuyKe = getNumberOrNull(latest.giaTriLuyKe)
+      if (phatSinhLuyKe === null || phatSinhLuyKe <= 0 || giaTriLuyKe === null) return null
+      return roundNumber((giaTriLuyKe / phatSinhLuyKe) * 100)
+    }
+
+    const giaTriMoc = resolveComparisonBenchmark(group, latest, theoDoiItems)
+    if (giaTriMoc === null || giaTriMoc === 0) return null
+
+    const giaTriLuyKe = getNumberOrNull(latest.giaTriLuyKe)
+    if (giaTriLuyKe === null) return null
+
+    return roundNumber((giaTriLuyKe / giaTriMoc) * 100)
+  }
+
+  function resolveComparisonBenchmark(group, latest, theoDoiItems) {
+    const loaiMoc = normalizeCode(group?.loaiMocSoSanh)
+    if (loaiMoc === 'DAU_KY') {
+      return getNumberOrNull(latest?.giaTriDauKy)
+    }
+
+    const latestSort = latest?.kySort
+    if (!latestSort) return null
+
+    if (loaiMoc === 'CUNG_KY') {
+      const match = theoDoiItems.find(item =>
+        item.groupKey === group.groupKey &&
+        item.kySort?.nam === latestSort.nam - 1 &&
+        normalizeCode(item.kySort?.loaiKy) === normalizeCode(latestSort.loaiKy) &&
+        Number(item.kySort?.soKy || 0) === Number(latestSort.soKy || 0)
+      )
+      return getNumberOrNull(match?.giaTriCuoiKy ?? match?.giaTriLuyKe)
+    }
+
+    if (loaiMoc === 'KY_TRUOC') {
+      const previous = [...theoDoiItems]
+        .filter(item => item.groupKey === group.groupKey && compareKySort(item.kySort, latestSort) < 0)
+        .sort((left, right) => compareKySort(right.kySort, left.kySort))[0]
+      return getNumberOrNull(previous?.giaTriCuoiKy ?? previous?.giaTriLuyKe)
+    }
+
+    if (loaiMoc === 'TONG_NAM_TRUOC') {
+      const previousYear = [...theoDoiItems]
+        .filter(item => item.groupKey === group.groupKey && Number(item.kySort?.nam || 0) === Number(latestSort.nam || 0) - 1)
+        .sort((left, right) => compareKySort(right.kySort, left.kySort))[0]
+      return getNumberOrNull(previousYear?.giaTriCuoiKy ?? previousYear?.giaTriLuyKe)
+    }
+
+    return null
+  }
+
+  function calculateProgressByRule(giaTriThucTe, giaTriMucTieu, quyTacDanhGia) {
+    if (!Number.isFinite(giaTriThucTe) || !Number.isFinite(giaTriMucTieu) || giaTriMucTieu <= 0) {
+      return null
+    }
+
+    if (normalizeCode(quyTacDanhGia) === 'KHONG_VUOT_NGUONG') {
+      if (giaTriThucTe <= giaTriMucTieu) return 100
+      return (giaTriMucTieu / giaTriThucTe) * 100
+    }
+
+    return (giaTriThucTe / giaTriMucTieu) * 100
+  }
+
+  function calculateComparisonThreshold(group, mucTieuPhanTram) {
+    if (!Number.isFinite(mucTieuPhanTram) || mucTieuPhanTram <= 0) return null
+    if (normalizeCode(group?.kieuSoSanh) === 'TY_LE') return mucTieuPhanTram
+    return normalizeCode(group?.chieuSoSanh) === 'GIAM'
+      ? 100 - mucTieuPhanTram
+      : 100 + mucTieuPhanTram
+  }
+
+  function calculateComparisonProgress(tyLeThucTe, mucTieuPhanTram, group) {
+    const nguongDat = calculateComparisonThreshold(group, mucTieuPhanTram)
+    if (!Number.isFinite(tyLeThucTe) || !Number.isFinite(nguongDat) || nguongDat <= 0 || tyLeThucTe <= 0) {
+      return null
+    }
+
+    if (normalizeCode(group?.kieuSoSanh) === 'TY_LE') {
+      return (tyLeThucTe / nguongDat) * 100
+    }
+
+    const chieu = normalizeCode(group?.chieuSoSanh)
+
+    return chieu === 'GIAM'
+      ? (nguongDat / tyLeThucTe) * 100
+      : (tyLeThucTe / nguongDat) * 100
+  }
+
+  function calculateComparisonGap(tyLeThucTe, nguongDat, group) {
+    if (!Number.isFinite(tyLeThucTe) || !Number.isFinite(nguongDat)) return null
+    if (normalizeCode(group?.kieuSoSanh) === 'TY_LE') return nguongDat - tyLeThucTe
+    return normalizeCode(group?.chieuSoSanh) === 'GIAM'
+      ? tyLeThucTe - nguongDat
+      : nguongDat - tyLeThucTe
+  }
+
+  function isComparisonCriterion(group) {
+    return normalizeCode(group?.tieuChiDanhGia || group?.loaiChiTieu) === 'DINH_LUONG_SO_SANH'
   }
 
   function getKyLabel(item) {

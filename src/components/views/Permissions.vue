@@ -3,7 +3,9 @@
     <div class="page-shell">
       <div class="page-header">
         <div class="gov-banner">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg" class="gov-emblem" alt="Vietnam emblem" />
+          <div class="gov-emblem">
+            <i class="bi bi-shield-lock-fill"></i>
+          </div>
           <div>
             <div class="gov-title">PHÂN QUYỀN CHI TIẾT</div>
             <div class="gov-sub">Cấu hình quyền theo chức năng cho user hoặc role</div>
@@ -164,13 +166,13 @@
                   <label v-for="perm in group.permissions" :key="perm.value" class="permission-card">
                     <div class="permission-card-main">
                       <input class="form-check-input mt-1" type="checkbox" :value="perm.value" v-model="selectedPermissions" />
-                      <div>
-                        <strong class="d-block">{{ perm.label }}</strong>
+                      <div class="permission-copy">
+                        <strong class="d-block permission-name">{{ perm.label }}</strong>
                         <div class="permission-description">{{ perm.description }}</div>
                         <span class="permission-code">{{ perm.value }}</span>
                       </div>
                     </div>
-                    <span class="badge" :class="selectedPermissions.includes(perm.value) ? 'text-bg-success' : 'text-bg-secondary'">
+                    <span class="permission-state-badge" :class="selectedPermissions.includes(perm.value) ? 'is-selected' : 'is-unselected'">
                       {{ selectedPermissions.includes(perm.value) ? "Đã chọn" : "Chưa chọn" }}
                     </span>
                   </label>
@@ -233,7 +235,8 @@ const permissionGroups = [
       { label: 'Quản lý đợt giao chỉ tiêu', value: 'ManageAssignmentWaves', description: 'Cho phép tạo và cập nhật đợt giao chỉ tiêu.' },
       { label: 'Giao chỉ tiêu cho CATP', value: 'AssignTargetsToCatp', description: 'Cho phép giao chỉ tiêu cho Công an thành phố.' },
       { label: 'Giao chỉ tiêu cho Phòng', value: 'AssignTargetsToPhong', description: 'Cho phép giao chỉ tiêu cho khối phòng.' },
-      { label: 'Giao chỉ tiêu cho CADP phường/xã', value: 'AssignTargetsToCadp', description: 'Cho phép giao chỉ tiêu cho CADP phường/xã.' }
+      { label: 'Giao chỉ tiêu cho CADP phường/xã', value: 'AssignTargetsToCadp', description: 'Cho phép giao chỉ tiêu cho CADP phường/xã.' },
+      { label: 'Xem danh sách chỉ tiêu được giao', value: 'ViewAssignedTargetsList', description: 'Cho phép mở màn danh sách chỉ tiêu được giao.' }
     ]
   },
   {
@@ -277,6 +280,7 @@ const permissionGroups = [
     description: 'Các chức năng người dùng, phân quyền và nhật ký hệ thống.',
     permissions: [
       { label: 'Quản trị người dùng', value: 'ManageUsers', description: 'Cho phép xem danh sách người dùng và gán vai trò.' },
+      { label: 'Cấp lại mật khẩu', value: 'ResetUserPasswords', description: 'Cho phép mở màn cấp lại mật khẩu và thực hiện lấy token/reset mật khẩu.' },
       { label: 'Quản trị phân quyền', value: 'ManagePermissions', description: 'Cho phép mở và cấu hình màn phân quyền.' },
       { label: 'Xem nhật ký hệ thống', value: 'ViewSystemLogs', description: 'Cho phép xem nhật ký hệ thống.' }
     ]
@@ -284,7 +288,6 @@ const permissionGroups = [
 ]
 
 const allPermissionOptions = permissionGroups.flatMap(group => group.permissions)
-const defaultRoles = ['Admin', 'Công an Thành phố', 'Công an cấp Phòng', 'Công an cấp Xã/Phường']
 
 const users = ref([])
 const roles = ref([])
@@ -359,20 +362,6 @@ const normalizeRole = (item) => ({
   userCount: Number(item?.userCount ?? item?.UserCount ?? 0)
 })
 
-const buildRoleFallbacks = () => {
-  const roleNames = new Set(defaultRoles)
-  users.value.forEach(user => (user.roles || []).forEach(role => roleNames.add(role)))
-
-  return [...roleNames]
-    .map(roleName => ({
-      id: `name:${roleName}`,
-      roleName,
-      permissions: [],
-      userCount: users.value.filter(user => (user.roles || []).includes(roleName)).length
-    }))
-    .sort((left, right) => left.roleName.localeCompare(right.roleName, 'vi'))
-}
-
 const fetchUsers = async () => {
   try {
     loadingUsers.value = true
@@ -392,7 +381,7 @@ const fetchRoles = async () => {
     roles.value = Array.isArray(res.data) ? res.data.map(normalizeRole) : []
   } catch (err) {
     console.error(err)
-    roles.value = buildRoleFallbacks()
+    roles.value = []
   } finally {
     loadingRoles.value = false
   }
@@ -409,9 +398,15 @@ const fetchUserPermissions = async (userId) => {
     error.value = ''
     successMessage.value = ''
     const res = await httpClient.get(`/admin/users/${userId}`)
-    const permissions = normalizePermissions(res.data?.permissions)
-    originalPermissions.value = [...permissions]
-    selectedPermissions.value = [...permissions]
+    const rolePermissions = normalizePermissions(res.data?.rolePermissions)
+    const directPermissions = normalizePermissions(res.data?.permissions)
+    const effectivePermissions = normalizePermissions(
+      res.data?.effectivePermissions?.length
+        ? res.data.effectivePermissions
+        : [...new Set([...rolePermissions, ...directPermissions])]
+    )
+    originalPermissions.value = [...effectivePermissions]
+    selectedPermissions.value = [...effectivePermissions]
     selectedUserRoles.value = Array.isArray(res.data?.roles) ? [...res.data.roles] : []
   } catch (err) {
     originalPermissions.value = []
@@ -587,10 +582,10 @@ onMounted(async () => {
 <style scoped>
 .page-shell{padding:20px}
 .page-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.gov-banner{display:flex;align-items:center;gap:14px;max-width:520px;background:linear-gradient(180deg,#03943f 0%,#05ce48dd 100%);padding:14px 18px;border-radius:14px;color:#fff;box-shadow:0 10px 24px rgba(3,148,63,.22)}
-.gov-emblem{width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
-.gov-title{font-size:18px;font-weight:700;letter-spacing:.4px}
-.gov-sub{font-size:12px;opacity:.92}
+.gov-banner{display:flex;align-items:center;gap:16px;padding:20px 24px;border-radius:20px;background:linear-gradient(135deg,#ffffff 0%,#f4f9ff 100%);box-shadow:0 10px 30px rgba(13,110,253,.08);border:1px solid rgba(13,110,253,.08)}
+.gov-emblem{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d6efd,#4ea1ff);color:#fff;font-size:28px;box-shadow:0 10px 24px rgba(13,110,253,.24)}
+.gov-title{font-size:1.3rem;font-weight:800;color:#1f2d3d;margin-bottom:4px}
+.gov-sub{font-size:.95rem;color:#4f6b88;opacity:1}
 .mode-switch{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
 .summary-card{padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #e9ecef;box-shadow:0 10px 20px rgba(15,23,42,.05)}
@@ -611,12 +606,17 @@ onMounted(async () => {
 .group-body{padding:16px 18px;border-top:1px solid #e2e8f0}
 .group-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .permission-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
-.permission-card{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.04);cursor:pointer}
-.permission-card:hover{border-color:#93c5fd;background:#f8fbff}
+.permission-card{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:16px 18px;border:1px solid #dbe4ef;border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 10px 24px rgba(15,23,42,.05);cursor:pointer}
+.permission-card:hover{border-color:#60a5fa;background:linear-gradient(180deg,#ffffff 0%,#f0f7ff 100%);box-shadow:0 14px 28px rgba(37,99,235,.10)}
 .permission-card-main{display:flex;gap:12px;align-items:flex-start}
-.permission-description{font-size:13px;color:#475569;margin-top:4px}
-.permission-code{display:inline-flex;margin-top:8px;padding:4px 10px;border-radius:999px;background:#f1f5f9;color:#334155;font-size:12px}
-.role-chip{background:#dbeafe;color:#1d4ed8}
+.permission-copy{min-width:0}
+.permission-name{font-size:15px;color:#0f172a}
+.permission-description{font-size:13px;color:#475569;margin-top:6px;line-height:1.45}
+.permission-code{display:inline-flex;align-items:center;margin-top:10px;padding:5px 12px;border-radius:999px;background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;font-size:11px;font-weight:700;letter-spacing:.02em;border:1px solid #bfdbfe}
+.permission-state-badge{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;border:1px solid transparent;white-space:nowrap}
+.permission-state-badge.is-selected{background:#dcfce7;color:#166534;border-color:#bbf7d0;box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
+.permission-state-badge.is-unselected{background:#f8fafc;color:#475569;border-color:#cbd5e1}
+.role-chip{background:linear-gradient(135deg,#dbeafe,#eff6ff);color:#1d4ed8;border:1px solid #bfdbfe;font-weight:700}
 .save-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid #e2e8f0}
 @media (max-width: 1100px){.selector-grid{grid-template-columns:1fr 1fr}}
 @media (max-width: 992px){.selector-grid{grid-template-columns:1fr}.permission-grid{grid-template-columns:1fr}}

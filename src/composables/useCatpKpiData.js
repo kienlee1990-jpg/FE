@@ -62,6 +62,7 @@ export function useCatpKpiData() {
         tenDonViNhan: item.tenDonViNhan,
         tenDonViThucHienChinh: item.tenDonViThucHienChinh,
         tanSuatBaoCao: item.tanSuatBaoCao,
+        tieuChiDanhGia: item.tieuChiDanhGia,
         giaTriMucTieu: item.giaTriMucTieu,
         giaTriMucTieuText: item.giaTriMucTieuText,
         kyBaoCaoKPIId: Number(selectedEvaluation?.kyBaoCaoKPIId || selectedEvaluation?.KyBaoCaoKPIId || 0),
@@ -143,6 +144,9 @@ export function formatTarget(row) {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     })
+    if (normalizeText(row?.tieuChiDanhGia).toUpperCase() === 'DINH_LUONG_SO_SANH') {
+      return `${formatted}%`
+    }
     const unit = String(row?.donViTinh || '').trim()
     return unit ? `${formatted} ${unit}` : formatted
   }
@@ -177,6 +181,7 @@ function flattenAssignments(items, parent = null) {
       tenDonViNhan: item.tenDonViNhan || item.TenDonViNhan || '',
       tenDonViThucHienChinh: item.tenDonViThucHienChinh || item.TenDonViThucHienChinh || '',
       tanSuatBaoCao: item.tanSuatBaoCao || item.TanSuatBaoCao || '',
+      tieuChiDanhGia: item.tieuChiDanhGia || item.TieuChiDanhGia || item.loaiChiTieu || item.LoaiChiTieu || '',
       giaTriMucTieu: getNumberOrNull(item.giaTriMucTieu ?? item.GiaTriMucTieu),
       giaTriMucTieuText: item.giaTriMucTieuText || item.GiaTriMucTieuText || ''
     }

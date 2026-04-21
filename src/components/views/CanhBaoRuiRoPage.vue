@@ -7,7 +7,6 @@
                         <i class="bi bi-shield-exclamation"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">CẢNH BÁO RỦI RO KPI</div>
                         <div class="gov-sub">
                         </div>
@@ -16,11 +15,7 @@
 
                 <div class="risk-page">
                     <div class="page-header">
-                        <div class="gov-banner">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                                class="gov-emblem" />
-                        </div>
-                        <div class="header-actions">
+                        <div class="header-actions ms-auto">
                             <button class="btn btn-primary" @click="fetchRiskData">Tải dữ liệu</button>
                             <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
                         </div>

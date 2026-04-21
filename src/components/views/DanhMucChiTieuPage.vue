@@ -7,65 +7,37 @@
                         <i class="bi bi-list-check"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU</div>
                         <div class="gov-title">QUẢN LÝ DANH MỤC CHỈ TIÊU</div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-outline-primary btn-action" @click="openImportFilePicker" :disabled="importing">
+                        <button class="btn btn-outline-primary btn-action" @click="openImportFilePicker"
+                            :disabled="importing">
                             <i class="bi bi-file-earmark-excel me-2"></i>
                             {{ importing ? 'Đang nhập...' : 'Nhập từ Excel' }}
                         </button>
                         <button class="btn btn-primary btn-action" @click="openCreateModal">
                             <i class="bi bi-plus-circle me-2"></i>
-                            Tạo chỉ tiêu
+                            Tạo danh mục chỉ tiêu
                         </button>
                     </div>
                 </div>
 
-                <input
-                    ref="importFileInput"
-                    type="file"
-                    class="d-none"
-                    accept=".xlsx,.xls"
-                    @change="handleImportFileChange"
-                />
+                <input ref="importFileInput" type="file" class="d-none" accept=".xlsx,.xls"
+                    @change="handleImportFileChange" />
 
                 <div class="card custom-card mb-4 import-guide-card">
                     <div class="card-body">
                         <div class="import-guide-head">
                             <div>
                                 <h5 class="mb-1">Hướng dẫn nhập Excel</h5>
-                                <small class="text-muted">Mỗi dòng tương ứng một danh mục chỉ tiêu. Chỉ tiêu phân rã dùng thêm cột JSON cho tiêu chí con.</small>
                             </div>
                             <button class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
                                 <i class="bi bi-download me-1"></i>
                                 Tải mẫu CSV
                             </button>
-                        </div>
-
-                        <div class="import-guide-columns">
-                            <span class="guide-chip">Mã chỉ tiêu (MaChiTieu)</span>
-                            <span class="guide-chip">Tên chỉ tiêu (TenChiTieu)</span>
-                            <span class="guide-chip">Nguồn chỉ tiêu (NguonChiTieu)</span>
-                            <span class="guide-chip">Chế độ đánh giá (CheDoDanhGia)</span>
-                            <span class="guide-chip">Loại chỉ tiêu (LoaiChiTieu)</span>
-                            <span class="guide-chip">Trạng thái sử dụng (TrangThaiSuDung)</span>
-                            <span class="guide-chip">Lĩnh vực nghiệp vụ (LinhVucNghiepVu)</span>
-                            <span class="guide-chip">Đơn vị tính (DonViTinh)</span>
-                            <span class="guide-chip">Tiêu chí con (TieuChiDanhGiasJson)</span>
-                        </div>
-
-                        <div class="text-muted small mt-2">
-                            Cột <strong>CheDoDanhGia</strong> nhận <strong>DON</strong> hoặc <strong>PHAN_RA</strong>. Nếu là phân rã, cột
-                            <strong>TieuChiDanhGiasJson</strong> phải là mảng JSON tối thiểu 2 tiêu chí con.
                         </div>
                     </div>
                 </div>
@@ -96,12 +68,8 @@
                         </div>
 
                         <div v-if="importResult.messages.length" class="import-message-list">
-                            <div
-                                v-for="(message, index) in importResult.messages"
-                                :key="`${message.type}-${index}`"
-                                class="import-message-item"
-                                :class="message.type"
-                            >
+                            <div v-for="(message, index) in importResult.messages" :key="`${message.type}-${index}`"
+                                class="import-message-item" :class="message.type">
                                 {{ message.text }}
                             </div>
                         </div>
@@ -168,9 +136,9 @@
                 <div class="card custom-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center border-0">
                         <div>
-                            <h5 class="mb-1">Danh sách chỉ tiêu</h5>
-                                        <small class="text-muted">Bao gồm chỉ tiêu đơn và chỉ tiêu phân rã thành nhiều tiêu chí đánh
-                                            giá</small>
+                            <h5 class="mb-1">Danh sách danh mục chỉ tiêu</h5>
+                            <small class="text-muted">Bao gồm chỉ tiêu đơn và chỉ tiêu phân rã thành nhiều tiêu chí đánh
+                                giá</small>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ items.length }}</span>
                     </div>
@@ -188,10 +156,11 @@
 
                         <div v-else class="table-responsive">
                             <ColumnVisibilityTools table-id="DanhMucChiTieuPage-table" />
-                            <table id="DanhMucChiTieuPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
+                            <table id="DanhMucChiTieuPage-table"
+                                class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
-                                        <th>Tên chỉ tiêu</th>
+                                        <th>Tên danh mục chỉ tiêu</th>
                                         <th>Đơn vị tính</th>
                                         <th>Loại</th>
                                         <th>Bộ tiêu chí</th>
@@ -209,7 +178,8 @@
                                                 <span v-for="child in item.tieuChiDanhGias"
                                                     :key="child.id || child.maChiTieu"
                                                     class="badge text-bg-light border">
-                                                    {{ child.tenChiTieu }}{{ child.donViTinh ? ` (${child.donViTinh})` : '' }}
+                                                    {{ child.tenChiTieu }}{{ child.donViTinh ? ` (${child.donViTinh})` :
+                                                    '' }}
                                                 </span>
                                             </div>
                                         </td>
@@ -217,14 +187,20 @@
                                             <div class="fw-semibold">{{ item.donViTinh || '-' }}</div>
                                             <div v-if="item.tieuChiDanhGias.length" class="small text-muted mt-1">
                                                 {{ item.tieuChiDanhGias
-                                                    .map(child => child.donViTinh)
-                                                    .filter(Boolean)
-                                                    .join(', ') || 'Theo từng tiêu chí con' }}
+                                                .map(child => child.donViTinh)
+                                                .filter(Boolean)
+                                                .join(', ') || 'Theo từng tiêu chí con' }}
                                             </div>
                                         </td>
                                         <td>{{ mapLoai(item.loaiChiTieu) }}</td>
                                         <td>
-                                            <div class="fw-semibold">{{ getCriteriaSummary(item) }} • {{ item.batBuocDatTatCaTieuChiCon && item.tieuChiDanhGias.length ? 'Phải đạt tất cả tiêu chí con' : 'Đánh giá theo 1 tiêu chí' }}</div>
+                                            <div class="fw-semibold">
+                                                {{ getCriteriaSummary(item) }} • {{
+                                                item.batBuocDatTatCaTieuChiCon && item.tieuChiDanhGias?.length
+                                                ? 'Phải đạt tất cả tiêu chí con'
+                                                : 'Đánh giá theo 1 tiêu chí'
+                                                }}
+                                            </div>
                                         </td>
                                         <td>
                                             <span class="badge rounded-pill"
@@ -274,7 +250,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-8">
-                                        <label class="form-label">Tên chỉ tiêu <span
+                                        <label class="form-label">Tên danh mục chỉ tiêu <span
                                                 class="text-danger">*</span></label>
                                         <input v-model="form.tenChiTieu" type="text" class="form-control" />
                                     </div>
@@ -289,7 +265,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-4">
-                                        <label class="form-label">Lĩnh vực nghiệp vụ</label>
+                                        <label class="form-label">Nhóm nghiệp vụ</label>
                                         <select :value="linhVucNghiepVuSelector" class="form-select"
                                             @change="handleLinhVucSelectorChange($event.target.value)">
                                             <option value="">Chọn lĩnh vực đã có</option>
@@ -299,8 +275,8 @@
                                             </option>
                                             <option :value="CUSTOM_OPTION_VALUE">Nhập lĩnh vực mới</option>
                                         </select>
-                                        <input v-if="linhVucNghiepVuMode === 'custom'"
-                                            v-model="form.linhVucNghiepVu" type="text" class="form-control mt-2"
+                                        <input v-if="linhVucNghiepVuMode === 'custom'" v-model="form.linhVucNghiepVu"
+                                            type="text" class="form-control mt-2"
                                             placeholder="Nhập lĩnh vực nghiệp vụ mới" />
                                     </div>
 
@@ -493,9 +469,9 @@
                                                     </div>
 
                                                     <div class="col-12">
-                                                    <label class="form-label">Hướng dẫn tính toán</label>
-                                                    <textarea v-model="child.huongDanTinhToan" rows="2"
-                                                        class="form-control"></textarea>
+                                                        <label class="form-label">Hướng dẫn tính toán</label>
+                                                        <textarea v-model="child.huongDanTinhToan" rows="2"
+                                                            class="form-control"></textarea>
                                                     </div>
 
                                                     <div v-if="child.loaiChiTieu === 'DINH_TINH'"
@@ -563,7 +539,7 @@
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import * as XLSX from 'xlsx'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
 
     const DEFAULT_CAP_AP_DUNG = 'THANH_PHO'
@@ -578,6 +554,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const items = ref([])
     const importFileInput = ref(null)
     const importResult = ref(null)
+    const syncingForm = ref(false)
 
     const filters = reactive({
         keyword: '',
@@ -817,6 +794,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     watch(() => form.cheDoDanhGia, (mode) => {
+        if (syncingForm.value) return
         form.coChoPhepPhanRa = mode === 'PHAN_RA'
         if (mode === 'PHAN_RA' && form.tieuChiDanhGias.length < 2) {
             while (form.tieuChiDanhGias.length < 2) {
@@ -1288,6 +1266,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const openEditModal = (item) => {
         isEdit.value = true
         editingId.value = item.id
+        syncingForm.value = true
 
         Object.assign(form, {
             maChiTieu: item.maChiTieu,
@@ -1313,6 +1292,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         })
 
         syncSuggestionModes()
+        syncingForm.value = false
         showModal.value = true
     }
 
@@ -1708,8 +1688,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         color: #991b1b;
     }
 </style>
-
-
-
-
-

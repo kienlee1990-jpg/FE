@@ -218,7 +218,7 @@ export function isKhongVuotNguongRule(value) {
   return normalizeDanhGiaText(value) === 'KHONG_VUOT_NGUONG'
 }
 
-export function getQuyTacOptionsByCriterion(value) {
+export function getQuyTacOptionsByCriterion(value, comparisonKind = '') {
   if (isDinhTinhCriterion(value)) {
     return QUY_TAC_DANH_GIA_OPTIONS.filter(item => item.value === 'MAC_DINH')
   }

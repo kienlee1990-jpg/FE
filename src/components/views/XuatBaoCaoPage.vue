@@ -7,7 +7,6 @@
                         <i class="bi bi-diagram-3"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI, ĐÁNH GIÁ CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">PHÂN RÃ CHỈ TIÊU</div>
                         <div class="gov-sub">Quản lý phân rã chỉ tiêu từ chỉ tiêu cha xuống đơn vị thực hiện</div>
                     </div>

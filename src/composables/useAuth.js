@@ -11,10 +11,15 @@ export function useAuth() {
     const normalizeUser = (data) => ({
         id: data?.userId || data?.id || "",
         userId: data?.userId || data?.id || "",
+        userName: data?.userName || "",
         email: data?.email || "",
         fullName: data?.fullName || "",
+        donViId: data?.donViId ?? null,
+        donVi: data?.donVi || "",
+        maDonVi: data?.maDonVi || "",
         roles: Array.isArray(data?.roles) ? data.roles : [],
-        permissions: Array.isArray(data?.permissions) ? data.permissions : []
+        permissions: Array.isArray(data?.permissions) ? data.permissions : [],
+        rolePermissions: Array.isArray(data?.rolePermissions) ? data.rolePermissions : []
     })
 
     const syncUserStorage = (profile) => {

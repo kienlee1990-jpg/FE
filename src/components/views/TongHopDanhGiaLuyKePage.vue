@@ -7,7 +7,6 @@
                         <i class="bi bi-collection"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">TỔNG HỢP ĐÁNH GIÁ LŨY KẾ</div>
                         <div class="gov-sub">
                             Mỗi dòng phản ánh một chỉ tiêu chi tiết tại đơn vị, lấy số liệu cuối kỳ gần nhất tính đến thời điểm xem báo cáo.
@@ -111,11 +110,11 @@
                                         <td>{{ row.tenDonViNhan || '-' }}</td>
                                         <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
                                         <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriDauKyGanNhat, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                         <td>
                                             <span class="badge" :class="badgeClass(row.xepLoai)">

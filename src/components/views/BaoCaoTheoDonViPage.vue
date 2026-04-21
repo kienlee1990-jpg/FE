@@ -7,7 +7,6 @@
                         <i class="bi bi-buildings"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">BÁO CÁO THEO ĐƠN VỊ</div>
                         <div class="gov-sub">
                             Tổng hợp kết quả đánh giá KPI theo từng đơn vị nhận chỉ tiêu để theo dõi chất lượng thực hiện và

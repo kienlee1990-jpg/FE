@@ -7,17 +7,11 @@
                         <i class="bi bi-calendar3"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-                        <div class="gov-title">QUẢN LÝ KỲ BÁO CÁO KPI</div>
+                        <div class="gov-title">QUẢN LÝ KỲ BÁO CÁO</div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Tạo kỳ báo cáo
@@ -95,7 +89,8 @@
 
                         <div v-else class="table-responsive">
                             <ColumnVisibilityTools table-id="KyBaoCaoPage-table" />
-                            <table id="KyBaoCaoPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
+                            <table id="KyBaoCaoPage-table"
+                                class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>Tên kỳ</th>
@@ -265,7 +260,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
 
     const API_CONTROLLER = '/KyBaoCaoKPI'
@@ -731,8 +726,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-
-
-

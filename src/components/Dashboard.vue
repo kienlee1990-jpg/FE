@@ -7,9 +7,7 @@
             <i class="bi bi-speedometer2"></i>
           </div>
           <div class="gov-text">
-            <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
-            <div class="gov-title">BẢNG ĐIỀU KHIỂN CHỈ TIÊU CÔNG AN THÀNH PHỐ</div>
-            <div class="gov-sub">Theo dõi các chỉ tiêu do Công an thành phố Đà Nẵng trực tiếp thực hiện</div>
+            <div class="gov-title">BẢNG ĐIỀU KHIỂN</div>
           </div>
         </div>
 
@@ -183,7 +181,7 @@
             <div class="dashboard-grid two-columns">
               <section class="panel-card">
                 <div class="panel-header">
-                  <h3>Top 5 KPI tốt nhất</h3>
+                  <h3>05 chỉ tiêu có kết quả tốt nhất</h3>
                   <span>% hoàn thành cao nhất</span>
                 </div>
 
@@ -196,7 +194,7 @@
 
               <section class="panel-card">
                 <div class="panel-header">
-                  <h3>Top 5 KPI kém nhất</h3>
+                  <h3>05 chỉ tiêu có kết quả kém nhất</h3>
                   <span>% hoàn thành thấp nhất</span>
                 </div>
 
@@ -897,5 +895,3 @@
     }
   }
 </style>
-
-

@@ -7,20 +7,15 @@
                         <i class="bi bi-building"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">QUẢN LÝ ĐƠN VỊ</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-outline-primary btn-action" @click="openImportFilePicker" :disabled="importing">
+                        <button class="btn btn-outline-primary btn-action" @click="openImportFilePicker"
+                            :disabled="importing">
                             <i class="bi bi-file-earmark-excel me-2"></i>
                             {{ importing ? 'Đang nhập...' : 'Nhập từ Excel' }}
                         </button>
@@ -31,42 +26,19 @@
                     </div>
                 </div>
 
-                <input
-                    ref="importFileInput"
-                    type="file"
-                    class="d-none"
-                    accept=".xlsx,.xls"
-                    @change="handleImportFileChange"
-                />
+                <input ref="importFileInput" type="file" class="d-none" accept=".xlsx,.xls"
+                    @change="handleImportFileChange" />
 
                 <div class="card custom-card mb-4 import-guide-card">
                     <div class="card-body">
                         <div class="import-guide-head">
                             <div>
                                 <h5 class="mb-1">Hướng dẫn nhập Excel</h5>
-                                <small class="text-muted">Hệ thống đọc sheet đầu tiên và tạo đơn vị theo từng dòng.</small>
                             </div>
                             <button class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
                                 <i class="bi bi-download me-1"></i>
                                 Tải mẫu CSV
                             </button>
-                        </div>
-
-                        <div class="import-guide-columns">
-                            <span class="guide-chip">Mã đơn vị</span>
-                            <span class="guide-chip">Tên đơn vị</span>
-                            <span class="guide-chip">Loại đơn vị</span>
-                            <span class="guide-chip">Mã đơn vị cha</span>
-                            <span class="guide-chip">Người đại diện</span>
-                            <span class="guide-chip">Số điện thoại</span>
-                            <span class="guide-chip">Email</span>
-                            <span class="guide-chip">Địa chỉ</span>
-                            <span class="guide-chip">Ghi chú</span>
-                        </div>
-
-                        <div class="text-muted small mt-2">
-                            Loại đơn vị chấp nhận: <strong>THANH_PHO</strong>, <strong>PHONG</strong>, <strong>XA</strong>
-                            hoặc nhãn tương đương như <strong>Thành phố</strong>, <strong>Cấp phòng</strong>, <strong>Xã/Phường</strong>.
                         </div>
                     </div>
                 </div>
@@ -97,12 +69,8 @@
                         </div>
 
                         <div v-if="importResult.messages.length" class="import-message-list">
-                            <div
-                                v-for="(message, index) in importResult.messages"
-                                :key="`${message.type}-${index}`"
-                                class="import-message-item"
-                                :class="message.type"
-                            >
+                            <div v-for="(message, index) in importResult.messages" :key="`${message.type}-${index}`"
+                                class="import-message-item" :class="message.type">
                                 {{ message.text }}
                             </div>
                         </div>
@@ -112,7 +80,6 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Lọc dữ liệu tại frontend theo API hiện tại</small>
                     </div>
 
                     <div class="card-body">
@@ -179,7 +146,8 @@
 
                         <div v-else class="table-responsive">
                             <ColumnVisibilityTools table-id="DanhMucDonViPage-table" />
-                            <table id="DanhMucDonViPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
+                            <table id="DanhMucDonViPage-table"
+                                class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>Tên đơn vị</th>
@@ -315,7 +283,7 @@
     import { computed, onMounted, reactive, ref } from 'vue'
     import * as XLSX from 'xlsx'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
 
     const loading = ref(false)
@@ -1112,8 +1080,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-
-
-

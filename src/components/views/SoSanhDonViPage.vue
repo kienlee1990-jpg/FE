@@ -7,7 +7,6 @@
                         <i class="bi bi-bar-chart-line"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">SO SÁNH ĐƠN VỊ</div>
                         <div class="gov-sub"></div>
                     </div>
@@ -15,11 +14,7 @@
 
                 <div class="compare-page">
                     <div class="page-header">
-                        <div class="gov-banner">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                                class="gov-emblem" />
-                        </div>
-                        <div class="header-actions">
+                        <div class="header-actions ms-auto">
                             <button class="btn btn-primary" @click="fetchCompareData">Tải dữ liệu</button>
                             <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
                         </div>

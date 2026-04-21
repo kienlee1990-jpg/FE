@@ -7,7 +7,6 @@
                         <i class="bi bi-bar-chart-line"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">BÁO CÁO TỔNG HỢP KPI TOÀN HỆ THỐNG</div>
                         <div class="gov-sub">
                             Mỗi dòng là một chi tiết giao chỉ tiêu, cộng dồn số thực hiện trong các kỳ và lấy kết quả đánh giá gần nhất trong phạm vi lọc.
@@ -111,7 +110,6 @@
                                         <th>Đợt giao chỉ tiêu</th>
                                         <th>Kỳ gần nhất</th>
                                         <th>Giá trị mục tiêu</th>
-                                        <th>Thực hiện cộng dồn</th>
                                         <th>Cuối kỳ gần nhất</th>
                                         <th>Lũy kế hiện tại</th>
                                         <th>Số dư mục tiêu</th>
@@ -131,13 +129,10 @@
                                         <td>{{ row.tenDonViNhan || '-' }}</td>
                                         <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
                                         <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
-                                        <td class="text-right">
-                                            <div>{{ formatNumber(row.giaTriThucHienCongDon, row.donViTinh) }}</div>
-                                        </td>
+                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                         <td>
                                             <span class="badge" :class="badgeClass(row.xepLoai)">

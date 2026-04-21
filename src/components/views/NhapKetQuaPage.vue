@@ -7,18 +7,12 @@
                         <i class="bi bi-clipboard-data"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">NHẬP BÁO CÁO ĐỊNH KỲ</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Nhập báo cáo định kỳ
@@ -45,8 +39,8 @@
 
                             <div class="col-12 col-md-4">
                                 <label class="form-label">Đơn vị thực hiện</label>
-                                <select v-model.number="filters.donViNhanId" class="form-select">
-                                    <option :value="null">Tất cả</option>
+                                <select v-model.number="filters.donViNhanId" class="form-select" :disabled="!canManageAllUnits">
+                                    <option :value="null">{{ canManageAllUnits ? 'Tất cả' : currentUnitName }}</option>
                                     <option v-for="item in donViNhanFilterOptions" :key="item.id" :value="item.id">
                                         {{ item.ten }}
                                     </option>
@@ -146,7 +140,7 @@
                                         <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe, item.DonViTinh || item.donViTinh) }}</td>
                                         <td>{{ formatNumber(item.GiaTriPhatSinhLuyKe ?? item.giaTriPhatSinhLuyKe, item.DonViTinh || item.donViTinh) }}</td>
                                         <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
+                                            <div v-if="canManageAllUnits" class="d-flex justify-content-center gap-2">
                                                 <button class="btn btn-sm btn-outline-primary"
                                                     @click="openEditModal(item)">
                                                     <i class="bi bi-pencil-square me-1"></i>Sửa
@@ -156,6 +150,7 @@
                                                     <i class="bi bi-trash me-1"></i>Xóa
                                                 </button>
                                             </div>
+                                            <span v-else class="text-muted">Không khả dụng</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -195,8 +190,8 @@
                                         <label class="form-label">
                                             Đơn vị thực hiện <span class="text-danger">*</span>
                                         </label>
-                                        <select v-model.number="form.donViNhanId" class="form-select">
-                                            <option :value="null">Chọn đơn vị thực hiện</option>
+                                        <select v-model.number="form.donViNhanId" class="form-select" :disabled="!canManageAllUnits">
+                                            <option :value="null">{{ canManageAllUnits ? 'Chọn đơn vị thực hiện' : currentUnitName }}</option>
                                             <option v-for="item in donViNhanFilterOptions" :key="item.id"
                                                 :value="item.id">
                                                 {{ item.ten }}
@@ -385,6 +380,7 @@
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
+    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
@@ -401,6 +397,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const isEdit = ref(false)
     const editingId = ref(null)
     const isHydratingForm = ref(false)
+    const currentProfile = ref(getStoredUserProfile())
 
     const items = ref([])
     const chiTietGiaoChiTieuOptions = ref([])
@@ -416,8 +413,14 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         keyword: ''
     })
 
+    const currentDonViId = computed(() => Number(currentProfile.value?.donViId || 0))
+    const currentUnitName = computed(() => currentProfile.value?.donVi || 'Đơn vị hiện tại')
+    const canManageAllUnits = computed(() =>
+        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
+    )
+
     const createDefaultForm = () => ({
-        donViNhanId: null,
+        donViNhanId: canManageAllUnits.value ? null : currentDonViId.value || null,
         chiTietGiaoChiTieuId: null,
         kyBaoCaoKPIId: null,
         giaTriPhatSinhTrongKy: 0,
@@ -859,7 +862,9 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             }
         })
 
-        return Array.from(map.values()).sort((a, b) => a.ten.localeCompare(b.ten, 'vi'))
+        const options = Array.from(map.values()).sort((a, b) => a.ten.localeCompare(b.ten, 'vi'))
+        if (canManageAllUnits.value) return options
+        return options.filter((item) => item.id === currentDonViId.value)
     })
 
     const filteredChiTietGiaoFilterOptions = computed(() => {
@@ -977,6 +982,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const isDinhLuongSoSanh = computed(() => currentLoaiChiTieu.value === 'DINH_LUONG_SO_SANH')
     const currentKieuSoSanh = computed(() => getKieuSoSanhForChiTiet(selectedChiTietGiao.value))
     const isTyLeSoSanh = computed(() => isDinhLuongSoSanh.value && currentKieuSoSanh.value === 'TY_LE')
+    const isChenhLechSoSanh = computed(() => isDinhLuongSoSanh.value && currentKieuSoSanh.value === 'CHENH_LECH')
 
     const comparisonSourceLabel = computed(() => mapLoaiMocSoSanh(getLoaiMocSoSanhForChiTiet(selectedChiTietGiao.value)))
     const comparisonKindLabel = computed(() => mapKieuSoSanh(currentKieuSoSanh.value))
@@ -1155,11 +1161,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
             const matchKeyword = !keyword || searchText.includes(keyword)
             const matchKy = !filters.kyBaoCaoKPIId || Number(filters.kyBaoCaoKPIId) === kyId
+            const forcedUnitMatch = canManageAllUnits.value ? true : donViNhanId === currentDonViId.value
             const matchDonViNhan = !filters.donViNhanId || Number(filters.donViNhanId) === donViNhanId
             const matchChiTiet =
                 !filters.chiTietGiaoChiTieuId || Number(filters.chiTietGiaoChiTieuId) === chiTietId
 
-            return matchKeyword && matchKy && matchDonViNhan && matchChiTiet
+            return forcedUnitMatch && matchKeyword && matchKy && matchDonViNhan && matchChiTiet
         })
     })
 
@@ -1186,7 +1193,9 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const fetchChiTietGiaoChiTieuOptions = async () => {
         try {
-            const response = await httpClient.get(API_PATHS.chiTietGiaoChiTieu)
+            const response = canManageAllUnits.value
+                ? await httpClient.get(API_PATHS.chiTietGiaoChiTieu)
+                : await httpClient.get(`${API_PATHS.chiTietGiaoChiTieu}/by-donvi-nhan/${currentDonViId.value}`)
             chiTietGiaoChiTieuOptions.value = normalizeList(response)
         } catch (error) {
             console.error('fetchChiTietGiaoChiTieuOptions error:', error?.response?.status, error?.config?.url, error)
@@ -1217,7 +1226,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const fetchDonViOptions = async () => {
         try {
             const response = await httpClient.get(API_PATHS.donVi)
-            donViOptions.value = normalizeList(response)
+            const normalized = normalizeList(response)
+            donViOptions.value = canManageAllUnits.value
+                ? normalized
+                : normalized.filter((item) => Number(getId(item)) === currentDonViId.value)
         } catch (error) {
             console.error('fetchDonViOptions error:', error?.response?.status, error?.config?.url, error)
             donViOptions.value = []
@@ -1244,6 +1256,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const openEditModal = async (item) => {
         const chiTietId = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
         const chiTiet = enrichedChiTietGiaoChiTieuOptions.value.find((x) => getId(x) === chiTietId)
+        const donViNhanId = getDonViNhanId(chiTiet)
+
+        if (!canManageAllUnits.value && donViNhanId !== currentDonViId.value) {
+            alert('Bạn chỉ được thao tác với đơn vị của tài khoản hiện tại.')
+            return
+        }
 
         if (chiTiet && hasChildCriteria(chiTiet)) {
             alert('Bản ghi này đang gắn với chỉ tiêu cha của cấu hình phân rã. Vui lòng nhập và sửa số liệu ở từng tiêu chí con.')
@@ -1254,7 +1272,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         editingId.value = getId(item)
 
         await hydrateFormSafely({
-            donViNhanId: getDonViNhanId(chiTiet) || null,
+            donViNhanId: donViNhanId || null,
             chiTietGiaoChiTieuId: chiTietId || null,
             kyBaoCaoKPIId: item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? null,
             giaTriPhatSinhTrongKy: item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy ?? 0,
@@ -1273,6 +1291,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const validateForm = () => {
         if (!form.donViNhanId || Number(form.donViNhanId) <= 0) {
             alert('Vui lòng chọn đơn vị thực hiện.')
+            return false
+        }
+
+        if (!canManageAllUnits.value && Number(form.donViNhanId) !== currentDonViId.value) {
+            alert('Bạn chỉ được thao tác với đơn vị của tài khoản hiện tại.')
             return false
         }
 
@@ -1377,6 +1400,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     const handleDelete = async (item) => {
+        const itemDonViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
+        if (!canManageAllUnits.value && itemDonViNhanId !== currentDonViId.value) {
+            alert('Bạn chỉ được thao tác với đơn vị của tài khoản hiện tại.')
+            return
+        }
+
         const ok = window.confirm('Bạn có chắc muốn xóa bản ghi báo cáo định kỳ này không?')
         if (!ok) return
 
@@ -1391,7 +1420,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const resetFilters = () => {
         filters.kyBaoCaoKPIId = null
-        filters.donViNhanId = null
+        filters.donViNhanId = canManageAllUnits.value ? null : currentDonViId.value || null
         filters.chiTietGiaoChiTieuId = null
         filters.keyword = ''
     }
@@ -1492,6 +1521,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             fetchDonViOptions(),
             fetchDotGiaoChiTieuOptions()
         ])
+
+        if (!canManageAllUnits.value && currentDonViId.value) {
+            filters.donViNhanId = currentDonViId.value
+            form.donViNhanId = currentDonViId.value
+        }
     })
 </script>
 

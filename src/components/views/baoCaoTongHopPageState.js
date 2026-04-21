@@ -68,6 +68,7 @@ export function useBaoCaoTongHopPage() {
           giaTriThucHienTrongKy: getNumberOrNull(pick(rawItem, 'giaTriThucHienTrongKy', 'GiaTriThucHienTrongKy')),
           giaTriCuoiKy: getNumberOrNull(pick(rawItem, 'giaTriCuoiKy', 'GiaTriCuoiKy')),
           giaTriLuyKe: getNumberOrNull(pick(rawItem, 'giaTriLuyKe', 'GiaTriLuyKe')),
+          giaTriPhatSinhLuyKe: getNumberOrNull(pick(rawItem, 'giaTriPhatSinhLuyKe', 'GiaTriPhatSinhLuyKe')),
           nhanXet: String(pick(rawItem, 'nhanXet', 'NhanXet') || '').trim()
         }
       })
@@ -235,9 +236,16 @@ export function useBaoCaoTongHopPage() {
       latestTheoDoi?.giaTriCuoiKy ??
       (giaTriThucHienCongDon !== 0 ? giaTriThucHienCongDon : null)
 
+    const metricSnapshot = calculateTargetProgress(
+      assignment,
+      latestTheoDoi,
+      theoDoiItems,
+      giaTriLuyKeHienTai
+    )
+
     const tyLeHoanThanh =
       latestDanhGia?.tyLeHoanThanh ??
-      calculateCompletionRate(giaTriLuyKeHienTai, assignment.giaTriMucTieu, assignment.loaiChiTieu)
+      metricSnapshot.tyLeHoanThanh
 
     const xepLoai = latestDanhGia?.xepLoai || 'CHUA_DANH_GIA'
     const ketQuaDanhGia = latestDanhGia?.ketQua || getDanhGiaLabel(xepLoai) || ''
@@ -262,16 +270,14 @@ export function useBaoCaoTongHopPage() {
       tieuChiDanhGia: assignment.tieuChiDanhGia || '',
       donViTinh: assignment.donViTinh || '',
       giaTriMucTieu: assignment.giaTriMucTieu,
+      isComparisonTarget: metricSnapshot.isComparisonTarget,
       giaTriDauKyGanNhat,
       giaTriThucHienCongDon,
       giaTriCuoiKyGanNhat: latestTheoDoi?.giaTriCuoiKy ?? latestDanhGia?.giaTriCuoiKy ?? null,
       giaTriCungKyNamTruocGanNhat: latestDanhGia?.giaTriCungKyNamTruoc ?? null,
       giaTriLuyKeHienTai,
       tyLeHoanThanh,
-      soDuMucTieu:
-        assignment.giaTriMucTieu === null || giaTriLuyKeHienTai === null
-          ? null
-          : assignment.giaTriMucTieu - giaTriLuyKeHienTai,
+      soDuMucTieu: metricSnapshot.soDuMucTieu,
       maKyGanNhat: latestKy?.maKy || '-',
       tenKyGanNhat: latestKy?.tenKy || '-',
       loaiKyGanNhat: latestKy?.loaiKy || '',
@@ -323,12 +329,147 @@ export function useBaoCaoTongHopPage() {
     return roundNumber(values.reduce((sum, value) => sum + value, 0) / values.length)
   }
 
-  function calculateCompletionRate(giaTriThucHien, giaTriMucTieu, loaiChiTieu) {
-    if (normalizeCode(loaiChiTieu) === 'DINH_TINH') return null
-    const mucTieu = getNumberOrNull(giaTriMucTieu)
-    const thucHien = getNumberOrNull(giaTriThucHien)
-    if (mucTieu === null || mucTieu === 0 || thucHien === null) return null
-    return (thucHien / mucTieu) * 100
+  function calculateTargetProgress(assignment, latestTheoDoi, theoDoiItems, giaTriLuyKeHienTai) {
+    if (normalizeCode(assignment?.tieuChiDanhGia || assignment?.loaiChiTieu) === 'DINH_TINH') {
+      return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: false }
+    }
+
+    const mucTieu = getNumberOrNull(assignment?.giaTriMucTieu)
+    if (mucTieu === null || mucTieu <= 0) {
+      return {
+        tyLeHoanThanh: null,
+        soDuMucTieu: null,
+        isComparisonTarget: isComparisonCriterion(assignment)
+      }
+    }
+
+    if (isComparisonCriterion(assignment)) {
+      const tyLeThucTe = calculateComparisonActualPercent(assignment, latestTheoDoi, theoDoiItems)
+      if (tyLeThucTe === null) {
+        return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: true }
+      }
+
+      const nguongDat = calculateComparisonThreshold(assignment, mucTieu)
+      return {
+        tyLeHoanThanh: roundNumber(calculateComparisonProgress(tyLeThucTe, mucTieu, assignment)),
+        soDuMucTieu: roundNumber(calculateComparisonGap(tyLeThucTe, nguongDat, assignment)),
+        isComparisonTarget: true
+      }
+    }
+
+    if (giaTriLuyKeHienTai === null) {
+      return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: false }
+    }
+
+    return {
+      tyLeHoanThanh: roundNumber(calculateProgressByRule(giaTriLuyKeHienTai, mucTieu, assignment?.quyTacDanhGia)),
+      soDuMucTieu: roundNumber(mucTieu - giaTriLuyKeHienTai),
+      isComparisonTarget: false
+    }
+  }
+
+  function calculateComparisonActualPercent(assignment, latestTheoDoi, theoDoiItems) {
+    if (!latestTheoDoi) return null
+
+    if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') {
+      const phatSinhLuyKe = getNumberOrNull(latestTheoDoi.giaTriPhatSinhLuyKe)
+      const giaTriLuyKe = getNumberOrNull(latestTheoDoi.giaTriLuyKe)
+      if (phatSinhLuyKe === null || phatSinhLuyKe <= 0 || giaTriLuyKe === null) return null
+      return roundNumber((giaTriLuyKe / phatSinhLuyKe) * 100)
+    }
+
+    const giaTriMoc = resolveComparisonBenchmark(assignment, latestTheoDoi, theoDoiItems)
+    if (giaTriMoc === null || giaTriMoc === 0) return null
+
+    const giaTriLuyKe = getNumberOrNull(latestTheoDoi.giaTriLuyKe)
+    if (giaTriLuyKe === null) return null
+
+    return roundNumber((giaTriLuyKe / giaTriMoc) * 100)
+  }
+
+  function resolveComparisonBenchmark(assignment, latestTheoDoi, theoDoiItems) {
+    const loaiMoc = normalizeCode(assignment?.loaiMocSoSanh)
+    if (loaiMoc === 'DAU_KY') {
+      return getNumberOrNull(latestTheoDoi?.giaTriDauKy)
+    }
+
+    const latestSort = latestTheoDoi?.kySort
+    if (!latestSort) return null
+
+    if (loaiMoc === 'CUNG_KY') {
+      const match = theoDoiItems.find(item =>
+        item.kySort?.nam === latestSort.nam - 1 &&
+        normalizeCode(item.kySort?.loaiKy) === normalizeCode(latestSort.loaiKy) &&
+        Number(item.kySort?.soKy || 0) === Number(latestSort.soKy || 0)
+      )
+      return getNumberOrNull(match?.giaTriCuoiKy ?? match?.giaTriLuyKe)
+    }
+
+    if (loaiMoc === 'KY_TRUOC') {
+      const previous = [...theoDoiItems]
+        .filter(item => compareKySort(item.kySort, latestSort) < 0)
+        .sort((left, right) => compareKySort(right.kySort, left.kySort))[0]
+      return getNumberOrNull(previous?.giaTriCuoiKy ?? previous?.giaTriLuyKe)
+    }
+
+    if (loaiMoc === 'TONG_NAM_TRUOC') {
+      const previousYear = [...theoDoiItems]
+        .filter(item => Number(item.kySort?.nam || 0) === Number(latestSort.nam || 0) - 1)
+        .sort((left, right) => compareKySort(right.kySort, left.kySort))[0]
+      return getNumberOrNull(previousYear?.giaTriCuoiKy ?? previousYear?.giaTriLuyKe)
+    }
+
+    return null
+  }
+
+  function calculateProgressByRule(giaTriThucTe, giaTriMucTieu, quyTacDanhGia) {
+    if (!Number.isFinite(giaTriThucTe) || !Number.isFinite(giaTriMucTieu) || giaTriMucTieu <= 0) {
+      return null
+    }
+
+    if (normalizeCode(quyTacDanhGia) === 'KHONG_VUOT_NGUONG') {
+      if (giaTriThucTe <= giaTriMucTieu) return 100
+      return (giaTriMucTieu / giaTriThucTe) * 100
+    }
+
+    return (giaTriThucTe / giaTriMucTieu) * 100
+  }
+
+  function calculateComparisonThreshold(assignment, mucTieuPhanTram) {
+    if (!Number.isFinite(mucTieuPhanTram) || mucTieuPhanTram <= 0) return null
+    if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') return mucTieuPhanTram
+    return normalizeCode(assignment?.chieuSoSanh) === 'GIAM'
+      ? 100 - mucTieuPhanTram
+      : 100 + mucTieuPhanTram
+  }
+
+  function calculateComparisonProgress(tyLeThucTe, mucTieuPhanTram, assignment) {
+    const nguongDat = calculateComparisonThreshold(assignment, mucTieuPhanTram)
+    if (!Number.isFinite(tyLeThucTe) || !Number.isFinite(nguongDat) || nguongDat <= 0 || tyLeThucTe <= 0) {
+      return null
+    }
+
+    if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') {
+      return (tyLeThucTe / nguongDat) * 100
+    }
+
+    const chieu = normalizeCode(assignment?.chieuSoSanh)
+
+    return chieu === 'GIAM'
+      ? (nguongDat / tyLeThucTe) * 100
+      : (tyLeThucTe / nguongDat) * 100
+  }
+
+  function calculateComparisonGap(tyLeThucTe, nguongDat, assignment) {
+    if (!Number.isFinite(tyLeThucTe) || !Number.isFinite(nguongDat)) return null
+    if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') return nguongDat - tyLeThucTe
+    return normalizeCode(assignment?.chieuSoSanh) === 'GIAM'
+      ? tyLeThucTe - nguongDat
+      : nguongDat - tyLeThucTe
+  }
+
+  function isComparisonCriterion(assignment) {
+    return normalizeCode(assignment?.tieuChiDanhGia || assignment?.loaiChiTieu) === 'DINH_LUONG_SO_SANH'
   }
 
   function normalizeList(response) {
@@ -462,6 +603,10 @@ export function useBaoCaoTongHopPage() {
         normalizeCode(pick(rawItem, 'loaiChiTieu', 'LoaiChiTieu') || pick(danhMuc, 'loaiChiTieu', 'LoaiChiTieu')) || '',
       tieuChiDanhGia:
         normalizeCode(pick(rawItem, 'tieuChiDanhGia', 'TieuChiDanhGia') || pick(danhMuc, 'tieuChiDanhGia', 'TieuChiDanhGia')) || '',
+      kieuSoSanh: normalizeCode(pick(rawItem, 'kieuSoSanh', 'KieuSoSanh')) || '',
+      loaiMocSoSanh: normalizeCode(pick(rawItem, 'loaiMocSoSanh', 'LoaiMocSoSanh')) || '',
+      chieuSoSanh: normalizeCode(pick(rawItem, 'chieuSoSanh', 'ChieuSoSanh')) || '',
+      quyTacDanhGia: normalizeCode(pick(rawItem, 'quyTacDanhGia', 'QuyTacDanhGia')) || '',
       giaTriMucTieu: getNumberOrNull(pick(rawItem, 'giaTriMucTieu', 'GiaTriMucTieu')),
       giaTriDauKyCoDinh: getNumberOrNull(pick(rawItem, 'giaTriDauKyCoDinh', 'GiaTriDauKyCoDinh'))
     }

@@ -7,18 +7,12 @@
                         <i class="bi bi-trophy"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">XẾP HẠNG ĐƠN VỊ THEO CHỈ TIÊU KPI</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
 
                 <div class="xep-hang-don-vi-page">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
                     <div class="filter-card">
                         <div class="filter-grid">
                             <div class="form-group">

@@ -7,17 +7,11 @@
                         <i class="bi bi-sliders"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="wave-title">HỆ THỐNG THEO DÕI CHỈ TIÊU CÔNG TÁC</div>
                         <div class="gov-title">CẤU HÌNH NGƯỠNG ĐÁNH GIÁ KPI</div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <div class="gov-banner">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg"
-                            class="gov-emblem" />
-                    </div>
-
+                <div class="d-flex justify-content-end mb-4">
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Tạo cấu hình
@@ -296,6 +290,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const isEdit = ref(false)
     const editingId = ref(null)
     const items = ref([])
+    const syncingForm = ref(false)
 
     const filters = reactive({
         danhMucChiTieuId: '',
@@ -329,6 +324,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     watch(
         () => form.tieuChiDanhGia,
         () => {
+            if (syncingForm.value) return
             if (form.tieuChiDanhGia === 'DINH_TINH') {
                 form.quyTacDanhGia = 'MAC_DINH'
             } else if (!form.quyTacDanhGia || form.quyTacDanhGia === 'MAC_DINH') {
@@ -344,6 +340,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     watch(
         () => form.quyTacDanhGia,
         () => {
+            if (syncingForm.value) return
             if ((form.tieuChiDanhGia === 'DINH_TINH' || isKhongVuotNguongRule(form.quyTacDanhGia)) && form.xepLoai === 'HOAN_THANH_VUOT_MUC') {
                 form.xepLoai = ''
             }
@@ -402,6 +399,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const openEditModal = (item) => {
         isEdit.value = true
         editingId.value = item.id
+        syncingForm.value = true
 
         Object.assign(form, {
             danhMucChiTieuId: item.danhMucChiTieuId ?? '',
@@ -415,6 +413,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             ghiChu: item.ghiChu || ''
         })
 
+        syncingForm.value = false
         showModal.value = true
     }
 
