@@ -85,13 +85,13 @@
                                     <tr>
                                         <th>STT</th>
                                         <th>Đơn vị</th>
-                                        <th>Tổng KPI</th>
+                                        <th>Tổng chỉ tiêu</th>
                                         <th>% hoàn thành bình quân</th>
                                         <th>Hoàn thành vượt mức</th>
                                         <th>Hoàn thành</th>
                                         <th>Chưa hoàn thành</th>
                                         <th>Không hoàn thành</th>
-                                        <th>KPI cần chú ý</th>
+                                        <th>Chỉ tiêu cần chú ý</th>
                                         <th>Trạng thái nổi bật</th>
                                         <th>Chỉ tiêu nổi bật</th>
                                         <th>Chỉ tiêu cần chú ý nhất</th>
@@ -333,13 +333,13 @@
     function exportCsv() {
         const headers = [
             'Đơn vị',
-            'Tổng KPI',
+            'Tổng chỉ tiêu',
             '% hoàn thành bình quân',
             'Hoàn thành vượt mức',
             'Hoàn thành',
             'Chưa hoàn thành',
             'Không hoàn thành',
-            'KPI cần chú ý',
+            'Chỉ tiêu cần chú ý',
             'Trạng thái nổi bật',
             'Chỉ tiêu nổi bật',
             'Chỉ tiêu cần chú ý nhất'

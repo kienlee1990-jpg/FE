@@ -56,16 +56,16 @@
                                 <label>Sắp xếp</label>
                                 <select v-model="filters.sortBy">
                                     <option value="avgCompletion">Theo % hoàn thành TB</option>
-                                    <option value="total">Theo số KPI</option>
-                                    <option value="vuotMuc">Theo số KPI hoàn thành vượt mức</option>
-                                    <option value="canChuY">Theo số KPI chưa/không hoàn thành</option>
+                                    <option value="total">Theo số chỉ tiêu</option>
+                                    <option value="vuotMuc">Theo số chỉ tiêu hoàn thành vượt mức</option>
+                                    <option value="canChuY">Theo số chỉ tiêu chưa/không hoàn thành</option>
                                 </select>
                             </div>
 
                             <div class="form-group keyword-group">
                                 <label>Từ khóa</label>
                                 <input v-model.trim="filters.keyword" type="text"
-                                    placeholder="Nhập tên đơn vị, mã KPI, tên KPI..." />
+                                    placeholder="Nhập tên đơn vị, mã chỉ tiêu, tên chỉ tiêu..." />
                             </div>
                         </div>
                     </div>
@@ -82,7 +82,7 @@
                             </div>
 
                             <div class="stat-card">
-                                <span class="stat-label">Tổng KPI</span>
+                                <span class="stat-label">Tổng chỉ tiêu</span>
                                 <strong class="stat-value">{{ filteredRows.length }}</strong>
                                 <span class="stat-note">Bản ghi đánh giá</span>
                             </div>
@@ -99,7 +99,7 @@
                                 <span class="stat-label">Đơn vị cần chú ý</span>
                                 <strong class="stat-value">{{ worstUnit?.tenDonVi || '-' }}</strong>
                                 <span class="stat-note">
-                                    {{ worstUnit ? `${worstUnit.canChuY} KPI cần chú ý` : '-' }}
+                                    {{ worstUnit ? `${worstUnit.canChuY} chỉ tiêu cần chú ý` : '-' }}
                                 </span>
                             </div>
                         </div>
@@ -121,7 +121,7 @@
                             <section class="panel-card">
                                 <div class="panel-header">
                                     <h3>Tỷ trọng xếp loại theo đơn vị</h3>
-                                    <span>So sánh chất lượng KPI</span>
+                                    <span>So sánh chất lượng chỉ tiêu</span>
                                 </div>
 
                                 <div v-if="stackedUnitSeries.length === 0" class="empty-panel">Không có dữ liệu</div>
@@ -143,7 +143,7 @@
                                     <div v-for="unit in selectedUnits" :key="unit.tenDonVi" class="compare-unit-card">
                                         <div class="compare-unit-head">
                                             <h4>{{ unit.tenDonVi }}</h4>
-                                            <span>{{ unit.total }} KPI</span>
+                                            <span>{{ unit.total }} chỉ tiêu</span>
                                         </div>
 
                                         <div class="compare-metrics">
@@ -181,7 +181,7 @@
                                         <strong>{{ formatPercent(compareGap.avgCompletionGap) }}</strong>
                                     </div>
                                     <div class="summary-row">
-                                        <span>Chênh lệch KPI cần chú ý</span>
+                                        <span>Chênh lệch chỉ tiêu cần chú ý</span>
                                         <strong>{{ compareGap.canChuYGap }}</strong>
                                     </div>
                                     <div class="summary-row">
@@ -219,7 +219,7 @@
                                         <tr>
                                             <th>#</th>
                                             <th>Đơn vị</th>
-                                            <th>Số KPI</th>
+                                            <th>Số chỉ tiêu</th>
                                             <th>% hoàn thành TB</th>
                                             <th>Hoàn thành vượt mức</th>
                                             <th>Hoàn thành</th>

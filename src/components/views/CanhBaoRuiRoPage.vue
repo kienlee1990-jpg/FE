@@ -66,7 +66,7 @@
                             <div class="form-group keyword-group">
                                 <label>Từ khóa</label>
                                 <input v-model.trim="filters.keyword" type="text"
-                                    placeholder="Mã KPI, tên KPI, đơn vị, nhận xét..." />
+                                    placeholder="Mã chỉ tiêu, tên chỉ tiêu, đơn vị, nhận xét..." />
                             </div>
                         </div>
                     </div>
@@ -77,7 +77,7 @@
                     <template v-else>
                         <div class="stats-grid">
                             <div class="stat-card">
-                                <span class="stat-label">Tổng KPI</span>
+                                <span class="stat-label">Tổng chỉ tiêu</span>
                                 <strong class="stat-value">{{ filteredRiskRows.length }}</strong>
                                 <span class="stat-note">Trong phạm vi lọc</span>
                             </div>
@@ -109,7 +109,7 @@
                             <div class="stat-card">
                                 <span class="stat-label">Điểm rủi ro TB</span>
                                 <strong class="stat-value">{{ formatNumber(avgRiskScore) }}</strong>
-                                <span class="stat-note">Toàn bộ KPI sau lọc</span>
+                                <span class="stat-note">Toàn bộ chỉ tiêu sau lọc</span>
                             </div>
                         </div>
 
@@ -117,7 +117,7 @@
                             <section class="panel-card">
                                 <div class="panel-header">
                                     <h3>Cơ cấu mức rủi ro</h3>
-                                    <span>{{ filteredRiskRows.length }} KPI</span>
+                                    <span>{{ filteredRiskRows.length }} chỉ tiêu</span>
                                 </div>
 
                                 <div v-if="filteredRiskRows.length === 0" class="empty-panel">Không có dữ liệu</div>
@@ -135,7 +135,7 @@
 
                                 <div class="insight-grid">
                                     <div class="insight-card">
-                                        <span class="insight-label">KPI rủi ro nhất</span>
+                                        <span class="insight-label">Chỉ tiêu rủi ro nhất</span>
                                         <strong class="insight-title">
                                             {{ topRiskKpi?.tenChiTieu || topRiskKpi?.maChiTieu || '-' }}
                                         </strong>
@@ -148,7 +148,7 @@
                                         <span class="insight-label">Đơn vị nhiều rủi ro nhất</span>
                                         <strong class="insight-title">{{ topRiskUnit?.tenDonVi || '-' }}</strong>
                                         <span class="insight-value">
-                                            {{ topRiskUnit ? `${topRiskUnit.critical + topRiskUnit.high} KPI rủi ro cao`
+                                            {{ topRiskUnit ? `${topRiskUnit.critical + topRiskUnit.high} chỉ tiêu rủi ro cao`
                                             : '-'
                                             }}
                                         </span>
@@ -180,11 +180,11 @@
 
                                 <div class="trend-detail compact">
                                     <div class="trend-row">
-                                        <span>KPI không hoàn thành</span>
+                                        <span>Chỉ tiêu không hoàn thành</span>
                                         <strong>{{ failedCount }}</strong>
                                     </div>
                                     <div class="trend-row">
-                                        <span>KPI dưới 70%</span>
+                                        <span>Chỉ tiêu dưới 70%</span>
                                         <strong>{{ lowCompletionCount }}</strong>
                                     </div>
                                     <div class="trend-row">
@@ -202,7 +202,7 @@
                         <div class="dashboard-grid two-columns">
                             <section class="panel-card">
                                 <div class="panel-header">
-                                    <h3>Top 10 KPI rủi ro cao nhất</h3>
+                                    <h3>Top 10 chỉ tiêu rủi ro cao nhất</h3>
                                     <span>Ưu tiên xử lý</span>
                                 </div>
 
@@ -216,7 +216,7 @@
                             <section class="panel-card">
                                 <div class="panel-header">
                                     <h3>Top đơn vị có rủi ro cao</h3>
-                                    <span>Theo số KPI mức cao và rất cao</span>
+                                    <span>Theo số chỉ tiêu mức cao và rất cao</span>
                                 </div>
 
                                 <div v-if="riskUnitSummaries.length === 0" class="empty-panel">Không có dữ liệu</div>
@@ -241,7 +241,7 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>Tên KPI</th>
+                                            <th>Tên chỉ tiêu</th>
                                             <th>Đơn vị</th>
                                             <th>Kỳ báo cáo</th>
                                             <th>% hoàn thành</th>
@@ -424,7 +424,7 @@
         },
         tooltip: {
             y: {
-                formatter: value => `${formatNumber(value)} KPI`
+                formatter: value => `${formatNumber(value)} chỉ tiêu`
             }
         },
         colors: ['#991b1b', '#dc2626', '#f59e0b', '#16a34a']
@@ -574,7 +574,7 @@
             rows.value = Array.isArray(data) ? data : []
         } catch (error) {
             console.error(error)
-            errorMessage.value = error.message || 'Không thể tải dữ liệu cảnh báo rủi ro KPI.'
+            errorMessage.value = error.message || 'Không thể tải dữ liệu cảnh báo rủi ro chỉ tiêu.'
             rows.value = []
         } finally {
             loading.value = false
@@ -703,7 +703,7 @@
 
     function buildRate(value) {
         if (!filteredRiskRows.value.length) return '0%'
-        return `${roundNumber((value / filteredRiskRows.value.length) * 100)}% tổng KPI`
+        return `${roundNumber((value / filteredRiskRows.value.length) * 100)}% tổng chỉ tiêu`
     }
 
     function riskLabel(level) {

@@ -3,23 +3,25 @@
         <aside :class="['sidebar', { collapsed: isCollapsed }]">
             <div class="brand">
                 <button class="icon-btn" @click="toggleSidebar" aria-label="Thu gọn menu">
-                    <i class="bi bi-list"></i>
+                    <img src="/hieu.png" alt="Logo" class="brand-logo" />
                 </button>
                 <div v-if="!isCollapsed" class="brand-text">
-                    <h1>Công an Thành phố Đà Nẵng</h1>
+                    <h1>CATP ĐÀ NẴNG</h1>
                     <p></p>
                 </div>
             </div>
 
             <nav v-if="hasAnyPermission(['ViewDashboard', 'ViewCatpIndicatorReport'])" class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Tổng quan</p>
-                <RouterLink v-if="hasPermission('ViewDashboard')" to="/dashboard" class="nav-item" active-class="active">
+                <RouterLink v-if="hasPermission('ViewDashboard')" to="/dashboard" class="nav-item"
+                    active-class="active">
                     <span class="nav-left">
                         <i class="bi bi-grid-1x2"></i>
                         <span v-if="!isCollapsed">Bảng điều khiển</span>
                     </span>
                 </RouterLink>
-                <RouterLink v-if="hasPermission('ViewCatpIndicatorReport')" to="/bao-cao-chi-tieu-cong-an-thanh-pho" class="nav-item" active-class="active">
+                <RouterLink v-if="hasPermission('ViewCatpIndicatorReport')" to="/bao-cao-chi-tieu-cong-an-thanh-pho"
+                    class="nav-item" active-class="active">
                     <span class="nav-left">
                         <i class="bi bi-clipboard2-data"></i>
                         <span v-if="!isCollapsed">Báo cáo chỉ tiêu CATP</span>
@@ -27,7 +29,8 @@
                 </RouterLink>
             </nav>
 
-            <nav v-if="hasAnyPermission(['ManageIndicatorCatalog', 'ManageUnitCatalog', 'ManageReportingPeriods'])" class="nav-section">
+            <nav v-if="hasAnyPermission(['ManageIndicatorCatalog', 'ManageUnitCatalog', 'ManageReportingPeriods'])"
+                class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Thiết lập nền</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('thietLapNen')">
@@ -39,20 +42,24 @@
                             :class="['bi', menus.thietLapNen ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.thietLapNen && !isCollapsed" class="sub-menu">
-                        <RouterLink v-if="hasPermission('ManageIndicatorCatalog')" to="/danh-muc-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageIndicatorCatalog')" to="/danh-muc-chi-tieu"
+                            class="sub-item" active-class="active">
                             Danh mục chỉ tiêu
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ManageUnitCatalog')" to="/don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageUnitCatalog')" to="/don-vi" class="sub-item"
+                            active-class="active">
                             Danh mục đơn vị
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ManageReportingPeriods')" to="/ky-bao-cao" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageReportingPeriods')" to="/ky-bao-cao" class="sub-item"
+                            active-class="active">
                             Kỳ báo cáo
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav v-if="hasAnyPermission(['ManageAssignmentWaves', 'AssignTargetsToCatp', 'AssignTargetsToPhong', 'AssignTargetsToCadp', 'ViewAssignedTargetsList'])" class="nav-section">
+            <nav v-if="hasAnyPermission(['ManageAssignmentWaves', 'AssignTargetsToCatp', 'AssignTargetsToPhong', 'AssignTargetsToCadp', 'ViewAssignedTargetsList'])"
+                class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Giao và phân bổ</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('giaoVaPhanBo')">
@@ -64,26 +71,32 @@
                             :class="['bi', menus.giaoVaPhanBo ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.giaoVaPhanBo && !isCollapsed" class="sub-menu">
-                        <RouterLink v-if="hasPermission('ManageAssignmentWaves')" to="/dot-giao-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageAssignmentWaves')" to="/dot-giao-chi-tieu"
+                            class="sub-item" active-class="active">
                             Đợt giao chỉ tiêu
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('AssignTargetsToCatp')" to="/giao-cho-catp" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('AssignTargetsToCatp')" to="/giao-cho-catp" class="sub-item"
+                            active-class="active">
                             Bộ giao CATP
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('AssignTargetsToPhong')" to="/giao-cho-phong" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('AssignTargetsToPhong')" to="/giao-cho-phong" class="sub-item"
+                            active-class="active">
                             Giao Công an cấp Phòng
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('AssignTargetsToCadp')" to="/giao-cho-cadp-phuong-xa" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('AssignTargetsToCadp')" to="/giao-cho-cadp-phuong-xa"
+                            class="sub-item" active-class="active">
                             Giao CADP cấp Phường/Xã
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewAssignedTargetsList')" to="/danh-sach-chi-tieu-duoc-giao" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewAssignedTargetsList')" to="/danh-sach-chi-tieu-duoc-giao"
+                            class="sub-item" active-class="active">
                             Danh sách chỉ tiêu được giao
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav v-if="hasAnyPermission(['SubmitPeriodicReports', 'ViewExecutionProgress', 'ViewUnitsPendingUpdate'])" class="nav-section">
+            <nav v-if="hasAnyPermission(['SubmitPeriodicReports', 'ViewExecutionProgress', 'ViewUnitsPendingUpdate'])"
+                class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Theo dõi thực hiện</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('theoDoiThucHien')">
@@ -95,20 +108,24 @@
                             :class="['bi', menus.theoDoiThucHien ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.theoDoiThucHien && !isCollapsed" class="sub-menu">
-                        <RouterLink v-if="hasPermission('SubmitPeriodicReports')" to="/nhap-ket-qua" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('SubmitPeriodicReports')" to="/nhap-ket-qua" class="sub-item"
+                            active-class="active">
                             Nhập báo cáo định kỳ
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewExecutionProgress')" to="/tien-do-thuc-hien" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewExecutionProgress')" to="/tien-do-thuc-hien"
+                            class="sub-item" active-class="active">
                             Tiến độ thực hiện
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewUnitsPendingUpdate')" to="/don-vi-chua-cap-nhat" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewUnitsPendingUpdate')" to="/don-vi-chua-cap-nhat"
+                            class="sub-item" active-class="active">
                             Đơn vị chưa cập nhật
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav v-if="hasAnyPermission(['ConfigureEvaluationThresholds', 'ViewAccumulatedEvaluation', 'ViewRiskWarnings', 'CompareUnits', 'RankUnits', 'ConfigureCompetitionGroups', 'ViewCompetitionGroups'])" class="nav-section">
+            <nav v-if="hasAnyPermission(['ConfigureEvaluationThresholds', 'ViewAccumulatedEvaluation', 'ViewRiskWarnings', 'CompareUnits', 'RankUnits', 'ConfigureCompetitionGroups', 'ViewCompetitionGroups'])"
+                class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Đánh giá</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('danhGia')">
@@ -120,32 +137,40 @@
                             :class="['bi', menus.danhGia ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.danhGia && !isCollapsed" class="sub-menu">
-                        <RouterLink v-if="hasPermission('ConfigureEvaluationThresholds')" to="/cau-hinh-danh-gia-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ConfigureEvaluationThresholds')"
+                            to="/cau-hinh-danh-gia-chi-tieu" class="sub-item" active-class="active">
                             Cấu hình ngưỡng đánh giá
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewAccumulatedEvaluation')" to="/tong-hop-danh-gia-luy-ke" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewAccumulatedEvaluation')" to="/tong-hop-danh-gia-luy-ke"
+                            class="sub-item" active-class="active">
                             Tổng hợp đánh giá lũy kế
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewRiskWarnings')" to="/canh-bao-rui-ro" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewRiskWarnings')" to="/canh-bao-rui-ro" class="sub-item"
+                            active-class="active">
                             Cảnh báo rủi ro
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('CompareUnits')" to="/so-sanh-don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('CompareUnits')" to="/so-sanh-don-vi" class="sub-item"
+                            active-class="active">
                             So sánh đơn vị
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('RankUnits')" to="/xep-hang-don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('RankUnits')" to="/xep-hang-don-vi" class="sub-item"
+                            active-class="active">
                             Xếp hạng đơn vị
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ConfigureCompetitionGroups')" to="/thiet-lap-nhom-thi-dua" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ConfigureCompetitionGroups')" to="/thiet-lap-nhom-thi-dua"
+                            class="sub-item" active-class="active">
                             Thiết lập nhóm thi đua
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewCompetitionGroups')" to="/nhom-thi-dua" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewCompetitionGroups')" to="/nhom-thi-dua" class="sub-item"
+                            active-class="active">
                             Nhóm thi đua
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav v-if="hasAnyPermission(['ViewSummaryReports', 'ViewReportsByUnit', 'ViewReportsByIndicator', 'ExportReports'])" class="nav-section">
+            <nav v-if="hasAnyPermission(['ViewSummaryReports', 'ViewReportsByUnit', 'ViewReportsByIndicator', 'ExportReports'])"
+                class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Báo cáo</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('baoCao')">
@@ -157,16 +182,20 @@
                             :class="['bi', menus.baoCao ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.baoCao && !isCollapsed" class="sub-menu">
-                        <RouterLink v-if="hasPermission('ViewSummaryReports')" to="/bao-cao-tong-hop" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewSummaryReports')" to="/bao-cao-tong-hop" class="sub-item"
+                            active-class="active">
                             Báo cáo tổng hợp
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewReportsByUnit')" to="/bao-cao-theo-don-vi" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewReportsByUnit')" to="/bao-cao-theo-don-vi" class="sub-item"
+                            active-class="active">
                             Báo cáo theo đơn vị
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewReportsByIndicator')" to="/bao-cao-theo-chi-tieu" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewReportsByIndicator')" to="/bao-cao-theo-chi-tieu"
+                            class="sub-item" active-class="active">
                             Báo cáo theo chỉ tiêu
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ExportReports')" to="/xuat-bao-cao" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ExportReports')" to="/xuat-bao-cao" class="sub-item"
+                            active-class="active">
                             Xuất Excel / PDF
                         </RouterLink>
                     </div>
@@ -185,16 +214,20 @@
                             :class="['bi', menus.heThong ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.heThong && !isCollapsed" class="sub-menu">
-                        <RouterLink v-if="hasPermission('ManageUsers')" to="/users" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManageUsers')" to="/users" class="sub-item"
+                            active-class="active">
                             Người dùng
                         </RouterLink>
-                        <RouterLink v-if="hasAdminRole && hasPermission('ResetUserPasswords')" to="/cap-lai-mat-khau" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasAdminRole && hasPermission('ResetUserPasswords')" to="/cap-lai-mat-khau"
+                            class="sub-item" active-class="active">
                             Cấp lại mật khẩu
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ManagePermissions')" to="/permissions" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ManagePermissions')" to="/permissions" class="sub-item"
+                            active-class="active">
                             Phân quyền
                         </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewSystemLogs')" to="/nhat-ky-he-thong" class="sub-item" active-class="active">
+                        <RouterLink v-if="hasPermission('ViewSystemLogs')" to="/nhat-ky-he-thong" class="sub-item"
+                            active-class="active">
                             Nhật ký hệ thống
                         </RouterLink>
                     </div>
@@ -206,7 +239,7 @@
             <header class="topbar">
                 <div class="topbar-left">
                     <div class="vn-header">
-                        <img src="https://flagcdn.com/w40/vn.png" alt="VN" class="vn-flag" />
+                        <img src="/dn.png" alt="Đà Nẵng" class="vn-flag" />
                         <div>
                             <h2>HỆ THỐNG THEO DÕI CHỈ TIÊU</h2>
                             <p>{{ currentDateTime }}</p>
@@ -405,7 +438,7 @@
 
     .brand {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: 12px;
         padding: 4px 8px 18px;
         border-bottom: 1px solid rgba(230, 193, 106, 0.22);
@@ -426,14 +459,28 @@
     }
 
     .icon-btn {
-        width: 42px;
-        height: 42px;
+        width: 64px;
+        height: 64px;
         border: none;
-        border-radius: 12px;
-        background: linear-gradient(180deg, rgba(216, 173, 82, 0.24), rgba(255, 255, 255, 0.08));
-        color: #fff8e6;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.04);
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .brand-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+        border-radius: 18px;
+        display: block;
     }
 
     .section-label {
@@ -741,16 +788,16 @@
     }
 
     .vn-flag {
-        width: 32px;
-        height: 22px;
+        width: 48px;
+        height: 36px;
         object-fit: cover;
         border-radius: 3px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     }
 
     .vn-flag {
-        width: 32px;
-        height: 32px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
     }
 

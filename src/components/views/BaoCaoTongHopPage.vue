@@ -7,7 +7,7 @@
                         <i class="bi bi-bar-chart-line"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">BÁO CÁO TỔNG HỢP KPI TOÀN HỆ THỐNG</div>
+                        <div class="gov-title">BÁO CÁO TỔNG HỢP CHỈ TIÊU TOÀN HỆ THỐNG</div>
                     </div>
                 </div>
 

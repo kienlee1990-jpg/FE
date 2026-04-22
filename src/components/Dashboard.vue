@@ -65,15 +65,9 @@
           <template v-else>
             <div class="stats-grid">
               <div class="stat-card">
-                <span class="stat-label">Tổng KPI</span>
+                <span class="stat-label">Tổng chỉ tiêu</span>
                 <strong class="stat-value">{{ filteredRows.length }}</strong>
                 <span class="stat-note">Bản ghi CATP sau khi lọc</span>
-              </div>
-
-              <div class="stat-card">
-                <span class="stat-label">Hoàn thành TB</span>
-                <strong class="stat-value">{{ formatPercent(averageCompletion) }}</strong>
-                <span class="stat-note">Theo % hoàn thành</span>
               </div>
 
               <div class="stat-card success">
@@ -105,7 +99,7 @@
               <section class="panel-card">
                 <div class="panel-header">
                   <h3>Cơ cấu xếp loại</h3>
-                  <span>{{ filteredRows.length }} KPI</span>
+                  <span>{{ filteredRows.length }} chỉ tiêu</span>
                 </div>
 
                 <div v-if="filteredRows.length === 0" class="empty-panel">Không có dữ liệu</div>
@@ -116,29 +110,13 @@
 
               <section class="panel-card">
                 <div class="panel-header">
-                  <h3>Insight nhanh</h3>
+                  <h3>Điểm nổi bật</h3>
                   <span>Tóm tắt nổi bật</span>
                 </div>
 
                 <div class="insight-grid">
                   <div class="insight-card">
-                    <span class="insight-label">Đơn vị tốt nhất</span>
-                    <strong class="insight-title">{{ bestUnit?.tenDonVi || '-' }}</strong>
-                    <span class="insight-value">
-                      {{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}
-                    </span>
-                  </div>
-
-                  <div class="insight-card">
-                    <span class="insight-label">Đơn vị cần chú ý</span>
-                    <strong class="insight-title">{{ worstUnit?.tenDonVi || '-' }}</strong>
-                    <span class="insight-value">
-                      {{ worstUnit ? `${worstUnit.chuaHoanThanh + worstUnit.khongHoanThanh} KPI cần chú ý` : '-' }}
-                    </span>
-                  </div>
-
-                  <div class="insight-card">
-                    <span class="insight-label">KPI tốt nhất</span>
+                    <span class="insight-label">Chỉ tiêu tốt nhất</span>
                     <strong class="insight-title">{{ bestKpi?.tenChiTieu || bestKpi?.maChiTieu || '-' }}</strong>
                     <span class="insight-value">
                       {{ bestKpi ? formatPercent(bestKpi.tyLeHoanThanh) : '-' }}
@@ -146,7 +124,7 @@
                   </div>
 
                   <div class="insight-card">
-                    <span class="insight-label">KPI thấp nhất</span>
+                    <span class="insight-label">Chỉ tiêu thấp nhất</span>
                     <strong class="insight-title">{{ worstKpi?.tenChiTieu || worstKpi?.maChiTieu || '-' }}</strong>
                     <span class="insight-value">
                       {{ worstKpi ? formatPercent(worstKpi.tyLeHoanThanh) : '-' }}
@@ -349,7 +327,7 @@
     },
     tooltip: {
       y: {
-        formatter: value => `${formatNumber(value)} KPI`
+        formatter: value => `${formatNumber(value)} chỉ tiêu`
       }
     },
     colors: ['#16a34a', '#2563eb', '#f59e0b', '#dc2626']
@@ -475,7 +453,7 @@
 
   function xepLoaiRate(value) {
     if (!filteredRows.value.length) return '0%'
-    return `${roundNumber((value / filteredRows.value.length) * 100)}% tổng KPI`
+    return `${roundNumber((value / filteredRows.value.length) * 100)}% tổng chỉ tiêu`
   }
 
   function isFiniteNumber(value) {
@@ -647,7 +625,7 @@
 
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
   }
 
