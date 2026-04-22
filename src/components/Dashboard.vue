@@ -13,9 +13,6 @@
 
         <div class="dashboard-page">
           <div class="page-header">
-            <div class="gov-banner">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Emblem_of_Vietnam.svg" class="gov-emblem" />
-            </div>
             <div class="header-actions">
               <button class="btn btn-primary" @click="fetchDashboardData">Tải dữ liệu</button>
               <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
@@ -575,7 +572,7 @@
 
   .page-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: flex-start;
     gap: 16px;
     flex-wrap: wrap;

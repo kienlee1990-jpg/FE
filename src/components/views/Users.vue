@@ -8,11 +8,11 @@
           </div>
           <div>
             <div class="gov-title">NGƯỜI DÙNG VÀ VAI TRÒ</div>
-            <div class="gov-sub">Quản lý tài khoản và gán vai trò cho từng người dùng</div>
           </div>
         </div>
         <div class="header-actions">
-          <RouterLink v-if="canManagePermissions" to="/permissions" class="btn btn-outline-primary">Mở màn phân quyền chi tiết</RouterLink>
+          <RouterLink v-if="canManagePermissions" to="/permissions" class="btn btn-outline-primary">Mở màn phân quyền
+            chi tiết</RouterLink>
           <button @click="openRoleManager" class="btn btn-outline-success">Quản lý vai trò</button>
           <button @click="openAdd" class="btn btn-primary">+ Thêm người dùng</button>
         </div>
@@ -166,53 +166,32 @@
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label">Tên đăng nhập</label>
-                    <input
-                      v-model="form.userName"
-                      placeholder="Nhập tên đăng nhập"
-                      class="form-control shadow-sm"
-                      autocomplete="off"
-                      autocapitalize="none" />
+                    <input v-model="form.userName" placeholder="Nhập tên đăng nhập" class="form-control shadow-sm"
+                      autocomplete="off" autocapitalize="none" />
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Tên hiển thị</label>
-                    <input
-                      v-model="form.fullName"
-                      placeholder="Nhập tên hiển thị"
-                      class="form-control shadow-sm"
+                    <input v-model="form.fullName" placeholder="Nhập tên hiển thị" class="form-control shadow-sm"
                       autocomplete="off" />
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Email</label>
-                    <input
-                      v-model="form.email"
-                      placeholder="Nhập email"
-                      class="form-control shadow-sm"
-                      autocomplete="off"
-                      autocapitalize="none" />
+                    <input v-model="form.email" placeholder="Nhập email" class="form-control shadow-sm"
+                      autocomplete="off" autocapitalize="none" />
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Mật khẩu</label>
-                    <input
-                      type="password"
-                      v-model="form.password"
-                      placeholder="Nhập mật khẩu"
-                      class="form-control shadow-sm"
-                      autocomplete="new-password" />
+                    <input type="password" v-model="form.password" placeholder="Nhập mật khẩu"
+                      class="form-control shadow-sm" autocomplete="new-password" />
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Số điện thoại</label>
-                    <input
-                      v-model="form.phoneNumber"
-                      placeholder="Nhập số điện thoại"
-                      class="form-control shadow-sm"
+                    <input v-model="form.phoneNumber" placeholder="Nhập số điện thoại" class="form-control shadow-sm"
                       autocomplete="off" />
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Địa chỉ</label>
-                    <input
-                      v-model="form.address"
-                      placeholder="Nhập địa chỉ"
-                      class="form-control shadow-sm"
+                    <input v-model="form.address" placeholder="Nhập địa chỉ" class="form-control shadow-sm"
                       autocomplete="off" />
                   </div>
                 </div>

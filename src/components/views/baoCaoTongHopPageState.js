@@ -1,5 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import httpClient from '../../services/httpClient'
+import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
 import {
   countTrackedStatuses,
   DANH_GIA_TRACKED_STATUS_OPTIONS,
@@ -18,8 +19,13 @@ export function useBaoCaoTongHopPage() {
   const dotGiaoRows = ref([])
   const donViRows = ref([])
   const danhGiaRows = ref([])
+  const currentProfile = ref(getStoredUserProfile())
 
   const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
+  const canViewAllUnits = computed(() =>
+    isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
+  )
+  const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
   const filters = reactive({
     kyBaoCaoKPIId: '',
@@ -108,13 +114,19 @@ export function useBaoCaoTongHopPage() {
   const danhGiaByAssignment = computed(() => groupRowsById(normalizedDanhGiaRows.value, item => item.chiTietGiaoChiTieuId))
 
   const groupedRows = computed(() => {
-    return flattenedAssignments.value
+    let rows = flattenedAssignments.value
       .map(assignment => buildSummaryRow(assignment, theoDoiByAssignment.value, danhGiaByAssignment.value))
       .sort((left, right) => {
         const leftValue = `${left.tenDotGiaoChiTieu || ''} ${left.tenDonViNhan || ''} ${left.maChiTieu || ''}`.toLowerCase()
         const rightValue = `${right.tenDotGiaoChiTieu || ''} ${right.tenDonViNhan || ''} ${right.maChiTieu || ''}`.toLowerCase()
         return leftValue.localeCompare(rightValue, 'vi')
       })
+
+    if (!canViewAllUnits.value && currentUnitName.value) {
+      rows = rows.filter(item => String(item.tenDonViNhan || '').trim() === currentUnitName.value)
+    }
+
+    return rows
   })
 
   const donViOptions = computed(() => {
@@ -162,6 +174,9 @@ export function useBaoCaoTongHopPage() {
   const averageCompletion = computed(() => averageOf(filteredRows.value, 'tyLeHoanThanh'))
 
   onMounted(async () => {
+    if (!canViewAllUnits.value && currentUnitName.value) {
+      filters.donVi = currentUnitName.value
+    }
     await fetchBaoCaoTongHop()
   })
 
@@ -211,7 +226,7 @@ export function useBaoCaoTongHopPage() {
 
   function resetFilters() {
     filters.kyBaoCaoKPIId = ''
-    filters.donVi = ''
+    filters.donVi = canViewAllUnits.value ? '' : currentUnitName.value
     filters.xepLoai = ''
     filters.keyword = ''
     fetchBaoCaoTongHop()
@@ -849,6 +864,8 @@ export function useBaoCaoTongHopPage() {
     kyBaoCaoOptions,
     trackedStatusOptions,
     filters,
+    canViewAllUnits,
+    currentUnitName,
     groupedRows,
     donViOptions,
     filteredRows,

@@ -1,5 +1,6 @@
 import { computed, reactive, ref } from 'vue'
 import { apiRequest } from '../services/api.js'
+import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../utils/accessControl'
 
 export const TARGET_EXECUTION_UNIT = 'Công an thành phố Đà Nẵng'
 
@@ -9,6 +10,7 @@ export function useCatpKpiData() {
   const chiTietRows = ref([])
   const danhGiaRows = ref([])
   const kyBaoCaoOptions = ref([])
+  const currentProfile = ref(getStoredUserProfile())
 
   const filters = reactive({
     kyBaoCaoKPIId: '',
@@ -18,8 +20,18 @@ export function useCatpKpiData() {
   })
 
   const allAssignments = computed(() => flattenAssignments(chiTietRows.value))
+  const canViewAllUnits = computed(() =>
+    isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
+  )
+  const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
   const targetAssignments = computed(() => {
+    if (!canViewAllUnits.value && currentUnitName.value) {
+      return allAssignments.value.filter(item =>
+        normalizeText(item.tenDonViNhan) === normalizeText(currentUnitName.value)
+      )
+    }
+
     return allAssignments.value.filter(item =>
       normalizeText(item.tenDonViThucHienChinh) === normalizeText(TARGET_EXECUTION_UNIT)
     )
@@ -114,7 +126,7 @@ export function useCatpKpiData() {
 
   function resetFilters() {
     filters.kyBaoCaoKPIId = ''
-    filters.donVi = ''
+    filters.donVi = canViewAllUnits.value ? '' : currentUnitName.value
     filters.xepLoai = ''
     filters.keyword = ''
     return fetchData()

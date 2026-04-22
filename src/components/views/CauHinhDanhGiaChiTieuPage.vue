@@ -7,7 +7,7 @@
                         <i class="bi bi-sliders"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">CẤU HÌNH NGƯỠNG ĐÁNH GIÁ KPI</div>
+                        <div class="gov-title">CẤU HÌNH NGƯỠNG ĐÁNH GIÁ</div>
                     </div>
                 </div>
 
@@ -21,7 +21,8 @@
                 <div class="card custom-card mb-4">
                     <div class="card-header bg-white border-0 pb-0">
                         <h5 class="mb-1">Bộ lọc tìm kiếm</h5>
-                        <small class="text-muted">Tra cứu nhanh theo danh mục chỉ tiêu, tiêu chí đánh giá hoặc từ khóa</small>
+                        <small class="text-muted">Tra cứu nhanh theo danh mục chỉ tiêu, tiêu chí đánh giá hoặc từ
+                            khóa</small>
                     </div>
 
                     <div class="card-body">
@@ -36,7 +37,8 @@
                                 <label class="form-label">Tiêu chí đánh giá</label>
                                 <select v-model="filters.tieuChiDanhGia" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option v-for="item in TIEU_CHI_DANH_GIA_OPTIONS" :key="item.value" :value="item.value">
+                                    <option v-for="item in TIEU_CHI_DANH_GIA_OPTIONS" :key="item.value"
+                                        :value="item.value">
                                         {{ item.label }}
                                     </option>
                                 </select>
@@ -46,7 +48,8 @@
                                 <label class="form-label">Quy tắc đánh giá</label>
                                 <select v-model="filters.quyTacDanhGia" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option v-for="item in QUY_TAC_DANH_GIA_OPTIONS" :key="item.value" :value="item.value">
+                                    <option v-for="item in QUY_TAC_DANH_GIA_OPTIONS" :key="item.value"
+                                        :value="item.value">
                                         {{ item.label }}
                                     </option>
                                 </select>
@@ -94,7 +97,8 @@
 
                         <div v-else class="table-responsive">
                             <ColumnVisibilityTools table-id="CauHinhDanhGiaChiTieuPage-table" />
-                            <table id="CauHinhDanhGiaChiTieuPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
+                            <table id="CauHinhDanhGiaChiTieuPage-table"
+                                class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -153,7 +157,8 @@
                                 <div>
                                     <h4 class="modal-title mb-1">{{ isEdit ? 'Cập nhật cấu hình ngưỡng đánh giá KPI' :
                                         'Tạo cấu hình ngưỡng đánh giá KPI mới' }}</h4>
-                                    <p class="text-muted mb-0">Nhập thông tin cấu hình ngưỡng đánh giá theo từng tiêu chí</p>
+                                    <p class="text-muted mb-0">Nhập thông tin cấu hình ngưỡng đánh giá theo từng tiêu
+                                        chí</p>
                                 </div>
                                 <button type="button" class="btn-close" @click="closeModal"></button>
                             </div>
@@ -183,10 +188,11 @@
                                         <label class="form-label">
                                             Quy tắc đánh giá <span class="text-danger">*</span>
                                         </label>
-                                        <select v-model="form.quyTacDanhGia" class="form-select" :disabled="form.tieuChiDanhGia === 'DINH_TINH'">
+                                        <select v-model="form.quyTacDanhGia" class="form-select"
+                                            :disabled="form.tieuChiDanhGia === 'DINH_TINH'">
                                             <option value="">Chọn quy tắc đánh giá</option>
-                                            <option v-for="item in getQuyTacOptionsByCriterion(form.tieuChiDanhGia)" :key="item.value"
-                                                :value="item.value">
+                                            <option v-for="item in getQuyTacOptionsByCriterion(form.tieuChiDanhGia)"
+                                                :key="item.value" :value="item.value">
                                                 {{ item.label }}
                                             </option>
                                         </select>
@@ -268,7 +274,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
     import {
         DANH_GIA_TRACKED_STATUS_OPTIONS,
@@ -727,7 +733,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-
-

@@ -31,7 +31,14 @@ import TongHopDanhGiaLuyKePage from "../components/views/TongHopDanhGiaLuyKePage
 import Users from "../components/views/Users.vue"
 import XepHangDonViPage from "../components/views/XepHangDonViPage.vue"
 import XuatBaoCaoPage from "../components/views/XuatBaoCaoPage.vue"
-import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile, hasRole } from "../utils/accessControl"
+import {
+    canAccessPermission,
+    getStoredUserPermissions,
+    getStoredUserProfile,
+    hasRole,
+    isCatpProfile,
+    isPrivilegedProfile
+} from "../utils/accessControl"
 
 const routes = [
     {
@@ -247,7 +254,16 @@ const router = createRouter({
     routes
 })
 
+const shouldLandOnDonVi = (profile) => {
+    if (!profile) return false
+    return !isPrivilegedProfile(profile) && !isCatpProfile(profile)
+}
+
 const getFirstAuthorizedPath = (permissions, profile) => {
+    if (shouldLandOnDonVi(profile)) {
+        return "/don-vi"
+    }
+
     const firstRoute = routes.find(route => {
         if (!route?.path || route.path === "/login" || route.path === "/") return false
         if (!route?.meta?.requiresAuth) return false
@@ -276,6 +292,10 @@ router.beforeEach((to) => {
 
     if (to.path === "/login" && token) {
         return { path: getFirstAuthorizedPath(permissions, profile) }
+    }
+
+    if (token && to.path === "/don-vi" && shouldLandOnDonVi(profile)) {
+        return true
     }
 
     if (token && to.meta.requiresAuth && !canAccessPermission(permissions, to.meta.permission, profile)) {

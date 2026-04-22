@@ -8,7 +8,6 @@
           </div>
           <div>
             <div class="gov-title">CẤP LẠI MẬT KHẨU</div>
-            <div class="gov-sub">Lấy token reset và đặt lại mật khẩu cho tài khoản trong hệ thống</div>
           </div>
         </div>
       </div>
@@ -18,10 +17,7 @@
           <div class="filter-grid">
             <div>
               <label class="form-label">Từ khóa</label>
-              <input
-                v-model.trim="searchTerm"
-                type="text"
-                class="form-control"
+              <input v-model.trim="searchTerm" type="text" class="form-control"
                 placeholder="Đơn vị, tên đăng nhập, email, tên hiển thị..." />
             </div>
             <div>
@@ -113,10 +109,7 @@
                   <label class="form-label">Token reset</label>
                   <div class="token-row">
                     <input v-model="resetForm.token" type="text" class="form-control" readonly />
-                    <button
-                      type="button"
-                      class="btn btn-outline-primary"
-                      :disabled="submitting || !selectedUser?.email"
+                    <button type="button" class="btn btn-outline-primary" :disabled="submitting || !selectedUser?.email"
                       @click="requestResetToken">
                       {{ resetForm.token ? 'Lấy lại token' : 'Lấy token reset' }}
                     </button>
@@ -124,12 +117,8 @@
                 </div>
                 <div class="col-12">
                   <label class="form-label">Mật khẩu mới</label>
-                  <input
-                    v-model="resetForm.newPassword"
-                    type="password"
-                    class="form-control"
-                    placeholder="Nhập mật khẩu mới"
-                    autocomplete="new-password" />
+                  <input v-model="resetForm.newPassword" type="password" class="form-control"
+                    placeholder="Nhập mật khẩu mới" autocomplete="new-password" />
                 </div>
               </div>
             </div>

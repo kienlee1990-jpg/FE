@@ -7,7 +7,7 @@
                         <i class="bi bi-shield-exclamation"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">CẢNH BÁO RỦI RO KPI</div>
+                        <div class="gov-title">CẢNH BÁO RỦI RO </div>
                         <div class="gov-sub">
                         </div>
                     </div>
@@ -237,7 +237,7 @@
                             </div>
                             <div v-else class="table-wrapper">
                                 <ColumnVisibilityTools table-id="CanhBaoRuiRoPage-table" />
-                            <table id="CanhBaoRuiRoPage-table" class="data-table managed-table">
+                                <table id="CanhBaoRuiRoPage-table" class="data-table managed-table">
                                     <thead>
                                         <tr>
                                             <th>#</th>
@@ -292,7 +292,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
     import VueApexCharts from 'vue3-apexcharts'
     import {
@@ -1155,8 +1155,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-
-
-

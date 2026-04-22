@@ -8,10 +8,6 @@
                     </div>
                     <div class="gov-text">
                         <div class="gov-title">BÁO CÁO THEO ĐƠN VỊ</div>
-                        <div class="gov-sub">
-                            Tổng hợp kết quả đánh giá KPI theo từng đơn vị nhận chỉ tiêu để theo dõi chất lượng thực hiện và
-                            xác định nhóm đơn vị cần chú ý.
-                        </div>
                     </div>
                 </div>
 
@@ -32,7 +28,8 @@
                                 <label>Trạng thái nổi bật</label>
                                 <select v-model="filters.xepLoaiNoiBat">
                                     <option value="">-- Tất cả trạng thái --</option>
-                                    <option v-for="status in trackedStatusOptions" :key="status.value" :value="status.value">
+                                    <option v-for="status in trackedStatusOptions" :key="status.value"
+                                        :value="status.value">
                                         {{ status.label }}
                                     </option>
                                 </select>
@@ -40,11 +37,8 @@
 
                             <div class="form-group">
                                 <label>Từ khóa</label>
-                                <input
-                                    v-model.trim="filters.keyword"
-                                    type="text"
-                                    placeholder="Tên đơn vị, chỉ tiêu nổi bật, chỉ tiêu cần chú ý..."
-                                />
+                                <input v-model.trim="filters.keyword" type="text"
+                                    placeholder="Tên đơn vị, chỉ tiêu nổi bật, chỉ tiêu cần chú ý..." />
                             </div>
 
                             <div class="form-group actions">
@@ -141,7 +135,7 @@
 <script setup>
     import { computed, reactive } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
     import {
         countTrackedStatuses,
@@ -486,8 +480,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     .actions {
+        grid-column: 1 / -1;
         flex-direction: row;
         gap: 10px;
+        justify-content: flex-end;
     }
 
     .btn {
@@ -666,6 +662,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     @media (max-width: 1200px) {
+
         .filter-grid,
         .summary-grid {
             grid-template-columns: 1fr;
@@ -691,6 +688,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-

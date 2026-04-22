@@ -8,9 +8,9 @@
                             <i class="bi bi-gear-fill"></i>
                         </div>
                         <div>
-                            <div class="hero-kicker">THIẾT LẬP NỀN</div>
                             <h1>Thiết lập nhóm thi đua</h1>
-                            <p>Tạo nhóm, chọn đơn vị thuộc nhóm và cấu hình những chỉ tiêu chi tiết được tính vào thi đua.</p>
+                            <p>Tạo nhóm, chọn đơn vị thuộc nhóm và cấu hình những chỉ tiêu chi tiết được tính vào thi
+                                đua.</p>
                         </div>
                     </div>
                     <button class="btn btn-primary" type="button" @click="startCreateGroup">Tạo nhóm mới</button>
@@ -28,14 +28,8 @@
                         <div v-if="loadingGroups" class="state loading">Đang tải nhóm thi đua...</div>
                         <div v-else-if="groupError" class="state error">{{ groupError }}</div>
                         <div v-else class="group-list">
-                            <button
-                                v-for="group in groups"
-                                :key="group.id"
-                                type="button"
-                                class="group-item"
-                                :class="{ active: editForm.id === group.id }"
-                                @click="startEditGroup(group)"
-                            >
+                            <button v-for="group in groups" :key="group.id" type="button" class="group-item"
+                                :class="{ active: editForm.id === group.id }" @click="startEditGroup(group)">
                                 <div class="group-item-content">
                                     <strong>{{ group.tenNhom }}</strong>
                                     <span>{{ group.moTa || 'Chưa có mô tả nhóm' }}</span>
@@ -69,11 +63,8 @@
 
                             <div class="form-group full-width">
                                 <label>Mô tả</label>
-                                <textarea
-                                    v-model.trim="editForm.moTa"
-                                    rows="3"
-                                    placeholder="Mô tả ngắn cho nhóm thi đua"
-                                ></textarea>
+                                <textarea v-model.trim="editForm.moTa" rows="3"
+                                    placeholder="Mô tả ngắn cho nhóm thi đua"></textarea>
                             </div>
                         </div>
 
@@ -87,29 +78,25 @@
                                 </div>
 
                                 <div class="search-box">
-                                    <input
-                                        v-model.trim="unitKeyword"
-                                        type="text"
-                                        placeholder="Tìm theo mã hoặc tên đơn vị"
-                                    />
+                                    <input v-model.trim="unitKeyword" type="text"
+                                        placeholder="Tìm theo mã hoặc tên đơn vị" />
                                 </div>
 
                                 <div class="checkbox-toolbar">
-                                    <button class="btn btn-light btn-sm" type="button" @click="toggleVisibleUnits(true)">
+                                    <button class="btn btn-light btn-sm" type="button"
+                                        @click="toggleVisibleUnits(true)">
                                         Chọn tất cả đang lọc
                                     </button>
-                                    <button class="btn btn-light btn-sm" type="button" @click="toggleVisibleUnits(false)">
+                                    <button class="btn btn-light btn-sm" type="button"
+                                        @click="toggleVisibleUnits(false)">
                                         Bỏ tất cả
                                     </button>
                                 </div>
 
                                 <div class="checkbox-list">
                                     <label v-for="unit in filteredUnits" :key="unit.id" class="checkbox-item">
-                                        <input
-                                            :checked="editForm.donViIds.includes(unit.id)"
-                                            type="checkbox"
-                                            @change="toggleSelection(editForm.donViIds, unit.id)"
-                                        />
+                                        <input :checked="editForm.donViIds.includes(unit.id)" type="checkbox"
+                                            @change="toggleSelection(editForm.donViIds, unit.id)" />
                                         <span>
                                             <strong>{{ unit.tenDonVi }}</strong>
                                             <small>{{ unit.maDonVi }} Â· {{ unit.loaiDonVi }}</small>
@@ -127,29 +114,27 @@
                                 </div>
 
                                 <div class="search-box">
-                                    <input
-                                        v-model.trim="criteriaKeyword"
-                                        type="text"
-                                        placeholder="Tìm theo mã, tên chỉ tiêu hoặc chỉ tiêu cha"
-                                    />
+                                    <input v-model.trim="criteriaKeyword" type="text"
+                                        placeholder="Tìm theo mã, tên chỉ tiêu hoặc chỉ tiêu cha" />
                                 </div>
 
                                 <div class="checkbox-toolbar">
-                                    <button class="btn btn-light btn-sm" type="button" @click="toggleVisibleCriteria(true)">
+                                    <button class="btn btn-light btn-sm" type="button"
+                                        @click="toggleVisibleCriteria(true)">
                                         Chọn tất cả đang lọc
                                     </button>
-                                    <button class="btn btn-light btn-sm" type="button" @click="toggleVisibleCriteria(false)">
+                                    <button class="btn btn-light btn-sm" type="button"
+                                        @click="toggleVisibleCriteria(false)">
                                         Bỏ tất cả
                                     </button>
                                 </div>
 
                                 <div class="checkbox-list">
-                                    <label v-for="criteria in filteredCriteria" :key="criteria.id" class="checkbox-item">
-                                        <input
-                                            :checked="editForm.danhMucChiTieuIds.includes(criteria.id)"
+                                    <label v-for="criteria in filteredCriteria" :key="criteria.id"
+                                        class="checkbox-item">
+                                        <input :checked="editForm.danhMucChiTieuIds.includes(criteria.id)"
                                             type="checkbox"
-                                            @change="toggleSelection(editForm.danhMucChiTieuIds, criteria.id)"
-                                        />
+                                            @change="toggleSelection(editForm.danhMucChiTieuIds, criteria.id)" />
                                         <span>
                                             <strong>{{ criteria.tenChiTieu }}</strong>
                                             <small>{{ criteria.maChiTieu }} · {{ criteria.tenChiTieuCha || 'Chỉ tiêu độc lập' }}</small>
@@ -164,13 +149,8 @@
                                 {{ saving ? 'Đang lưu...' : 'Lưu nhóm' }}
                             </button>
                             <button class="btn btn-secondary" type="button" @click="startCreateGroup">Làm mới</button>
-                            <button
-                                v-if="editForm.id"
-                                class="btn btn-danger"
-                                type="button"
-                                @click="deleteGroup"
-                                :disabled="saving"
-                            >
+                            <button v-if="editForm.id" class="btn btn-danger" type="button" @click="deleteGroup"
+                                :disabled="saving">
                                 Xóa nhóm
                             </button>
                         </div>
@@ -447,13 +427,13 @@
     }
 
     .page-hero {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
         padding: 24px;
         margin-bottom: 24px;
-      }
+    }
 
     .hero-head {
         display: flex;
@@ -743,6 +723,7 @@
     }
 
     @media (max-width: 1200px) {
+
         .layout-grid,
         .selection-grid {
             grid-template-columns: 1fr;
@@ -768,5 +749,3 @@
         }
     }
 </style>
-
-

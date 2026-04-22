@@ -8,9 +8,9 @@
                             <i class="bi bi-diagram-3-fill"></i>
                         </div>
                         <div>
-                            <div class="hero-kicker">ĐÁNH GIÁ VÀ SO SÁNH</div>
                             <h1>Nhóm thi đua</h1>
-                            <p>Xếp hạng đơn vị trong một nhóm thi đua theo đúng đơn vị và chỉ tiêu chi tiết đã cấu hình.</p>
+                            <p>Xếp hạng đơn vị trong một nhóm thi đua theo đúng đơn vị và chỉ tiêu chi tiết đã cấu hình.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -48,17 +48,15 @@
 
                         <div class="form-group">
                             <label>Từ khóa</label>
-                            <input
-                                v-model.trim="filters.keyword"
-                                type="text"
-                                placeholder="Nhập tên đơn vị, mã hoặc tên chỉ tiêu"
-                            />
+                            <input v-model.trim="filters.keyword" type="text"
+                                placeholder="Nhập tên đơn vị, mã hoặc tên chỉ tiêu" />
                         </div>
 
                         <div class="form-group actions">
                             <button class="btn btn-primary" type="button" @click="reloadData">Tải dữ liệu</button>
                             <button class="btn btn-secondary" type="button" @click="resetFilters">Đặt lại</button>
-                            <button class="btn btn-success" type="button" @click="exportCsv" :disabled="rankedRows.length === 0">
+                            <button class="btn btn-success" type="button" @click="exportCsv"
+                                :disabled="rankedRows.length === 0">
                                 Xuất CSV
                             </button>
                         </div>
@@ -97,19 +95,17 @@
                         </div>
 
                         <div class="table-tools">
-                            <button class="icon-btn" type="button" @click="showColumnMenu = !showColumnMenu" title="Tùy chọn cột hiển thị">
+                            <button class="icon-btn" type="button" @click="showColumnMenu = !showColumnMenu"
+                                title="Tùy chọn cột hiển thị">
                                 <i class="bi bi-layout-three-columns"></i>
                             </button>
 
                             <div v-if="showColumnMenu" class="column-menu">
                                 <div class="column-menu-title">Cột hiển thị</div>
-                                <label
-                                    v-for="column in columnOptions"
-                                    :key="column.key"
-                                    class="column-option"
-                                    :class="{ locked: column.locked }"
-                                >
-                                    <input v-model="visibleColumns[column.key]" type="checkbox" :disabled="column.locked" />
+                                <label v-for="column in columnOptions" :key="column.key" class="column-option"
+                                    :class="{ locked: column.locked }">
+                                    <input v-model="visibleColumns[column.key]" type="checkbox"
+                                        :disabled="column.locked" />
                                     <span>{{ column.label }}</span>
                                 </label>
                             </div>
@@ -119,10 +115,11 @@
                     <div v-if="combinedLoading" class="state loading">Đang tải dữ liệu...</div>
                     <div v-else-if="combinedError" class="state error">{{ combinedError }}</div>
                     <div v-else-if="!selectedGroup" class="state empty">Chưa có nhóm thi đua để hiển thị</div>
-                    <div v-else-if="rankedRows.length === 0" class="state empty">Không có dữ liệu phù hợp cho nhóm đang chọn</div>
+                    <div v-else-if="rankedRows.length === 0" class="state empty">Không có dữ liệu phù hợp cho nhóm đang
+                        chọn</div>
                     <div v-else class="table-wrapper">
                         <ColumnVisibilityTools table-id="NhomThiDuaPage-table" />
-                            <table id="NhomThiDuaPage-table" class="managed-table">
+                        <table id="NhomThiDuaPage-table" class="managed-table">
                             <thead>
                                 <tr>
                                     <th v-if="visibleColumns.ranking">Hạng</th>
@@ -143,14 +140,19 @@
                                     </td>
                                     <td v-if="visibleColumns.unit">
                                         <div class="fw-semibold">{{ item.tenDonVi }}</div>
-                                            <div class="sub-label">{{ item.soKpi }} KPI được tính trong nhóm</div>
+                                        <div class="sub-label">{{ item.soKpi }} KPI được tính trong nhóm</div>
                                     </td>
                                     <td v-if="visibleColumns.soKpi" class="text-center">{{ item.soKpi }}</td>
-                                    <td v-if="visibleColumns.hoanThanh" class="text-center">{{ item.hoanThanhDatChuan }}</td>
-                                    <td v-if="visibleColumns.chuaHoanThanh" class="text-center">{{ item.chuaHoanThanhTong }}</td>
-                                    <td v-if="visibleColumns.tongMucTieu" class="text-right">{{ formatNumber(item.tongMucTieu) }}</td>
-                                    <td v-if="visibleColumns.tongLuyKe" class="text-right">{{ formatNumber(item.tongLuyKe) }}</td>
-                                    <td v-if="visibleColumns.avgCompletion" class="text-right">{{ formatPercent(item.tyLeHoanThanhTrungBinh) }}</td>
+                                    <td v-if="visibleColumns.hoanThanh" class="text-center">{{ item.hoanThanhDatChuan }}
+                                    </td>
+                                    <td v-if="visibleColumns.chuaHoanThanh" class="text-center">{{
+                                        item.chuaHoanThanhTong }}</td>
+                                    <td v-if="visibleColumns.tongMucTieu" class="text-right">{{
+                                        formatNumber(item.tongMucTieu) }}</td>
+                                    <td v-if="visibleColumns.tongLuyKe" class="text-right">{{
+                                        formatNumber(item.tongLuyKe) }}</td>
+                                    <td v-if="visibleColumns.avgCompletion" class="text-right">{{
+                                        formatPercent(item.tyLeHoanThanhTrungBinh) }}</td>
                                     <td v-if="visibleColumns.dotGiaoGanNhat">{{ item.dotGiaoGanNhat || '-' }}</td>
                                 </tr>
                             </tbody>
@@ -165,7 +167,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
 
@@ -444,9 +446,9 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     .hero-card {
-          padding: 24px;
-          margin-bottom: 24px;
-      }
+        padding: 24px;
+        margin-bottom: 24px;
+    }
 
     .hero-head {
         display: flex;
@@ -522,6 +524,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
+        grid-column: 1 / -1;
+        justify-content: flex-end;
     }
 
     .btn {
@@ -734,6 +738,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     @media (max-width: 768px) {
+
         .filter-card,
         .table-card,
         .hero-card {
@@ -759,6 +764,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-

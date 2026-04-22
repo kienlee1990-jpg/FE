@@ -261,7 +261,8 @@
     const { getMe, logout: authLogout, user } = useAuth()
 
     const dropdownOpen = ref(false)
-    const isCollapsed = ref(false)
+    const savedCollapsed = localStorage.getItem('sidebar_collapsed')
+    const isCollapsed = ref(savedCollapsed === null ? true : savedCollapsed === 'true')
     const now = ref(new Date())
     let timer = null
 
@@ -287,6 +288,10 @@
         },
         { deep: true }
     )
+
+    watch(isCollapsed, (value) => {
+        localStorage.setItem('sidebar_collapsed', String(value))
+    })
 
     const userRoleLabel = computed(() => {
         if (!Array.isArray(user.value?.roles) || user.value.roles.length === 0) {
@@ -342,7 +347,6 @@
     }
 
     const logout = async () => {
-        localStorage.removeItem('sidebar_menus')
         await authLogout()
     }
 

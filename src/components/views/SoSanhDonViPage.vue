@@ -263,6 +263,7 @@
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
     import VueApexCharts from 'vue3-apexcharts'
+    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
     import { countTrackedStatuses, getDanhGiaStatusCode, isKhongHoanThanhStatus } from '../../utils/danhGiaStatusClean.js'
 
     const apexchart = VueApexCharts
@@ -271,6 +272,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const errorMessage = ref('')
     const rows = ref([])
     const kyBaoCaoOptions = ref([])
+    const currentProfile = ref(getStoredUserProfile())
 
     const filters = reactive({
         kyBaoCaoKPIId: '',
@@ -279,6 +281,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         sortBy: 'avgCompletion',
         keyword: ''
     })
+    const canViewAllUnits = computed(() =>
+        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
+    )
+    const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
     const donViOptions = computed(() => {
         return [...new Set(rows.value.map(item => item.tenDonViNhan).filter(Boolean))].sort((a, b) =>
@@ -288,6 +294,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const filteredRows = computed(() => {
         let data = [...rows.value]
+
+        if (!canViewAllUnits.value && currentUnitName.value) {
+            data = data.filter(item => String(item.tenDonViNhan || '').trim() === currentUnitName.value)
+        }
 
         if (filters.keyword) {
             const keyword = normalizeText(filters.keyword)
@@ -526,8 +536,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     function resetFilters() {
         filters.kyBaoCaoKPIId = ''
-        filters.unitA = ''
-        filters.unitB = ''
+        filters.unitA = canViewAllUnits.value ? '' : currentUnitName.value
+        filters.unitB = canViewAllUnits.value ? '' : currentUnitName.value
         filters.sortBy = 'avgCompletion'
         filters.keyword = ''
         fetchCompareData()

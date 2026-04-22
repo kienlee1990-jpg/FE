@@ -1,5 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import httpClient from '../../services/httpClient'
+import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
 import {
   countTrackedStatuses,
   getDanhGiaBadgeClass,
@@ -18,11 +19,16 @@ export function useTongHopDanhGiaPage() {
   const cauHinhDanhGiaRows = ref([])
   const dotGiaoRows = ref([])
   const donViRows = ref([])
+  const currentProfile = ref(getStoredUserProfile())
 
   const filters = reactive({
     kyBaoCaoKPIId: '',
     keyword: ''
   })
+  const canViewAllUnits = computed(() =>
+    isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
+  )
+  const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
   const kyBaoCaoById = computed(() => buildMapById(kyBaoCaoOptions.value))
   const danhMucById = computed(() => buildMapById(danhMucRows.value))
@@ -167,6 +173,12 @@ export function useTongHopDanhGiaPage() {
     const map = new Map()
 
     normalizedTheoDoiRows.value.forEach(item => {
+      if (!canViewAllUnits.value && currentUnitName.value) {
+        if (String(item.tenDonViNhan || '').trim() !== currentUnitName.value) {
+          return
+        }
+      }
+
       const current = map.get(item.groupKey)
 
       if (!current) {

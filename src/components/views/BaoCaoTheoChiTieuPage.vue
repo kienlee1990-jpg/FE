@@ -495,8 +495,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     .actions {
+        grid-column: 1 / -1;
         flex-direction: row;
         gap: 10px;
+        justify-content: flex-end;
     }
 
     .btn {

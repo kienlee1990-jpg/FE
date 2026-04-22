@@ -143,6 +143,7 @@
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
+    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
     import {
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
@@ -156,12 +157,17 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const chiTietGiaoRows = ref([])
     const kyBaoCaoOptions = ref([])
     const danhGiaRows = ref([])
+    const currentProfile = ref(getStoredUserProfile())
 
     const filters = reactive({
         dotGiaoChiTieuId: '',
         danhMucChiTieuId: '',
         keyword: ''
     })
+    const canViewAllUnits = computed(() =>
+        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
+    )
+    const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
     onMounted(async () => {
         await fetchInitialData()
@@ -314,8 +320,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 String(item.danhMucChiTieuId) === String(filters.danhMucChiTieuId)
             const tenDonVi = item.tenDonViNhan || item.tenDonViNhanFromGiao || ''
             const matchKeyword = !keyword || normalizeText(tenDonVi).includes(keyword)
+            const matchCurrentUnit =
+                canViewAllUnits.value ||
+                !currentUnitName.value ||
+                normalizeText(tenDonVi) === normalizeText(currentUnitName.value)
 
-            return matchDot && matchDanhMuc && matchKeyword
+            return matchDot && matchDanhMuc && matchKeyword && matchCurrentUnit
         })
     })
 

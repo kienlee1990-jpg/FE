@@ -8,9 +8,6 @@
                     </div>
                     <div class="gov-text">
                         <div class="gov-title">BÁO CÁO TỔNG HỢP KPI TOÀN HỆ THỐNG</div>
-                        <div class="gov-sub">
-                            Mỗi dòng là một chi tiết giao chỉ tiêu, cộng dồn số thực hiện trong các kỳ và lấy kết quả đánh giá gần nhất trong phạm vi lọc.
-                        </div>
                     </div>
                 </div>
 
@@ -29,8 +26,8 @@
 
                             <div class="form-group">
                                 <label>Đơn vị</label>
-                                <select v-model="filters.donVi">
-                                    <option value="">-- Tất cả đơn vị --</option>
+                                <select v-model="filters.donVi" :disabled="!canViewAllUnits">
+                                    <option v-if="canViewAllUnits" value="">-- Tất cả đơn vị --</option>
                                     <option v-for="item in donViOptions" :key="item" :value="item">
                                         {{ item }}
                                     </option>
@@ -41,7 +38,8 @@
                                 <label>Xếp loại</label>
                                 <select v-model="filters.xepLoai">
                                     <option value="">-- Tất cả xếp loại --</option>
-                                    <option v-for="status in trackedStatusOptions" :key="status.value" :value="status.value">
+                                    <option v-for="status in trackedStatusOptions" :key="status.value"
+                                        :value="status.value">
                                         {{ status.label }}
                                     </option>
                                 </select>
@@ -49,11 +47,8 @@
 
                             <div class="form-group">
                                 <label>Từ khóa</label>
-                                <input
-                                    v-model.trim="filters.keyword"
-                                    type="text"
-                                    placeholder="Mã chỉ tiêu, tên chỉ tiêu, đơn vị, đợt giao..."
-                                />
+                                <input v-model.trim="filters.keyword" type="text"
+                                    placeholder="Mã chỉ tiêu, tên chỉ tiêu, đơn vị, đợt giao..." />
                             </div>
 
                             <div class="form-group actions">
@@ -129,10 +124,16 @@
                                         <td>{{ row.tenDonViNhan || '-' }}</td>
                                         <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
                                         <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
-                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ row.isComparisonTarget ?
+                                            formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu,
+                                            row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh)
+                                            }}</td>
+                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}
+                                        </td>
+                                        <td class="text-right">{{ row.isComparisonTarget ?
+                                            formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu,
+                                            row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                         <td>
                                             <span class="badge" :class="badgeClass(row.xepLoai)">
@@ -152,7 +153,7 @@
 
 <script setup>
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
 
     const {
@@ -161,6 +162,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         kyBaoCaoOptions,
         trackedStatusOptions,
         filters,
+        canViewAllUnits,
         donViOptions,
         filteredRows,
         thongKe,
@@ -448,6 +450,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     @media (max-width: 1200px) {
+
         .filter-grid,
         .summary-grid {
             grid-template-columns: 1fr;
@@ -473,8 +476,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-
-
-

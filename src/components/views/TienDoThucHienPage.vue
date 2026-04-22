@@ -7,7 +7,7 @@
                         <i class="bi bi-graph-up-arrow"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">TIẾN ĐỘ THỰC HIỆN KPI</div>
+                        <div class="gov-title">TIẾN ĐỘ THỰC HIỆN</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
@@ -50,7 +50,8 @@
 
                             <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Đơn vị</label>
-                                <select v-model.number="filters.donViId" class="form-select" :disabled="!canManageAllUnits">
+                                <select v-model.number="filters.donViId" class="form-select"
+                                    :disabled="!canManageAllUnits">
                                     <option :value="null">{{ canManageAllUnits ? 'Tất cả' : currentUnitName }}</option>
                                     <option v-for="item in donViOptions" :key="getId(item)" :value="getId(item)">
                                         {{ item.TenDonVi || item.tenDonVi || '-' }}
@@ -245,7 +246,8 @@
 
                             <div v-if="expandedKeys.has(item.key)" class="table-responsive">
                                 <ColumnVisibilityTools table-id="TienDoThucHienPage-table" />
-                            <table id="TienDoThucHienPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
+                                <table id="TienDoThucHienPage-table"
+                                    class="table table-hover align-middle mb-0 custom-table managed-table">
                                     <thead>
                                         <tr>
                                             <th>Kỳ báo cáo</th>
@@ -259,11 +261,18 @@
                                     </thead>
                                     <tbody>
                                         <tr v-for="history in item.lichSu" :key="history.id">
-                                            <td><div class="fw-semibold">{{ history.tenKy || history.tenKyBaoCao || history.maKy || '-' }}</div></td>
-                                            <td>{{ formatNumber(history.giaTriDauKy, history.donViTinh || item.donViTinh) }}</td>
-                                            <td>{{ formatNumber(history.giaTriThucHienTrongKy, history.donViTinh || item.donViTinh) }}</td>
-                                            <td>{{ formatNumber(history.giaTriCuoiKy, history.donViTinh || item.donViTinh) }}</td>
-                                            <td>{{ formatNumber(history.giaTriLuyKe, history.donViTinh || item.donViTinh) }}</td>
+                                            <td>
+                                                <div class="fw-semibold">{{ history.tenKy || history.tenKyBaoCao ||
+                                                    history.maKy || '-' }}</div>
+                                            </td>
+                                            <td>{{ formatNumber(history.giaTriDauKy, history.donViTinh ||
+                                                item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(history.giaTriThucHienTrongKy, history.donViTinh ||
+                                                item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(history.giaTriCuoiKy, history.donViTinh ||
+                                                item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(history.giaTriLuyKe, history.donViTinh ||
+                                                item.donViTinh) }}</td>
                                             <td>
                                                 <span class="badge rounded-pill"
                                                     :class="getTrangThaiClass(history.trangThai)">
@@ -286,7 +295,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
     import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
 
@@ -918,8 +927,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-
-
-

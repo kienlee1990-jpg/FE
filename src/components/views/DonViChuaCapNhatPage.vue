@@ -7,7 +7,7 @@
                         <i class="bi bi-exclamation-circle"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">ĐƠN VỊ CHƯA NỘP BÁO CÁO KPI</div>
+                        <div class="gov-title">ĐƠN VỊ CHƯA NỘP BÁO CÁO</div>
                         <div class="gov-sub">
                         </div>
                     </div>
@@ -119,7 +119,8 @@
 
                         <div v-else class="table-responsive">
                             <ColumnVisibilityTools table-id="DonViChuaCapNhatPage-table" />
-                            <table id="DonViChuaCapNhatPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
+                            <table id="DonViChuaCapNhatPage-table"
+                                class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
                                         <th>Kỳ báo cáo</th>
@@ -154,7 +155,7 @@
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
 
     const API_PATHS = {
@@ -598,9 +599,3 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }
 </style>
-
-
-
-
-
-
