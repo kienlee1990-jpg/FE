@@ -30,7 +30,6 @@ import TienDoThucHienPage from "../components/views/TienDoThucHienPage.vue"
 import TongHopDanhGiaLuyKePage from "../components/views/TongHopDanhGiaLuyKePage.vue"
 import Users from "../components/views/Users.vue"
 import XepHangDonViPage from "../components/views/XepHangDonViPage.vue"
-import XuatBaoCaoPage from "../components/views/XuatBaoCaoPage.vue"
 import {
     canAccessPermission,
     getStoredUserPermissions,
@@ -156,9 +155,9 @@ const routes = [
 
     // Đánh giá và báo cáo
     {
-        path: "/tong-hop-danh-gia-luy-ke",
-        alias: "/tong-hop-danh-gia",
-        name: "TongHopDanhGia",
+        path: "/tong-hop-so-lieu-cuoi-ky",
+        alias: ["/tong-hop-danh-gia-luy-ke", "/tong-hop-danh-gia"],
+        name: "TongHopSoLieuCuoiKy",
         component: TongHopDanhGiaLuyKePage,
         meta: { requiresAuth: true, permission: "ViewAccumulatedEvaluation" }
     },
@@ -193,12 +192,6 @@ const routes = [
         meta: { requiresAuth: true, permission: "ViewReportsByUnit" }
     },
 
-    {
-        path: "/xuat-bao-cao",
-        name: "XuatBaoCao",
-        component: XuatBaoCaoPage,
-        meta: { requiresAuth: true, permission: "ExportReports" }
-    },
     {
         path: "/canh-bao-rui-ro",
         name: "CanhBaoRuiRo",

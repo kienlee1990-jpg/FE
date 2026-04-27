@@ -7,7 +7,7 @@
                         <i class="bi bi-clipboard-data"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">NHẬP BÁO CÁO ĐỊNH KỲ</div>
+                        <div class="gov-title">NHẬP KẾT QUẢ BÁO CÁO</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
@@ -15,7 +15,7 @@
                 <div class="d-flex justify-content-end mb-4">
                     <button class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
-                        Nhập báo cáo định kỳ
+                        Nhập kết quả báo cáo
                     </button>
                 </div>
 
@@ -48,7 +48,7 @@
                             </div>
 
                             <div class="col-12 col-md-4">
-                                <label class="form-label">Chỉ tiêu giao</label>
+                                <label class="form-label">Danh mục chỉ tiêu</label>
                                 <select v-model.number="filters.chiTietGiaoChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
                                     <option v-for="item in filteredChiTietGiaoFilterOptions" :key="getId(item)"
@@ -105,54 +105,99 @@
                                 <thead>
                                     <tr>
                                         <th>Kỳ báo cáo</th>
+                                        <th>Danh mục chỉ tiêu</th>
                                         <th>Chỉ tiêu giao</th>
                                         <th>Đầu kỳ</th>
-                                        <th>Phát sinh trong kỳ</th>
                                         <th>Thực hiện trong kỳ</th>
                                         <th>Cuối kỳ</th>
                                         <th>Lũy kế</th>
-                                        <th>Phát sinh lũy kế</th>
                                         <th class="text-center" style="width: 180px">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in filteredItems" :key="getId(item)">
-                                        <td><div class="fw-semibold">{{ item.TenKyHienThi }}</div></td>
-                                        <td>
-                                            <div class="fw-semibold text-primary">
-                                                {{ item.TenChiTieu || item.tenChiTieu || '-' }}
-                                            </div>
-                                            <small class="text-muted">
-                                                {{ item.MaChiTieu || item.maChiTieu || '' }}
-                                                <span v-if="item.TenDonViNhan || item.tenDonViNhan">
-                                                    - {{ item.TenDonViNhan || item.tenDonViNhan }}
-                                                </span>
-                                            </small>
-                                            <small v-if="item.NhanXet || item.nhanXet" class="d-block text-muted">
-                                                Kết quả nhập: {{ item.NhanXet || item.nhanXet }}
-                                            </small>
-                                        </td>
-                                        <td>{{ formatNumber(item.GiaTriDauKy ?? item.giaTriDauKy, item.DonViTinh || item.donViTinh) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy, item.DonViTinh || item.donViTinh) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy, item.DonViTinh || item.donViTinh) }}
-                                        </td>
-                                        <td>{{ formatNumber(item.GiaTriCuoiKy ?? item.giaTriCuoiKy, item.DonViTinh || item.donViTinh) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe, item.DonViTinh || item.donViTinh) }}</td>
-                                        <td>{{ formatNumber(item.GiaTriPhatSinhLuyKe ?? item.giaTriPhatSinhLuyKe, item.DonViTinh || item.donViTinh) }}</td>
-                                        <td class="text-center">
-                                            <div v-if="canManageAllUnits" class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
-                                                    @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger"
-                                                    @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
-                                                </button>
-                                            </div>
-                                            <span v-else class="text-muted">Không khả dụng</span>
-                                        </td>
-                                    </tr>
+                                    <template v-for="row in groupedFilteredItems" :key="row.key">
+                                        <template v-if="row.type === 'group'">
+                                            <tr class="report-parent-row">
+                                                <td colspan="8">
+                                                    <div class="report-parent-title">
+                                                        {{ row.parentCode ? `${row.parentCode} - ` : '' }}{{ row.parentName }}
+                                                    </div>
+                                                    <small class="text-muted">
+                                                        {{ row.kyDisplay }} • {{ row.donViDisplay }} • {{ row.items.length }} tiêu chí đã nhập
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                            <tr v-for="item in row.items" :key="`group-item-${getId(item)}`"
+                                                class="report-child-row">
+                                                <td><div class="fw-semibold">{{ item.TenKyHienThi }}</div></td>
+                                                <td>
+                                                    <div class="report-child-title fw-semibold text-primary">
+                                                        {{ getReportDanhMucParentDisplay(item) }}
+                                                    </div>
+                                                    <small v-if="isReportPhanRaItem(item)" class="text-muted report-child-meta">
+                                                        {{ getReportDanhMucChildDisplay(item) }}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <div>{{ getReportChiTieuGiaoDisplay(item) }}</div>
+                                                    <small v-if="item.NhanXet || item.nhanXet" class="d-block text-muted">
+                                                        Kết quả nhập: {{ item.NhanXet || item.nhanXet }}
+                                                    </small>
+                                                </td>
+                                                <td>{{ formatNumber(item.GiaTriDauKy ?? item.giaTriDauKy, item.DonViTinh || item.donViTinh) }}</td>
+                                                <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy, item.DonViTinh || item.donViTinh) }}</td>
+                                                <td>{{ formatNumber(item.GiaTriCuoiKy ?? item.giaTriCuoiKy, item.DonViTinh || item.donViTinh) }}</td>
+                                                <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe, item.DonViTinh || item.donViTinh) }}</td>
+                                                <td class="text-center">
+                                                    <div v-if="canManageAllUnits" class="d-flex justify-content-center gap-2">
+                                                        <button class="btn btn-sm btn-outline-primary"
+                                                            @click="openEditModal(item)">
+                                                            <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger"
+                                                            @click="handleDelete(item)">
+                                                            <i class="bi bi-trash me-1"></i>Xóa
+                                                        </button>
+                                                    </div>
+                                                    <span v-else class="text-muted">Không khả dụng</span>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                        <tr v-else :key="`item-${getId(row.item)}`">
+                                            <td><div class="fw-semibold">{{ row.item.TenKyHienThi }}</div></td>
+                                            <td>
+                                                <div class="fw-semibold text-primary">
+                                                    {{ getReportDanhMucParentDisplay(row.item) }}
+                                                </div>
+                                                <small v-if="isReportPhanRaItem(row.item)" class="text-muted report-child-meta">
+                                                    {{ getReportDanhMucChildDisplay(row.item) }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div>{{ getReportChiTieuGiaoDisplay(row.item) }}</div>
+                                                <small v-if="row.item.NhanXet || row.item.nhanXet" class="d-block text-muted">
+                                                    Kết quả nhập: {{ row.item.NhanXet || row.item.nhanXet }}
+                                                </small>
+                                            </td>
+                                            <td>{{ formatNumber(row.item.GiaTriDauKy ?? row.item.giaTriDauKy, row.item.DonViTinh || row.item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(row.item.GiaTriThucHienTrongKy ?? row.item.giaTriThucHienTrongKy, row.item.DonViTinh || row.item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(row.item.GiaTriCuoiKy ?? row.item.giaTriCuoiKy, row.item.DonViTinh || row.item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(row.item.GiaTriLuyKe ?? row.item.giaTriLuyKe, row.item.DonViTinh || row.item.donViTinh) }}</td>
+                                            <td class="text-center">
+                                                <div v-if="canManageAllUnits" class="d-flex justify-content-center gap-2">
+                                                    <button class="btn btn-sm btn-outline-primary"
+                                                        @click="openEditModal(row.item)">
+                                                        <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                        @click="handleDelete(row.item)">
+                                                        <i class="bi bi-trash me-1"></i>Xóa
+                                                    </button>
+                                                </div>
+                                                <span v-else class="text-muted">Không khả dụng</span>
+                                            </td>
+                                        </tr>
+                                    </template>
                                 </tbody>
                             </table>
                         </div>
@@ -166,7 +211,7 @@
                             <div class="modal-header border-0 pb-0">
                                 <div>
                                     <h4 class="modal-title mb-1">
-                                        {{ isEdit ? 'Cập nhật báo cáo định kỳ' : 'Nhập báo cáo định kỳ' }}
+                                        {{ isEdit ? 'Cập nhật kết quả báo cáo' : 'Nhập kết quả báo cáo' }}
                                     </h4>
                                     <p class="text-muted mb-0">
                                         Chọn đơn vị, chỉ tiêu được giao, rồi nhập số liệu của kỳ báo cáo
@@ -186,7 +231,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Đơn vị thực hiện <span class="text-danger">*</span>
                                         </label>
@@ -199,12 +244,30 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
-                                            Chỉ tiêu giao <span class="text-danger">*</span>
+                                            Chỉ tiêu phân rã
+                                        </label>
+                                        <select v-model.number="form.parentChiTietGiaoChiTieuId" class="form-select"
+                                            :disabled="!form.donViNhanId || phanRaParentOptions.length === 0">
+                                            <option :value="null">Không lọc theo chỉ tiêu cha</option>
+                                            <option v-for="item in phanRaParentOptions" :key="getId(item)"
+                                                :title="getParentFilterOptionLabel(item)"
+                                                :value="getId(item)">
+                                                {{ getParentFilterOptionLabel(item) }}
+                                            </option>
+                                        </select>
+                                        <small class="text-muted">
+                                            Chọn chỉ tiêu cha để chỉ hiện các tiêu chí con cần nhập.
+                                        </small>
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label">
+                                            Danh mục chỉ tiêu <span class="text-danger">*</span>
                                         </label>
                                         <select v-model.number="form.chiTietGiaoChiTieuId" class="form-select">
-                                            <option :value="null">Chọn chỉ tiêu giao</option>
+                                            <option :value="null">Chọn danh mục chỉ tiêu</option>
                                             <option v-for="item in filteredChiTietGiaoModalOptions" :key="getId(item)"
                                                 :title="getChiTietOptionLabel(item)"
                                                 :value="getId(item)">
@@ -232,7 +295,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">
                                             Kỳ báo cáo <span class="text-danger">*</span>
                                         </label>
@@ -247,6 +310,38 @@
                                             Chỉ hiển thị các kỳ đang mở, đúng kỳ báo cáo đã giao và có ngày cuối kỳ nằm
                                             trong khoảng thời gian của đợt giao chỉ tiêu.
                                         </small>
+                                    </div>
+
+                                    <div v-if="selectedParentChiTiet && parentChildLeafOptions.length" class="col-12">
+                                        <div class="phan-ra-picker">
+                                            <div class="phan-ra-picker-header">
+                                                <div>
+                                                    <div class="phan-ra-picker-title">
+                                                        Tiêu chí con của {{ getParentFilterOptionLabel(selectedParentChiTiet) }}
+                                                    </div>
+                                                    <small class="text-muted">
+                                                        Chọn nhanh tiêu chí cần nhập. Chỉ tiêu cha sẽ được hệ thống tổng hợp tự động.
+                                                    </small>
+                                                </div>
+                                                <span class="badge text-bg-light border">
+                                                    {{ parentChildLeafOptions.length }} tiêu chí
+                                                </span>
+                                            </div>
+                                            <div class="phan-ra-child-grid">
+                                                <button v-for="child in parentChildLeafOptions" :key="getId(child)"
+                                                    type="button"
+                                                    class="phan-ra-child-btn"
+                                                    :class="{ active: getId(child) === Number(form.chiTietGiaoChiTieuId || 0) }"
+                                                    @click="selectChildFromParent(child)">
+                                                    <span class="phan-ra-child-code">{{ child.MaChiTieuHienThi || '-' }}</span>
+                                                    <span class="phan-ra-child-name">{{ getCriterionDisplay(child) }}</span>
+                                                    <span class="phan-ra-child-meta">
+                                                        {{ mapTanSuat(getTanSuatBaoCao(child)) }}
+                                                        <template v-if="child.DonViTinhHienThi"> • {{ child.DonViTinhHienThi }}</template>
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div v-if="form.chiTietGiaoChiTieuId && form.kyBaoCaoKPIId && !nopDuocTheoNgayKetThucDotGiao"
@@ -421,6 +516,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const createDefaultForm = () => ({
         donViNhanId: canManageAllUnits.value ? null : currentDonViId.value || null,
+        parentChiTietGiaoChiTieuId: null,
         chiTietGiaoChiTieuId: null,
         kyBaoCaoKPIId: null,
         giaTriPhatSinhTrongKy: 0,
@@ -496,6 +592,16 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const getTieuChiCon = (item) => {
         const children = item?.TieuChiCon ?? item?.tieuChiCon ?? []
         return Array.isArray(children) ? children : []
+    }
+
+    const getParentChiTietGiaoId = (item) => {
+        return Number(
+            item?.ChiTietGiaoChaIdHienThi ??
+            item?.chiTietGiaoChaIdHienThi ??
+            item?.ChiTietGiaoChaId ??
+            item?.chiTietGiaoChaId ??
+            0
+        )
     }
 
     const hasChildCriteria = (item) => {
@@ -683,9 +789,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             const donVi = findDonViById(getDonViNhanId(item) || getDonViNhanId(parent))
             const parentDanhMuc = parent ? findDanhMucById(getDanhMucChiTieuId(parent)) : null
             const dotGiao = findDotGiaoById(getDotGiaoChiTieuId(item) || getDotGiaoChiTieuId(parent))
+            const parentId = parent ? getId(parent) : Number(item?.ChiTietGiaoChaId ?? item?.chiTietGiaoChaId ?? 0)
 
             return {
                 ...item,
+                ChiTietGiaoChaIdHienThi: parentId || null,
                 MaChiTieuHienThi:
                     item.MaChiTieu ||
                     item.maChiTieu ||
@@ -752,21 +860,46 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
 
         const flattenedItems = []
+        const appendItems = (items, parent = null) => {
+            items.forEach((item) => {
+                const enrichedItem = enrichItem(item, parent)
+                flattenedItems.push(enrichedItem)
 
-        chiTietGiaoChiTieuOptions.value.forEach((item) => {
-            flattenedItems.push(enrichItem(item))
-
-            getTieuChiCon(item).forEach((child) => {
-                flattenedItems.push(enrichItem(child, item))
+                getTieuChiCon(item).forEach((child) => {
+                    appendItems([child], enrichedItem)
+                })
             })
-        })
+        }
+
+        appendItems(chiTietGiaoChiTieuOptions.value)
 
         return flattenedItems
+    })
+
+    const chiTietGiaoById = computed(() => {
+        const map = new Map()
+        enrichedChiTietGiaoChiTieuOptions.value.forEach((item) => {
+            const id = getId(item)
+            if (id > 0) map.set(id, item)
+        })
+        return map
     })
 
     const leafChiTietGiaoOptions = computed(() => {
         return enrichedChiTietGiaoChiTieuOptions.value.filter((item) => !hasChildCriteria(item))
     })
+
+    const isDescendantOfParent = (item, parentId) => {
+        let currentParentId = getParentChiTietGiaoId(item)
+
+        while (currentParentId > 0) {
+            if (currentParentId === Number(parentId)) return true
+            const parent = chiTietGiaoById.value.get(currentParentId)
+            currentParentId = parent ? getParentChiTietGiaoId(parent) : 0
+        }
+
+        return false
+    }
 
     const getParentChiTietDisplay = (item) => {
         const maCha = item?.MaChiTieuChaHienThi || ''
@@ -828,6 +961,50 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             .join(' - ') || '-'
     }
 
+    const getReportDanhMucDisplay = (item) => {
+        return (
+            item?.TenDanhMucChiTieu ||
+            item?.tenDanhMucChiTieu ||
+            item?.TenChiTieu ||
+            item?.tenChiTieu ||
+            '-'
+        )
+    }
+
+    const isReportPhanRaItem = (item) => {
+        return Number(item?.ParentChiTietGiaoChiTieuId || 0) > 0 || !!item?.LaTieuChiCon
+    }
+
+    const getReportDanhMucParentDisplay = (item) => {
+        if (isReportPhanRaItem(item)) {
+            return (
+                item?.TenChiTieuCha ||
+                item?.tenChiTieuCha ||
+                item?.TenChiTieuChaHienThi ||
+                item?.tenChiTieuChaHienThi ||
+                'Chỉ tiêu phân rã'
+            )
+        }
+
+        return getReportDanhMucDisplay(item)
+    }
+
+    const getReportDanhMucChildDisplay = (item) => {
+        return getReportDanhMucDisplay(item)
+    }
+
+    const getReportChiTieuGiaoDisplay = (item) => {
+        return (
+            item?.GiaTriMucTieuText ||
+            item?.giaTriMucTieuText ||
+            item?.TenChiTieuGiao ||
+            item?.tenChiTieuGiao ||
+            item?.TenChiTieuCha ||
+            item?.tenChiTieuCha ||
+            '-'
+        )
+    }
+
     const getChiTietOptionLabel = (item) => {
         const mainDisplay = item?.LaTieuChiCon
             ? `Tiêu chí giao: ${getCriterionDisplay(item)}`
@@ -850,6 +1027,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         return metaParts.length ? `${mainDisplay} • ${metaParts.join(' • ')}` : mainDisplay
     }
 
+    const getParentFilterOptionLabel = (item) => {
+        const ma = item?.MaChiTieuHienThi || ''
+        const ten = item?.TenChiTieuHienThi || ''
+        return [ma, ten].filter(Boolean).join(' - ') || '-'
+    }
+
     const donViNhanFilterOptions = computed(() => {
         const map = new Map()
 
@@ -867,6 +1050,36 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         return options.filter((item) => item.id === currentDonViId.value)
     })
 
+    const phanRaParentOptions = computed(() => {
+        const donViId = Number(form.donViNhanId || 0)
+        if (!donViId) return []
+
+        return enrichedChiTietGiaoChiTieuOptions.value
+            .filter((item) => hasChildCriteria(item))
+            .filter((item) => getDonViNhanId(item) === donViId)
+            .sort((left, right) => getParentFilterOptionLabel(left).localeCompare(getParentFilterOptionLabel(right), 'vi'))
+    })
+
+    const selectedParentChiTiet = computed(() => {
+        const parentId = Number(form.parentChiTietGiaoChiTieuId || 0)
+        if (!parentId) return null
+        return enrichedChiTietGiaoChiTieuOptions.value.find((item) => getId(item) === parentId) || null
+    })
+
+    const parentChildLeafOptions = computed(() => {
+        const parentId = Number(form.parentChiTietGiaoChiTieuId || 0)
+        if (!parentId) return []
+
+        return leafChiTietGiaoOptions.value
+            .filter((item) => isDescendantOfParent(item, parentId))
+            .sort((left, right) => {
+                const leftOrder = Number(left?.ThuTuHienThi ?? left?.thuTuHienThi ?? 0)
+                const rightOrder = Number(right?.ThuTuHienThi ?? right?.thuTuHienThi ?? 0)
+                if (leftOrder !== rightOrder) return leftOrder - rightOrder
+                return getCriterionDisplay(left).localeCompare(getCriterionDisplay(right), 'vi')
+            })
+    })
+
     const filteredChiTietGiaoFilterOptions = computed(() => {
         const donViId = Number(filters.donViNhanId || 0)
         if (!donViId) return []
@@ -880,8 +1093,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         const donViId = Number(form.donViNhanId || 0)
         if (!donViId) return []
 
+        const parentId = Number(form.parentChiTietGiaoChiTieuId || 0)
+
         return leafChiTietGiaoOptions.value.filter(
-            (item) => getDonViNhanId(item) === donViId
+            (item) => getDonViNhanId(item) === donViId && (!parentId || isDescendantOfParent(item, parentId))
         )
     })
 
@@ -1095,6 +1310,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
             const chiTiet = enrichedChiTietGiaoChiTieuOptions.value.find((x) => getId(x) === chiTietId)
             const kyBaoCao = kyBaoCaoOptions.value.find((x) => getId(x) === kyId)
+            const parentChiTietId = getParentChiTietGiaoId(chiTiet)
+            const parentChiTiet = parentChiTietId ? chiTietGiaoById.value.get(parentChiTietId) : null
 
             return {
                 ...item,
@@ -1102,6 +1319,28 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 DonViTinh: item.DonViTinh || item.donViTinh || chiTiet?.DonViTinhHienThi || '',
                 MaChiTieu: item.MaChiTieu || item.maChiTieu || chiTiet?.MaChiTieuHienThi || '-',
                 TenChiTieu: item.TenChiTieu || item.tenChiTieu || chiTiet?.TenChiTieuHienThi || '-',
+                TenDanhMucChiTieu:
+                    item.TenDanhMucChiTieu ||
+                    item.tenDanhMucChiTieu ||
+                    chiTiet?.TenDanhMucChiTieu ||
+                    chiTiet?.tenDanhMucChiTieu ||
+                    chiTiet?.TenChiTieuHienThi ||
+                    chiTiet?.tenChiTieuHienThi ||
+                    item.TenChiTieu ||
+                    item.tenChiTieu ||
+                    '-',
+                GiaTriMucTieuText:
+                    item.GiaTriMucTieuText ||
+                    item.giaTriMucTieuText ||
+                    chiTiet?.GiaTriMucTieuText ||
+                    chiTiet?.giaTriMucTieuText ||
+                    parentChiTiet?.GiaTriMucTieuText ||
+                    parentChiTiet?.giaTriMucTieuText ||
+                    '',
+                ParentChiTietGiaoChiTieuId: parentChiTietId || null,
+                MaChiTieuCha: chiTiet?.MaChiTieuChaHienThi || parentChiTiet?.MaChiTieuHienThi || '',
+                TenChiTieuCha: chiTiet?.TenChiTieuChaHienThi || parentChiTiet?.TenChiTieuHienThi || '',
+                LaTieuChiCon: parentChiTietId > 0,
                 TenDonViNhan: item.TenDonViNhan || item.tenDonViNhan || chiTiet?.TenDonViNhanHienThi || '-',
                 TenKyHienThi:
                     getKyBaoCaoDisplay(item) !== '-'
@@ -1168,6 +1407,46 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
             return forcedUnitMatch && matchKeyword && matchKy && matchDonViNhan && matchChiTiet
         })
+    })
+
+    const groupedFilteredItems = computed(() => {
+        const rows = []
+        const groupMap = new Map()
+
+        filteredItems.value.forEach((item) => {
+            const parentId = Number(item.ParentChiTietGiaoChiTieuId || 0)
+            if (!parentId) {
+                rows.push({
+                    type: 'item',
+                    key: `item-${getId(item)}`,
+                    item
+                })
+                return
+            }
+
+            const kyId = Number(item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? 0)
+            const donViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
+            const groupKey = `group-${parentId}-${kyId}-${donViNhanId}`
+            let group = groupMap.get(groupKey)
+
+            if (!group) {
+                group = {
+                    type: 'group',
+                    key: groupKey,
+                    parentCode: item.MaChiTieuCha || '',
+                    parentName: item.TenChiTieuCha || 'Chỉ tiêu phân rã',
+                    kyDisplay: item.TenKyHienThi || '-',
+                    donViDisplay: item.TenDonViNhan || '-',
+                    items: []
+                }
+                groupMap.set(groupKey, group)
+                rows.push(group)
+            }
+
+            group.items.push(item)
+        })
+
+        return rows
     })
 
     const buildPayload = () => ({
@@ -1273,6 +1552,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
         await hydrateFormSafely({
             donViNhanId: donViNhanId || null,
+            parentChiTietGiaoChiTieuId: getParentChiTietGiaoId(chiTiet) || null,
             chiTietGiaoChiTieuId: chiTietId || null,
             kyBaoCaoKPIId: item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? null,
             giaTriPhatSinhTrongKy: item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy ?? 0,
@@ -1288,6 +1568,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         await hydrateFormSafely(createDefaultForm())
     }
 
+    const selectChildFromParent = (child) => {
+        const childId = getId(child)
+        if (childId > 0) {
+            form.chiTietGiaoChiTieuId = childId
+        }
+    }
+
     const validateForm = () => {
         if (!form.donViNhanId || Number(form.donViNhanId) <= 0) {
             alert('Vui lòng chọn đơn vị thực hiện.')
@@ -1300,13 +1587,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
 
         if (!form.chiTietGiaoChiTieuId || Number(form.chiTietGiaoChiTieuId) <= 0) {
-            alert('Vui lòng chọn chỉ tiêu giao.')
+            alert('Vui lòng chọn danh mục chỉ tiêu.')
             return false
         }
 
         const chiTietDangChon = selectedChiTietGiao.value
         if (!chiTietDangChon || getDonViNhanId(chiTietDangChon) !== Number(form.donViNhanId)) {
-            alert('Chỉ tiêu giao không thuộc đơn vị thực hiện đã chọn.')
+            alert('Danh mục chỉ tiêu không thuộc đơn vị thực hiện đã chọn.')
             return false
         }
 
@@ -1335,7 +1622,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
         const dotGiao = selectedDotGiao.value
         if (!dotGiao) {
-            alert('Chỉ tiêu giao chưa gắn với đợt giao chỉ tiêu hợp lệ.')
+            alert('Danh mục chỉ tiêu chưa gắn với đợt giao chỉ tiêu hợp lệ.')
             return false
         }
 
@@ -1465,11 +1752,32 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         () => form.donViNhanId,
         () => {
             if (isHydratingForm.value) return
+            form.parentChiTietGiaoChiTieuId = null
             form.chiTietGiaoChiTieuId = null
             form.kyBaoCaoKPIId = null
             form.giaTriPhatSinhTrongKy = 0
             form.giaTriThucHienTrongKy = 0
             form.nhanXet = ''
+        }
+    )
+
+    watch(
+        () => form.parentChiTietGiaoChiTieuId,
+        () => {
+            if (isHydratingForm.value) return
+
+            if (
+                form.chiTietGiaoChiTieuId &&
+                !filteredChiTietGiaoModalOptions.value.some(
+                    (x) => getId(x) === Number(form.chiTietGiaoChiTieuId)
+                )
+            ) {
+                form.chiTietGiaoChiTieuId = null
+                form.kyBaoCaoKPIId = null
+                form.giaTriPhatSinhTrongKy = 0
+                form.giaTriThucHienTrongKy = 0
+                form.nhanXet = ''
+            }
         }
     )
 
@@ -1484,6 +1792,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 if (donViNhanId > 0) {
                     form.donViNhanId = donViNhanId
                 }
+            }
+
+            const parentId = getParentChiTietGiaoId(selected)
+            if (parentId > 0 && !form.parentChiTietGiaoChiTieuId) {
+                form.parentChiTietGiaoChiTieuId = parentId
             }
 
             if (
@@ -1659,6 +1972,74 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         color: #64748b;
     }
 
+    .phan-ra-picker {
+        border: 1px solid #d8e6f3;
+        border-radius: 18px;
+        padding: 14px;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    }
+
+    .phan-ra-picker-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .phan-ra-picker-title {
+        font-weight: 800;
+        color: #1e3a5f;
+    }
+
+    .phan-ra-child-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+    }
+
+    .phan-ra-child-btn {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-height: 92px;
+        padding: 12px;
+        border: 1px solid #dbe2ea;
+        border-radius: 14px;
+        background: #ffffff;
+        color: #334155;
+        text-align: left;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .phan-ra-child-btn:hover,
+    .phan-ra-child-btn.active {
+        border-color: #2563eb;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .phan-ra-child-btn.active {
+        background: #eff6ff;
+    }
+
+    .phan-ra-child-code {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #2563eb;
+        letter-spacing: 0.04em;
+    }
+
+    .phan-ra-child-name {
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .phan-ra-child-meta {
+        font-size: 0.82rem;
+        color: #64748b;
+    }
+
     :deep(.table) {
         margin-bottom: 0;
         border-collapse: collapse;
@@ -1677,6 +2058,27 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         padding: 14px 16px;
         vertical-align: middle;
         border-right: 1px solid #eee;
+    }
+
+    .report-parent-row td {
+        background: #eef6ff;
+        border-top: 2px solid #b8c7dc;
+        border-bottom: 1px solid #d8e6f3;
+    }
+
+    .report-parent-title {
+        font-weight: 800;
+        color: #1e3a5f;
+        line-height: 1.4;
+    }
+
+    .report-child-row {
+        background: #fbfdff;
+    }
+
+    .report-child-title {
+        position: relative;
+        padding-left: 0;
     }
 
     :deep(.table th:last-child),

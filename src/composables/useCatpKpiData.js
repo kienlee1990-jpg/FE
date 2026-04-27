@@ -20,6 +20,11 @@ export function useCatpKpiData() {
   })
 
   const allAssignments = computed(() => flattenAssignments(chiTietRows.value))
+  const assignmentIds = computed(() => new Set(allAssignments.value.map(item => item.id)))
+  const childAssignmentsByParentId = computed(() => groupRowsById(
+    allAssignments.value.filter(item => item.parentId),
+    item => item.parentId
+  ))
   const canViewAllUnits = computed(() =>
     isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
   )
@@ -55,43 +60,22 @@ export function useCatpKpiData() {
   })
 
   const reportRows = computed(() => {
-    return targetAssignments.value.map(item => {
-      const evaluations = evaluationMap.value.get(item.id) || []
-      const selectedEvaluation = resolveEvaluationForAssignment(evaluations, filters.kyBaoCaoKPIId)
+    return targetAssignments.value.map(item => buildReportRow(item, evaluationMap.value, filters.kyBaoCaoKPIId))
+  })
 
-      return {
-        id: item.id,
-        chiTietGiaoChiTieuId: item.id,
-        dotGiaoChiTieuId: item.dotGiaoChiTieuId,
-        maDotGiao: item.maDotGiao,
-        tenDotGiaoChiTieu: item.tenDotGiaoChiTieu,
-        maChiTieu: item.maChiTieu,
-        tenDanhMucChiTieu: item.tenDanhMucChiTieu || item.tenChiTieu,
-        tenChiTieu: item.tenChiTieu,
-        tenChiTieuCha: item.tenChiTieuCha,
-        tenChiTieuGiao: item.giaTriMucTieuText || item.tenChiTieuCha || '',
-        donViTinh: item.donViTinh || '',
-        tenDonViNhan: item.tenDonViNhan,
-        tenDonViThucHienChinh: item.tenDonViThucHienChinh,
-        tanSuatBaoCao: item.tanSuatBaoCao,
-        tieuChiDanhGia: item.tieuChiDanhGia,
-        giaTriMucTieu: item.giaTriMucTieu,
-        giaTriMucTieuText: item.giaTriMucTieuText,
-        kyBaoCaoKPIId: Number(selectedEvaluation?.kyBaoCaoKPIId || selectedEvaluation?.KyBaoCaoKPIId || 0),
-        maKy: selectedEvaluation?.maKy || selectedEvaluation?.MaKy || '',
-        tenKy: selectedEvaluation?.tenKy || selectedEvaluation?.TenKy || '',
-        loaiKy: selectedEvaluation?.loaiKy || selectedEvaluation?.LoaiKy || '',
-        xepLoai: selectedEvaluation?.xepLoai || selectedEvaluation?.XepLoai || 'CHUA_DANH_GIA',
-        ketQua: selectedEvaluation?.ketQua || selectedEvaluation?.KetQua || '',
-        nguoiDanhGia: selectedEvaluation?.nguoiDanhGia || selectedEvaluation?.NguoiDanhGia || '',
-        nhanXetDanhGia: selectedEvaluation?.nhanXetDanhGia || selectedEvaluation?.NhanXetDanhGia || '',
-        tyLeHoanThanh: getNumberOrNull(selectedEvaluation?.tyLeHoanThanh || selectedEvaluation?.TyLeHoanThanh),
-        chenhLechSoVoiDauKy: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiDauKy || selectedEvaluation?.ChenhLechSoVoiDauKy),
-        tyLeTangTruongSoVoiDauKy: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiDauKy || selectedEvaluation?.TyLeTangTruongSoVoiDauKy),
-        chenhLechSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiCungKyNamTruoc || selectedEvaluation?.ChenhLechSoVoiCungKyNamTruoc),
-        tyLeTangTruongSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiCungKyNamTruoc || selectedEvaluation?.TyLeTangTruongSoVoiCungKyNamTruoc)
-      }
-    })
+  const hierarchicalReportRows = computed(() => {
+    return targetAssignments.value
+      .filter(item => !item.parentId || !assignmentIds.value.has(item.parentId))
+      .map(item => {
+        const row = buildReportRow(item, evaluationMap.value, filters.kyBaoCaoKPIId)
+        row.children = collectDescendantAssignments(item.id, childAssignmentsByParentId.value)
+          .map(({ assignment, level }) => ({
+            ...buildReportRow(assignment, evaluationMap.value, filters.kyBaoCaoKPIId),
+            treeLevel: level,
+            parentId: item.id
+          }))
+        return row
+      })
   })
 
   const donViOptions = computed(() => {
@@ -138,6 +122,7 @@ export function useCatpKpiData() {
     fetchData,
     filters,
     kyBaoCaoOptions,
+    hierarchicalReportRows,
     loading,
     reportRows,
     resetFilters
@@ -180,19 +165,26 @@ function flattenAssignments(items, parent = null) {
   const flattened = []
 
   for (const item of items) {
+    const children = Array.isArray(item.tieuChiCon || item.TieuChiCon)
+      ? (item.tieuChiCon || item.TieuChiCon)
+      : []
+
     const current = {
       id: Number(item.id || item.Id || 0),
-      dotGiaoChiTieuId: Number(item.dotGiaoChiTieuId || item.DotGiaoChiTieuId || 0),
-      maDotGiao: item.maDotGiaoChiTieu || item.MaDotGiaoChiTieu || item.maDotGiao || item.MaDotGiao || '',
+      parentId: Number(item.chiTietGiaoChaId || item.ChiTietGiaoChaId || parent?.id || 0) || null,
+      coTieuChiCon: children.length > 0,
+      thuTuHienThi: Number(item.thuTuHienThi || item.ThuTuHienThi || 0),
+      dotGiaoChiTieuId: Number(item.dotGiaoChiTieuId || item.DotGiaoChiTieuId || parent?.dotGiaoChiTieuId || 0),
+      maDotGiao: item.maDotGiaoChiTieu || item.MaDotGiaoChiTieu || item.maDotGiao || item.MaDotGiao || parent?.maDotGiao || '',
       maChiTieu: item.maChiTieu || item.MaChiTieu || item.maDanhMucChiTieu || item.MaDanhMucChiTieu || '',
       tenDanhMucChiTieu: item.tenDanhMucChiTieu || item.TenDanhMucChiTieu || item.tenChiTieu || item.TenChiTieu || '',
       tenChiTieu: item.tenChiTieu || item.TenChiTieu || item.tenDanhMucChiTieu || item.TenDanhMucChiTieu || '',
       donViTinh: item.donViTinh || item.DonViTinh || parent?.donViTinh || '',
-      tenChiTieuCha: parent?.tenChiTieu || '',
-      tenDotGiaoChiTieu: item.tenDotGiaoChiTieu || item.TenDotGiaoChiTieu || item.tenDotGiao || item.TenDotGiao || '',
-      tenDonViNhan: item.tenDonViNhan || item.TenDonViNhan || '',
-      tenDonViThucHienChinh: item.tenDonViThucHienChinh || item.TenDonViThucHienChinh || '',
-      tanSuatBaoCao: item.tanSuatBaoCao || item.TanSuatBaoCao || '',
+      tenChiTieuCha: parent?.tenChiTieu || item.tenChiTieuCha || item.TenChiTieuCha || '',
+      tenDotGiaoChiTieu: item.tenDotGiaoChiTieu || item.TenDotGiaoChiTieu || item.tenDotGiao || item.TenDotGiao || parent?.tenDotGiaoChiTieu || '',
+      tenDonViNhan: item.tenDonViNhan || item.TenDonViNhan || parent?.tenDonViNhan || '',
+      tenDonViThucHienChinh: item.tenDonViThucHienChinh || item.TenDonViThucHienChinh || parent?.tenDonViThucHienChinh || '',
+      tanSuatBaoCao: item.tanSuatBaoCao || item.TanSuatBaoCao || parent?.tanSuatBaoCao || '',
       tieuChiDanhGia: item.tieuChiDanhGia || item.TieuChiDanhGia || item.loaiChiTieu || item.LoaiChiTieu || '',
       giaTriMucTieu: getNumberOrNull(item.giaTriMucTieu ?? item.GiaTriMucTieu),
       giaTriMucTieuText: item.giaTriMucTieuText || item.GiaTriMucTieuText || ''
@@ -200,16 +192,77 @@ function flattenAssignments(items, parent = null) {
 
     flattened.push(current)
 
-    const children = Array.isArray(item.tieuChiCon || item.TieuChiCon)
-      ? (item.tieuChiCon || item.TieuChiCon)
-      : []
-
     if (children.length) {
       flattened.push(...flattenAssignments(children, current))
     }
   }
 
   return flattened
+}
+
+function buildReportRow(item, evaluationMap, selectedKyBaoCaoKPIId) {
+  const evaluations = evaluationMap.get(item.id) || []
+  const selectedEvaluation = resolveEvaluationForAssignment(evaluations, selectedKyBaoCaoKPIId)
+
+  return {
+    id: item.id,
+    chiTietGiaoChiTieuId: item.id,
+    parentId: item.parentId,
+    dotGiaoChiTieuId: item.dotGiaoChiTieuId,
+    maDotGiao: item.maDotGiao,
+    tenDotGiaoChiTieu: item.tenDotGiaoChiTieu,
+    maChiTieu: item.maChiTieu,
+    tenDanhMucChiTieu: item.tenDanhMucChiTieu || item.tenChiTieu,
+    tenChiTieu: item.tenChiTieu,
+    tenChiTieuCha: item.tenChiTieuCha,
+    tenChiTieuGiao: item.giaTriMucTieuText || item.tenChiTieuCha || '',
+    donViTinh: item.donViTinh || '',
+    tenDonViNhan: item.tenDonViNhan,
+    tenDonViThucHienChinh: item.tenDonViThucHienChinh,
+    tanSuatBaoCao: item.tanSuatBaoCao,
+    tieuChiDanhGia: item.tieuChiDanhGia,
+    giaTriMucTieu: getNumberOrNull(selectedEvaluation?.giaTriMucTieu ?? selectedEvaluation?.GiaTriMucTieu) ?? item.giaTriMucTieu,
+    giaTriMucTieuText: item.giaTriMucTieuText,
+    kyBaoCaoKPIId: Number(selectedEvaluation?.kyBaoCaoKPIId || selectedEvaluation?.KyBaoCaoKPIId || 0),
+    maKy: selectedEvaluation?.maKy || selectedEvaluation?.MaKy || '',
+    tenKy: selectedEvaluation?.tenKy || selectedEvaluation?.TenKy || '',
+    loaiKy: selectedEvaluation?.loaiKy || selectedEvaluation?.LoaiKy || '',
+    xepLoai: selectedEvaluation?.xepLoai || selectedEvaluation?.XepLoai || 'CHUA_DANH_GIA',
+    ketQua: selectedEvaluation?.ketQua || selectedEvaluation?.KetQua || '',
+    nguoiDanhGia: selectedEvaluation?.nguoiDanhGia || selectedEvaluation?.NguoiDanhGia || '',
+    nhanXetDanhGia: selectedEvaluation?.nhanXetDanhGia || selectedEvaluation?.NhanXetDanhGia || '',
+    tyLeHoanThanh: getNumberOrNull(selectedEvaluation?.tyLeHoanThanh || selectedEvaluation?.TyLeHoanThanh),
+    chenhLechSoVoiDauKy: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiDauKy || selectedEvaluation?.ChenhLechSoVoiDauKy),
+    tyLeTangTruongSoVoiDauKy: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiDauKy || selectedEvaluation?.TyLeTangTruongSoVoiDauKy),
+    chenhLechSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiCungKyNamTruoc || selectedEvaluation?.ChenhLechSoVoiCungKyNamTruoc),
+    tyLeTangTruongSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiCungKyNamTruoc || selectedEvaluation?.TyLeTangTruongSoVoiCungKyNamTruoc)
+  }
+}
+
+function collectDescendantAssignments(parentId, childMap, level = 1) {
+  const children = [...(childMap.get(parentId) || [])].sort((left, right) => {
+    const orderDiff = Number(left.thuTuHienThi || 0) - Number(right.thuTuHienThi || 0)
+    if (orderDiff !== 0) return orderDiff
+
+    const leftValue = `${left.maChiTieu || ''} ${left.tenChiTieu || ''}`.toLowerCase()
+    const rightValue = `${right.maChiTieu || ''} ${right.tenChiTieu || ''}`.toLowerCase()
+    return leftValue.localeCompare(rightValue, 'vi')
+  })
+
+  return children.flatMap(child => [
+    { assignment: child, level },
+    ...collectDescendantAssignments(child.id, childMap, level + 1)
+  ])
+}
+
+function groupRowsById(items, getKey) {
+  return items.reduce((map, item) => {
+    const key = Number(getKey(item) || 0)
+    if (!key) return map
+    if (!map.has(key)) map.set(key, [])
+    map.get(key).push(item)
+    return map
+  }, new Map())
 }
 
 function resolveEvaluationForAssignment(evaluations, selectedKyBaoCaoKPIId) {

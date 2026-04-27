@@ -144,7 +144,8 @@
         DANH_GIA_TRACKED_STATUS_ORDER,
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
-        getDanhGiaRank
+        getDanhGiaRank,
+        getDanhGiaStatusCode
     } from '../../utils/danhGiaStatusClean.js'
 
     const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
@@ -193,6 +194,7 @@
 
             const group = grouped.get(key)
             const tyLeHoanThanh = toNumber(item.tyLeHoanThanh)
+            const statusCode = getDanhGiaStatusCode(item.xepLoai)
 
             group.tongChiTieu += 1
 
@@ -201,8 +203,8 @@
                 group.soKpiCoTyLe += 1
             }
 
-            if (Object.prototype.hasOwnProperty.call(group.statusCounts, item.xepLoai)) {
-                group.statusCounts[item.xepLoai] += 1
+            if (Object.prototype.hasOwnProperty.call(group.statusCounts, statusCode)) {
+                group.statusCounts[statusCode] += 1
             }
 
             if (!group.topItem || compareByCompletion(item, group.topItem) > 0) {

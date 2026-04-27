@@ -51,7 +51,26 @@ export function useBaoCaoTongHopPage() {
   const flattenedAssignments = computed(() => {
     const flattened = []
     chiTietGiaoRows.value.forEach(item => appendFlattenedAssignment(flattened, item, null, danhMucById.value, dotGiaoById.value, donViById.value))
-    return flattened.filter(item => !item.coTieuChiCon)
+    const byId = new Map()
+    flattened.forEach(item => {
+      const existing = byId.get(item.id)
+      if (!existing || (!existing.parentId && item.parentId)) {
+        byId.set(item.id, item)
+      }
+    })
+    return Array.from(byId.values())
+  })
+
+  const childAssignmentsByParentId = computed(() => {
+    return groupRowsById(
+      flattenedAssignments.value.filter(item => item.parentId),
+      item => item.parentId
+    )
+  })
+
+  const rootAssignments = computed(() => {
+    const assignmentIds = new Set(flattenedAssignments.value.map(item => item.id))
+    return flattenedAssignments.value.filter(item => !item.parentId || !assignmentIds.has(item.parentId))
   })
 
   const normalizedTheoDoiRows = computed(() => {
@@ -102,7 +121,13 @@ export function useBaoCaoTongHopPage() {
           xepLoai: pick(rawItem, 'xepLoai', 'XepLoai') || '',
           ketQua: pick(rawItem, 'ketQua', 'KetQua') || '',
           nhanXetDanhGia: String(pick(rawItem, 'nhanXetDanhGia', 'NhanXetDanhGia') || '').trim(),
+          giaTriDauKy: getNumberOrNull(pick(rawItem, 'giaTriDauKy', 'GiaTriDauKy')),
           giaTriCuoiKy: getNumberOrNull(pick(rawItem, 'giaTriCuoiKy', 'GiaTriCuoiKy')),
+          giaTriCungKyNamTruoc: getNumberOrNull(pick(rawItem, 'giaTriCungKyNamTruoc', 'GiaTriCungKyNamTruoc')),
+          chenhLechSoVoiDauKy: getNumberOrNull(pick(rawItem, 'chenhLechSoVoiDauKy', 'ChenhLechSoVoiDauKy')),
+          tyLeTangTruongSoVoiDauKy: getNumberOrNull(pick(rawItem, 'tyLeTangTruongSoVoiDauKy', 'TyLeTangTruongSoVoiDauKy')),
+          chenhLechSoVoiCungKyNamTruoc: getNumberOrNull(pick(rawItem, 'chenhLechSoVoiCungKyNamTruoc', 'ChenhLechSoVoiCungKyNamTruoc')),
+          tyLeTangTruongSoVoiCungKyNamTruoc: getNumberOrNull(pick(rawItem, 'tyLeTangTruongSoVoiCungKyNamTruoc', 'TyLeTangTruongSoVoiCungKyNamTruoc')),
           giaTriMucTieu: getNumberOrNull(pick(rawItem, 'giaTriMucTieu', 'GiaTriMucTieu'))
         }
       })
@@ -114,8 +139,17 @@ export function useBaoCaoTongHopPage() {
   const danhGiaByAssignment = computed(() => groupRowsById(normalizedDanhGiaRows.value, item => item.chiTietGiaoChiTieuId))
 
   const groupedRows = computed(() => {
-    let rows = flattenedAssignments.value
-      .map(assignment => buildSummaryRow(assignment, theoDoiByAssignment.value, danhGiaByAssignment.value))
+    let rows = rootAssignments.value
+      .map(assignment => {
+        const row = buildSummaryRow(assignment, theoDoiByAssignment.value, danhGiaByAssignment.value)
+        row.children = collectDescendantAssignments(assignment.id, childAssignmentsByParentId.value)
+          .map(({ assignment: childAssignment, level }) => ({
+            ...buildSummaryRow(childAssignment, theoDoiByAssignment.value, danhGiaByAssignment.value),
+            treeLevel: level,
+            parentGroupKey: row.groupKey
+          }))
+        return row
+      })
       .sort((left, right) => {
         const leftValue = `${left.tenDotGiaoChiTieu || ''} ${left.tenDonViNhan || ''} ${left.maChiTieu || ''}`.toLowerCase()
         const rightValue = `${right.tenDotGiaoChiTieu || ''} ${right.tenDonViNhan || ''} ${right.maChiTieu || ''}`.toLowerCase()
@@ -148,29 +182,20 @@ export function useBaoCaoTongHopPage() {
 
     if (filters.keyword) {
       const keyword = normalizeText(filters.keyword)
-      data = data.filter(item =>
-        [
-          item.maChiTieu,
-          item.tenChiTieu,
-          item.tenChiTieuCha,
-          item.tenDonViNhan,
-          item.maDotGiaoChiTieu,
-          item.tenDotGiaoChiTieu,
-          item.maKyGanNhat,
-          item.tenKyGanNhat,
-          item.ketQuaDanhGia,
-          item.nhanXetDanhGia
-        ]
-          .filter(Boolean)
-          .some(value => normalizeText(value).includes(keyword))
-      )
+      data = data
+        .map(item => {
+          const matchedChildren = (item.children || []).filter(child => matchesReportKeyword(child, keyword))
+          if (matchesReportKeyword(item, keyword)) return item
+          if (matchedChildren.length) return { ...item, children: matchedChildren }
+          return null
+        })
+        .filter(Boolean)
     }
 
     return data
   })
 
   const thongKe = computed(() => countTrackedStatuses(filteredRows.value, item => item.xepLoai))
-  const tongGiaTriThucHienCongDon = computed(() => sumField(filteredRows.value, 'giaTriThucHienCongDon'))
   const averageCompletion = computed(() => averageOf(filteredRows.value, 'tyLeHoanThanh'))
 
   onMounted(async () => {
@@ -188,7 +213,7 @@ export function useBaoCaoTongHopPage() {
       { key: 'kyBaoCao', label: 'kỳ báo cáo', required: false, request: () => httpClient.get('/KyBaoCaoKPI') },
       { key: 'theoDoi', label: 'theo dõi thực hiện KPI', required: true, request: () => httpClient.get('/TheoDoiThucHienKPI') },
       { key: 'chiTiet', label: 'chi tiết giao chỉ tiêu', required: true, request: () => httpClient.get('/ChiTietGiaoChiTieu') },
-      { key: 'danhMuc', label: 'danh mục chỉ tiêu', required: false, request: () => httpClient.get('/DanhMucChiTieu') },
+      { key: 'danhMuc', label: 'danh mục chỉ tiêu', required: false, request: () => httpClient.get('/danh-muc-chi-tieu') },
       { key: 'dotGiao', label: 'đợt giao chỉ tiêu', required: false, request: () => httpClient.get('/dot-giao-chi-tieu') },
       { key: 'donVi', label: 'đơn vị', required: false, request: () => httpClient.get('/DonVi') },
       { key: 'danhGia', label: 'đánh giá KPI', required: false, request: () => httpClient.get('/DanhGiaKPI') }
@@ -240,7 +265,10 @@ export function useBaoCaoTongHopPage() {
     const latestDanhGia = findLatestRow(danhGiaItems)
     const latestKy = compareLatestRow(latestDanhGia, latestTheoDoi) >= 0 ? latestDanhGia : latestTheoDoi
 
-    const giaTriThucHienCongDon = sumField(theoDoiItems, 'giaTriThucHienTrongKy')
+    const giaTriThucHienCongDon = theoDoiItems.length
+      ? sumField(theoDoiItems, 'giaTriThucHienTrongKy')
+      : latestDanhGia?.giaTriCuoiKy ?? 0
+    const giaTriMucTieu = latestDanhGia?.giaTriMucTieu ?? assignment.giaTriMucTieu
     const giaTriDauKyGanNhat =
       latestTheoDoi?.giaTriDauKy ??
       latestDanhGia?.giaTriDauKy ??
@@ -249,10 +277,11 @@ export function useBaoCaoTongHopPage() {
     const giaTriLuyKeHienTai =
       latestTheoDoi?.giaTriLuyKe ??
       latestTheoDoi?.giaTriCuoiKy ??
+      latestDanhGia?.giaTriCuoiKy ??
       (giaTriThucHienCongDon !== 0 ? giaTriThucHienCongDon : null)
 
     const metricSnapshot = calculateTargetProgress(
-      assignment,
+      { ...assignment, giaTriMucTieu },
       latestTheoDoi,
       theoDoiItems,
       giaTriLuyKeHienTai
@@ -264,6 +293,20 @@ export function useBaoCaoTongHopPage() {
 
     const xepLoai = latestDanhGia?.xepLoai || 'CHUA_DANH_GIA'
     const ketQuaDanhGia = latestDanhGia?.ketQua || getDanhGiaLabel(xepLoai) || ''
+    const giaTriCuoiKyGanNhat = latestTheoDoi?.giaTriCuoiKy ?? latestDanhGia?.giaTriCuoiKy ?? null
+    const giaTriCungKyNamTruocGanNhat = latestDanhGia?.giaTriCungKyNamTruoc ?? null
+    const chenhLechSoVoiDauKy =
+      latestDanhGia?.chenhLechSoVoiDauKy ??
+      calculateDifference(giaTriCuoiKyGanNhat, giaTriDauKyGanNhat)
+    const chenhLechSoVoiCungKyNamTruoc =
+      latestDanhGia?.chenhLechSoVoiCungKyNamTruoc ??
+      calculateDifference(giaTriCuoiKyGanNhat, giaTriCungKyNamTruocGanNhat)
+    const tyLeTangTruongSoVoiDauKy =
+      latestDanhGia?.tyLeTangTruongSoVoiDauKy ??
+      calculateGrowthRate(chenhLechSoVoiDauKy, giaTriDauKyGanNhat)
+    const tyLeTangTruongSoVoiCungKyNamTruoc =
+      latestDanhGia?.tyLeTangTruongSoVoiCungKyNamTruoc ??
+      calculateGrowthRate(chenhLechSoVoiCungKyNamTruoc, giaTriCungKyNamTruocGanNhat)
 
     return {
       groupKey: String(assignment.id),
@@ -284,12 +327,16 @@ export function useBaoCaoTongHopPage() {
       trangThaiDotGiao: assignment.trangThaiDotGiao || '',
       tieuChiDanhGia: assignment.tieuChiDanhGia || '',
       donViTinh: assignment.donViTinh || '',
-      giaTriMucTieu: assignment.giaTriMucTieu,
+      giaTriMucTieu,
       isComparisonTarget: metricSnapshot.isComparisonTarget,
       giaTriDauKyGanNhat,
       giaTriThucHienCongDon,
-      giaTriCuoiKyGanNhat: latestTheoDoi?.giaTriCuoiKy ?? latestDanhGia?.giaTriCuoiKy ?? null,
-      giaTriCungKyNamTruocGanNhat: latestDanhGia?.giaTriCungKyNamTruoc ?? null,
+      giaTriCuoiKyGanNhat,
+      giaTriCungKyNamTruocGanNhat,
+      chenhLechSoVoiDauKy,
+      tyLeTangTruongSoVoiDauKy,
+      chenhLechSoVoiCungKyNamTruoc,
+      tyLeTangTruongSoVoiCungKyNamTruoc,
       giaTriLuyKeHienTai,
       tyLeHoanThanh,
       soDuMucTieu: metricSnapshot.soDuMucTieu,
@@ -303,6 +350,36 @@ export function useBaoCaoTongHopPage() {
       nhanXetDanhGia: latestDanhGia?.nhanXetDanhGia || latestTheoDoi?.nhanXet || '',
       soKyDaTongHop: theoDoiItems.length
     }
+  }
+
+  function collectDescendantAssignments(parentId, childMap, level = 1) {
+    const children = [...(childMap.get(parentId) || [])].sort((left, right) => {
+      const leftValue = `${left.maChiTieu || ''} ${left.tenChiTieu || ''}`.toLowerCase()
+      const rightValue = `${right.maChiTieu || ''} ${right.tenChiTieu || ''}`.toLowerCase()
+      return leftValue.localeCompare(rightValue, 'vi')
+    })
+
+    return children.flatMap(child => [
+      { assignment: child, level },
+      ...collectDescendantAssignments(child.id, childMap, level + 1)
+    ])
+  }
+
+  function matchesReportKeyword(item, keyword) {
+    return [
+      item.maChiTieu,
+      item.tenChiTieu,
+      item.tenChiTieuCha,
+      item.tenDonViNhan,
+      item.maDotGiaoChiTieu,
+      item.tenDotGiaoChiTieu,
+      item.maKyGanNhat,
+      item.tenKyGanNhat,
+      item.ketQuaDanhGia,
+      item.nhanXetDanhGia
+    ]
+      .filter(Boolean)
+      .some(value => normalizeText(value).includes(keyword))
   }
 
   function findLatestRow(items) {
@@ -342,6 +419,20 @@ export function useBaoCaoTongHopPage() {
 
     if (!values.length) return 0
     return roundNumber(values.reduce((sum, value) => sum + value, 0) / values.length)
+  }
+
+  function calculateDifference(currentValue, baseValue) {
+    const current = getNumberOrNull(currentValue)
+    const base = getNumberOrNull(baseValue)
+    if (current === null || base === null) return null
+    return roundNumber(current - base)
+  }
+
+  function calculateGrowthRate(differenceValue, baseValue) {
+    const difference = getNumberOrNull(differenceValue)
+    const base = getNumberOrNull(baseValue)
+    if (difference === null || base === null || base === 0) return null
+    return roundNumber((difference / base) * 100)
   }
 
   function calculateTargetProgress(assignment, latestTheoDoi, theoDoiItems, giaTriLuyKeHienTai) {
@@ -536,6 +627,9 @@ export function useBaoCaoTongHopPage() {
     const donViNhanId = Number(
       pick(rawItem, 'donViNhanId', 'DonViNhanId') || parentAssignment?.donViNhanId || 0
     )
+    const parentId = Number(
+      pick(rawItem, 'chiTietGiaoChaId', 'ChiTietGiaoChaId') || parentAssignment?.id || 0
+    )
 
     const danhMuc = danhMucMap.get(danhMucChiTieuId) || null
     const dotGiao = dotGiaoMap.get(dotGiaoChiTieuId) || null
@@ -543,6 +637,7 @@ export function useBaoCaoTongHopPage() {
 
     return {
       id,
+      parentId: parentId || null,
       coTieuChiCon: children.length > 0,
       danhMucChiTieuId: danhMucChiTieuId || null,
       dotGiaoChiTieuId,
@@ -564,7 +659,10 @@ export function useBaoCaoTongHopPage() {
         pick(danhMuc, 'donViTinh', 'DonViTinh') ||
         parentAssignment?.donViTinh ||
         '',
-      tenChiTieuCha: parentAssignment?.tenChiTieu || '',
+      tenChiTieuCha:
+        parentAssignment?.tenChiTieu ||
+        pick(rawItem, 'tenChiTieuCha', 'TenChiTieuCha') ||
+        '',
       giaTriMucTieuText:
         pick(rawItem, 'giaTriMucTieuText', 'GiaTriMucTieuText') ||
         parentAssignment?.giaTriMucTieuText ||
@@ -870,7 +968,6 @@ export function useBaoCaoTongHopPage() {
     donViOptions,
     filteredRows,
     thongKe,
-    tongGiaTriThucHienCongDon,
     averageCompletion,
     fetchBaoCaoTongHop,
     resetFilters,

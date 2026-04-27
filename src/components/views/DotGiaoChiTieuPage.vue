@@ -103,6 +103,7 @@
                             <table id="DotGiaoChiTieuPage-table" class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
+                                        <th class="text-center" style="width: 72px">STT</th>
                                         <th>Mã đợt</th>
                                         <th>Tên đợt giao</th>
                                         <th>Năm áp dụng</th>
@@ -115,7 +116,8 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in items" :key="getId(item)">
+                                    <tr v-for="(item, index) in items" :key="getId(item)">
+                                        <td class="text-center">{{ index + 1 }}</td>
                                         <td class="fw-semibold text-primary">{{ item.maDotGiao }}</td>
                                         <td>{{ item.tenDotGiao }}</td>
                                         <td>{{ item.namApDung ?? '-' }}</td>

@@ -215,7 +215,7 @@
     },
     {
       key: 'catalog',
-      label: 'Thiết lập nền',
+      label: 'Danh mục hệ thống',
       description: 'Danh mục nền tảng và kỳ báo cáo dùng chung cho toàn hệ thống.',
       permissions: [
         { label: 'Quản lý danh mục chỉ tiêu', value: 'ManageIndicatorCatalog', description: 'Cho phép xem, thêm, sửa và nhập danh mục chỉ tiêu.' },
@@ -225,8 +225,8 @@
     },
     {
       key: 'assignment',
-      label: 'Giao và phân bổ',
-      description: 'Các chức năng tạo đợt giao và phân bổ chỉ tiêu xuống từng cấp đơn vị.',
+      label: 'Giao chỉ tiêu',
+      description: 'Các chức năng tạo đợt giao và giao chỉ tiêu xuống từng cấp đơn vị.',
       permissions: [
         { label: 'Quản lý đợt giao chỉ tiêu', value: 'ManageAssignmentWaves', description: 'Cho phép tạo và cập nhật đợt giao chỉ tiêu.' },
         { label: 'Giao chỉ tiêu cho CATP', value: 'AssignTargetsToCatp', description: 'Cho phép giao chỉ tiêu cho Công an thành phố.' },
@@ -238,36 +238,35 @@
     {
       key: 'tracking',
       label: 'Theo dõi thực hiện',
-      description: 'Nhập báo cáo định kỳ và theo dõi tình hình cập nhật kết quả.',
+      description: 'Nhập kết quả báo cáo định kỳ và theo dõi tình hình cập nhật kết quả.',
       permissions: [
-        { label: 'Nhập báo cáo định kỳ', value: 'SubmitPeriodicReports', description: 'Cho phép nhập và chỉnh sửa kết quả báo cáo định kỳ.' },
+        { label: 'Nhập kết quả báo cáo', value: 'SubmitPeriodicReports', description: 'Cho phép nhập và chỉnh sửa kết quả báo cáo định kỳ.' },
         { label: 'Xem tiến độ thực hiện', value: 'ViewExecutionProgress', description: 'Cho phép xem trang tiến độ thực hiện chỉ tiêu.' },
-        { label: 'Xem đơn vị chưa cập nhật', value: 'ViewUnitsPendingUpdate', description: 'Cho phép xem danh sách đơn vị chưa cập nhật báo cáo.' }
+        { label: 'Xem đơn vị chưa nộp báo cáo', value: 'ViewUnitsPendingUpdate', description: 'Cho phép xem danh sách đơn vị chưa nộp báo cáo.' }
       ]
     },
     {
       key: 'evaluation',
-      label: 'Đánh giá',
+      label: 'Đánh giá - phân tích',
       description: 'Cấu hình ngưỡng, so sánh, xếp hạng và các màn thi đua.',
       permissions: [
         { label: 'Cấu hình ngưỡng đánh giá', value: 'ConfigureEvaluationThresholds', description: 'Cho phép cấu hình ngưỡng và quy tắc đánh giá.' },
-        { label: 'Xem tổng hợp đánh giá lũy kế', value: 'ViewAccumulatedEvaluation', description: 'Cho phép mở màn tổng hợp đánh giá lũy kế.' },
         { label: 'Xem cảnh báo rủi ro', value: 'ViewRiskWarnings', description: 'Cho phép xem cảnh báo các KPI có rủi ro.' },
         { label: 'So sánh đơn vị', value: 'CompareUnits', description: 'Cho phép xem trang so sánh giữa các đơn vị.' },
         { label: 'Xếp hạng đơn vị', value: 'RankUnits', description: 'Cho phép xem bảng xếp hạng đơn vị.' },
         { label: 'Thiết lập nhóm thi đua', value: 'ConfigureCompetitionGroups', description: 'Cho phép cấu hình nhóm thi đua, đơn vị và chỉ tiêu áp dụng.' },
-        { label: 'Xem nhóm thi đua', value: 'ViewCompetitionGroups', description: 'Cho phép xem tổng hợp và xếp hạng trong nhóm thi đua.' }
+        { label: 'Xem xếp hạng nhóm thi đua', value: 'ViewCompetitionGroups', description: 'Cho phép xem tổng hợp và xếp hạng trong nhóm thi đua.' }
       ]
     },
     {
       key: 'reporting',
       label: 'Báo cáo',
-      description: 'Các màn báo cáo tổng hợp, theo đơn vị, theo chỉ tiêu và xuất báo cáo.',
+      description: 'Các màn báo cáo tổng hợp, tổng hợp số liệu cuối kỳ, theo đơn vị và theo chỉ tiêu.',
       permissions: [
         { label: 'Xem báo cáo tổng hợp', value: 'ViewSummaryReports', description: 'Cho phép mở màn báo cáo tổng hợp KPI.' },
+        { label: 'Xem tổng hợp số liệu cuối kỳ', value: 'ViewAccumulatedEvaluation', description: 'Cho phép mở màn tổng hợp số liệu cuối kỳ của chỉ tiêu không định tính.' },
         { label: 'Xem báo cáo theo đơn vị', value: 'ViewReportsByUnit', description: 'Cho phép xem báo cáo tổng hợp theo đơn vị.' },
-        { label: 'Xem báo cáo theo chỉ tiêu', value: 'ViewReportsByIndicator', description: 'Cho phép xem báo cáo theo từng chỉ tiêu.' },
-        { label: 'Xuất báo cáo', value: 'ExportReports', description: 'Cho phép dùng các màn xuất Excel/PDF.' }
+        { label: 'Xem báo cáo theo chỉ tiêu', value: 'ViewReportsByIndicator', description: 'Cho phép xem báo cáo theo từng chỉ tiêu.' }
       ]
     },
     {

@@ -78,7 +78,7 @@ export function useTongHopDanhGiaPage() {
       { key: 'kyBaoCao', label: 'kỳ báo cáo', required: false, request: () => httpClient.get('/KyBaoCaoKPI') },
       { key: 'theoDoi', label: 'theo dõi thực hiện KPI', required: true, request: () => httpClient.get('/TheoDoiThucHienKPI') },
       { key: 'chiTiet', label: 'chi tiết giao chỉ tiêu', required: true, request: () => httpClient.get('/ChiTietGiaoChiTieu') },
-      { key: 'danhMuc', label: 'danh mục chỉ tiêu', required: false, request: () => httpClient.get('/DanhMucChiTieu') },
+      { key: 'danhMuc', label: 'danh mục chỉ tiêu', required: false, request: () => httpClient.get('/danh-muc-chi-tieu') },
       { key: 'cauHinh', label: 'cấu hình đánh giá', required: false, request: () => httpClient.get('/cau-hinh-nguong-danh-gia-kpi') },
       { key: 'dotGiao', label: 'đợt giao chỉ tiêu', required: false, request: () => httpClient.get('/dot-giao-chi-tieu') },
       { key: 'donVi', label: 'đơn vị', required: false, request: () => httpClient.get('/DonVi') }
@@ -170,7 +170,7 @@ export function useTongHopDanhGiaPage() {
   })
 
   const groupedRows = computed(() => {
-    const map = new Map()
+    const latestByAssignment = new Map()
 
     normalizedTheoDoiRows.value.forEach(item => {
       if (!canViewAllUnits.value && currentUnitName.value) {
@@ -179,28 +179,101 @@ export function useTongHopDanhGiaPage() {
         }
       }
 
-      const current = map.get(item.groupKey)
-
-      if (!current) {
-        map.set(item.groupKey, {
-          ...item,
-          latest: item
-        })
+      if (normalizeCode(item.tieuChiDanhGia || item.loaiChiTieu) === 'DINH_TINH') {
         return
       }
 
-      if (compareKySort(item.kySort, current.latest.kySort) > 0) {
-        current.latest = item
+      const current = latestByAssignment.get(item.groupKey)
+      if (!current || compareKySort(item.kySort, current.kySort) > 0) {
+        latestByAssignment.set(item.groupKey, item)
+      }
+    })
+
+    const map = new Map()
+
+    latestByAssignment.forEach(item => {
+      const key = item.danhMucChiTieuId
+        ? `dm-${item.danhMucChiTieuId}`
+        : `dm-${item.maChiTieu || ''}-${item.tenChiTieu || ''}`
+
+      if (!map.has(key)) {
+        map.set(key, {
+          groupKey: key,
+          danhMucChiTieuId: item.danhMucChiTieuId,
+          maChiTieu: item.maChiTieu || '-',
+          tenChiTieu: item.tenChiTieu || '-',
+          donViTinh: item.donViTinh || '',
+          tieuChiDanhGia: item.tieuChiDanhGia || item.loaiChiTieu || '',
+          loaiChiTieu: item.loaiChiTieu || '',
+          soChiTiet: 0,
+          donViNames: new Set(),
+          dotGiaoNames: new Set(),
+          tongGiaTriDauKy: null,
+          tongGiaTriCuoiKy: null,
+          tongGiaTriLuyKe: null,
+          latest: item
+        })
+      }
+
+      const group = map.get(key)
+      group.soChiTiet += 1
+      if (item.tenDonViNhan) group.donViNames.add(item.tenDonViNhan)
+      if (item.tenDotGiaoChiTieu) group.dotGiaoNames.add(item.tenDotGiaoChiTieu)
+      group.tongGiaTriDauKy = addMetricValue(group.tongGiaTriDauKy, item.giaTriDauKy)
+      group.tongGiaTriCuoiKy = addMetricValue(group.tongGiaTriCuoiKy, item.giaTriCuoiKy)
+      group.tongGiaTriLuyKe = addMetricValue(group.tongGiaTriLuyKe, item.giaTriLuyKe ?? item.giaTriCuoiKy)
+
+      if (compareKySort(item.kySort, group.latest.kySort) > 0) {
+        group.latest = item
       }
     })
 
     return Array.from(map.values())
-      .map(group => finalizeGroup(group))
+      .map(group => {
+        const latest = group.latest
+        return {
+          groupKey: group.groupKey,
+          danhMucChiTieuId: group.danhMucChiTieuId,
+          maChiTieu: group.maChiTieu,
+          tenChiTieu: group.tenChiTieu,
+          donViTinh: group.donViTinh,
+          tieuChiDanhGia: group.tieuChiDanhGia,
+          loaiChiTieu: group.loaiChiTieu,
+          soChiTiet: group.soChiTiet,
+          soDonVi: group.donViNames.size,
+          soDotGiao: group.dotGiaoNames.size,
+          tenDonViTongHop: Array.from(group.donViNames).sort((a, b) => a.localeCompare(b, 'vi')).join(', '),
+          tenDotGiaoTongHop: Array.from(group.dotGiaoNames).sort((a, b) => a.localeCompare(b, 'vi')).join(', '),
+          tongGiaTriDauKy: group.tongGiaTriDauKy,
+          tongGiaTriCuoiKy: group.tongGiaTriCuoiKy,
+          tongGiaTriLuyKe: group.tongGiaTriLuyKe,
+          maKyGanNhat: latest?.maKy || '-',
+          tenKyGanNhat: latest?.tenKy || '-',
+          loaiKyGanNhat: latest?.loaiKy || '',
+          namGanNhat: latest?.nam ?? '',
+          soKyGanNhat: latest?.soKy ?? ''
+        }
+      })
       .sort((a, b) => {
-        const aValue = `${a.tenDotGiaoChiTieu || ''} ${a.tenDonViNhan || ''} ${a.maChiTieu || ''}`.toLowerCase()
-        const bValue = `${b.tenDotGiaoChiTieu || ''} ${b.tenDonViNhan || ''} ${b.maChiTieu || ''}`.toLowerCase()
+        const aValue = `${a.maChiTieu || ''} ${a.tenChiTieu || ''}`.toLowerCase()
+        const bValue = `${b.maChiTieu || ''} ${b.tenChiTieu || ''}`.toLowerCase()
         return aValue.localeCompare(bValue, 'vi')
       })
+  })
+
+  const summaryTotals = computed(() => {
+    return filteredRows.value.reduce(
+      (acc, item) => {
+        acc.tongDanhMuc += 1
+        acc.tongChiTiet += Number(item.soChiTiet || 0)
+        acc.tongLuotDonVi += Number(item.soDonVi || 0)
+        if (item.tongGiaTriCuoiKy !== null && item.tongGiaTriCuoiKy !== undefined) {
+          acc.danhMucCoCuoiKy += 1
+        }
+        return acc
+      },
+      { tongDanhMuc: 0, tongChiTiet: 0, tongLuotDonVi: 0, danhMucCoCuoiKy: 0 }
+    )
   })
 
   const filteredRows = computed(() => {
@@ -212,14 +285,12 @@ export function useTongHopDanhGiaPage() {
       [
         item.maChiTieu,
         item.tenChiTieu,
-        item.tenChiTieuCha,
-        item.tenChiTieuGiao,
-        item.tenDonViNhan,
-        item.tenDotGiaoChiTieu,
+        item.tieuChiDanhGia,
+        item.loaiChiTieu,
+        item.tenDonViTongHop,
+        item.tenDotGiaoTongHop,
         item.maKyGanNhat,
-        item.tenKyGanNhat,
-        getDanhGiaLabel(item.xepLoai),
-        getThoiHanLabel(item.dieuKienThoiHan)
+        item.tenKyGanNhat
       ]
         .filter(Boolean)
         .some(value => normalizeText(value).includes(keyword))
@@ -435,6 +506,17 @@ export function useTongHopDanhGiaPage() {
   function getNumberOrNull(value) {
     const parsed = parseNumber(value)
     return Number.isFinite(parsed) ? parsed : null
+  }
+
+  function roundNumber(value) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : null
+  }
+
+  function addMetricValue(currentValue, nextValue) {
+    const number = getNumberOrNull(nextValue)
+    if (number === null) return currentValue
+    return roundNumber((currentValue ?? 0) + number)
   }
 
   function parseDate(value) {
@@ -773,49 +855,45 @@ export function useTongHopDanhGiaPage() {
     return getDanhGiaBadgeClass(xepLoai)
   }
 
-  function exportCsv() {
+  function exportAggregateCsv() {
     const headers = [
       'Mã chỉ tiêu',
       'Danh mục chỉ tiêu',
-      'Chỉ tiêu giao',
-      'Đơn vị',
-      'Đợt giao chỉ tiêu',
+      'Loại chỉ tiêu',
+      'Số dòng tổng hợp',
+      'Số đơn vị',
+      'Số đợt giao',
       'Mã kỳ gần nhất',
       'Tên kỳ gần nhất',
       'Loại kỳ',
       'Năm',
       'Số kỳ',
-      'Giá trị mục tiêu',
-      'Giá trị đầu kỳ gần nhất',
-      'Giá trị cuối kỳ gần nhất',
-      'Giá trị lũy kế hiện tại',
-      'Số dư mục tiêu',
-      '% hoàn thành',
-      'Đánh giá',
-      'Điều kiện thời hạn',
-      'Nguồn đánh giá'
+      'Tổng đầu kỳ',
+      'Tổng cuối kỳ',
+      'Tổng lũy kế',
+      'Đơn vị tính',
+      'Đơn vị tổng hợp',
+      'Đợt giao tổng hợp'
     ]
 
     const csvRows = filteredRows.value.map(item => [
       item.maChiTieu || '',
       item.tenChiTieu || '',
-      item.tenChiTieuGiao || item.tenChiTieuCha || '',
-      item.tenDonViNhan || '',
-      item.tenDotGiaoChiTieu || '',
+      item.tieuChiDanhGia || item.loaiChiTieu || '',
+      item.soChiTiet ?? '',
+      item.soDonVi ?? '',
+      item.soDotGiao ?? '',
       item.maKyGanNhat || '',
       item.tenKyGanNhat || '',
       item.loaiKyGanNhat || '',
       item.namGanNhat ?? '',
       item.soKyGanNhat ?? '',
-      item.giaTriMucTieu ?? '',
-      item.giaTriDauKyGanNhat ?? '',
-      item.giaTriCuoiKyGanNhat ?? '',
-      item.giaTriLuyKeHienTai ?? '',
-      item.soDuMucTieu ?? '',
-      item.tyLeHoanThanh ?? '',
-      getDanhGiaLabel(item.xepLoai) || '',
-      getThoiHanLabel(item.dieuKienThoiHan) || '',
-      item.nguonDanhGiaTinhToan || ''
+      item.tongGiaTriDauKy ?? '',
+      item.tongGiaTriCuoiKy ?? '',
+      item.tongGiaTriLuyKe ?? '',
+      item.donViTinh || '',
+      item.tenDonViTongHop || '',
+      item.tenDotGiaoTongHop || ''
     ])
 
     const csvContent = [headers, ...csvRows]
@@ -826,7 +904,7 @@ export function useTongHopDanhGiaPage() {
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', 'tong-hop-danh-gia-luy-ke.csv')
+    link.setAttribute('download', 'tong-hop-so-lieu-cuoi-ky.csv')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -839,6 +917,7 @@ export function useTongHopDanhGiaPage() {
     kyBaoCaoOptions,
     filters,
     filteredRows,
+    summaryTotals,
     thongKe,
     fetchTongHopDanhGia,
     resetFilters,
@@ -850,6 +929,6 @@ export function useTongHopDanhGiaPage() {
     badgeClass,
     getDanhGiaLabel,
     getThoiHanLabel,
-    exportCsv
+    exportCsv: exportAggregateCsv
   }
 }

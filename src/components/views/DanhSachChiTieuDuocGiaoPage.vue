@@ -67,6 +67,7 @@
           <ColumnVisibilityTools table-id="DanhSachChiTieuDuocGiaoPage-table" />
           <table id="DanhSachChiTieuDuocGiaoPage-table" class="table table-hover align-middle mb-0 managed-table assignment-table">
             <colgroup>
+              <col class="col-stt" />
               <col class="col-dot-giao" />
               <col class="col-don-vi" />
               <col class="col-danh-muc" />
@@ -79,6 +80,7 @@
             </colgroup>
             <thead>
               <tr>
+                <th class="text-center">STT</th>
                 <th>Đợt giao</th>
                 <th>Đơn vị nhận</th>
                 <th>Danh mục chỉ tiêu</th>
@@ -91,7 +93,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in filteredItems" :key="item.id">
+              <tr v-for="(item, index) in filteredItems" :key="item.id">
+                <td class="text-center">{{ index + 1 }}</td>
                 <td>
                   <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
                   <div class="muted-line">{{ item.maDotGiaoChiTieu || 'Chưa có mã đợt' }}</div>
@@ -523,7 +526,11 @@
   }
 
   :deep(.assignment-table) {
-    min-width: 1520px;
+    min-width: 1592px;
+  }
+
+  :deep(.assignment-table .col-stt) {
+    width: 72px;
   }
 
   :deep(.assignment-table .col-dot-giao) {

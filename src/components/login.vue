@@ -12,7 +12,7 @@
                 <div class="hero-copy">
                     <h2>Hệ thống theo dõi chỉ tiêu công tác</h2>
                     <p>
-                        Hỗ trợ theo dõi giao chỉ tiêu, cập nhật kết quả thực hiện và tổng hợp đánh giá phục vụ công tác
+                        Hỗ trợ giao chỉ tiêu, cập nhật kết quả thực hiện, tổng hợp số liệu và đánh giá phục vụ công tác
                         điều hành.
                     </p>
                 </div>

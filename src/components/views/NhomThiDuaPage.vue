@@ -8,7 +8,7 @@
                             <i class="bi bi-diagram-3-fill"></i>
                         </div>
                         <div>
-                            <h1>Nhóm thi đua</h1>
+                            <h1>Xếp hạng nhóm thi đua</h1>
                             <p>Xếp hạng đơn vị trong một nhóm thi đua theo đúng đơn vị và chỉ tiêu chi tiết đã cấu hình.
                             </p>
                         </div>
@@ -170,6 +170,7 @@
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
+    import { getDanhGiaStatusCode } from '../../utils/danhGiaStatusClean.js'
 
     const {
         loading,
@@ -281,6 +282,7 @@
                     tongMucTieu: 0,
                     tongLuyKe: 0,
                     tongTyLeHoanThanh: 0,
+                    soKpiCoTyLe: 0,
                     hoanThanh: 0,
                     hoanThanhVuotMuc: 0,
                     chuaHoanThanh: 0,
@@ -293,24 +295,29 @@
             target.soKpi += 1
             target.tongMucTieu += Number(item.giaTriMucTieu || 0)
             target.tongLuyKe += Number(item.giaTriLuyKeHienTai || 0)
-            target.tongTyLeHoanThanh += Number(item.tyLeHoanThanh || 0)
+            const tyLeHoanThanh = toFiniteNumberOrNull(item.tyLeHoanThanh)
+            if (tyLeHoanThanh !== null) {
+                target.tongTyLeHoanThanh += tyLeHoanThanh
+                target.soKpiCoTyLe += 1
+            }
 
-            if (item.xepLoai === 'HOAN_THANH') target.hoanThanh += 1
-            if (item.xepLoai === 'HOAN_THANH_VUOT_MUC') target.hoanThanhVuotMuc += 1
-            if (item.xepLoai === 'CHUA_HOAN_THANH') target.chuaHoanThanh += 1
-            if (item.xepLoai === 'KHONG_HOAN_THANH') target.khongHoanThanh += 1
+            const statusCode = getDanhGiaStatusCode(item.xepLoai)
+            if (statusCode === 'HOAN_THANH') target.hoanThanh += 1
+            if (statusCode === 'HOAN_THANH_VUOT_MUC') target.hoanThanhVuotMuc += 1
+            if (statusCode === 'CHUA_HOAN_THANH') target.chuaHoanThanh += 1
+            if (statusCode === 'KHONG_HOAN_THANH') target.khongHoanThanh += 1
         })
 
         return [...grouped.values()]
             .map(item => ({
                 ...item,
-                tyLeHoanThanhTrungBinh: item.soKpi ? item.tongTyLeHoanThanh / item.soKpi : 0,
+                tyLeHoanThanhTrungBinh: item.soKpiCoTyLe ? item.tongTyLeHoanThanh / item.soKpiCoTyLe : null,
                 hoanThanhDatChuan: item.hoanThanh + item.hoanThanhVuotMuc,
                 chuaHoanThanhTong: item.chuaHoanThanh + item.khongHoanThanh
             }))
             .sort((left, right) => {
                 if (right.tyLeHoanThanhTrungBinh !== left.tyLeHoanThanhTrungBinh) {
-                    return right.tyLeHoanThanhTrungBinh - left.tyLeHoanThanhTrungBinh
+                    return numberOrMinusInfinity(right.tyLeHoanThanhTrungBinh) - numberOrMinusInfinity(left.tyLeHoanThanhTrungBinh)
                 }
 
                 if (right.hoanThanhDatChuan !== left.hoanThanhDatChuan) {
@@ -426,6 +433,17 @@
             .replace(/đ/g, 'd')
             .replace(/Đ/g, 'D')
             .toLowerCase()
+    }
+
+    function toFiniteNumberOrNull(value) {
+        if (value === null || value === undefined || value === '') return null
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : null
+    }
+
+    function numberOrMinusInfinity(value) {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY
     }
 </script>
 

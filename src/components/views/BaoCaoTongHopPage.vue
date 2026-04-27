@@ -61,12 +61,8 @@
 
                     <div class="summary-grid">
                         <div class="summary-card">
-                            <span class="label">Tổng chi tiết chỉ tiêu</span>
+                            <span class="label">Tổng chỉ tiêu chính</span>
                             <strong>{{ filteredRows.length }}</strong>
-                        </div>
-                        <div class="summary-card">
-                            <span class="label">Tổng thực hiện cộng dồn</span>
-                            <strong>{{ formatNumber(tongGiaTriThucHienCongDon) }}</strong>
                         </div>
                         <div class="summary-card">
                             <span class="label">Hoàn thành trung bình</span>
@@ -96,6 +92,20 @@
                         <div v-else class="table-wrapper">
                             <ColumnVisibilityTools table-id="BaoCaoTongHopPage-table" />
                             <table id="BaoCaoTongHopPage-table" class="managed-table">
+                                <colgroup>
+                                    <col class="col-stt" />
+                                    <col class="col-danh-muc" />
+                                    <col class="col-chi-tieu" />
+                                    <col class="col-don-vi" />
+                                    <col class="col-dot-giao" />
+                                    <col class="col-ky" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
+                                    <col class="col-percent" />
+                                    <col class="col-status" />
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th>STT</th>
@@ -114,33 +124,66 @@
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="13" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="12" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
 
-                                    <tr v-for="(row, index) in filteredRows" :key="row.groupKey">
-                                        <td>{{ index + 1 }}</td>
-                                        <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
-                                        <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
-                                        <td>{{ row.tenDonViNhan || '-' }}</td>
-                                        <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
-                                        <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
-                                        <td class="text-right">{{ row.isComparisonTarget ?
-                                            formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu,
-                                            row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh)
-                                            }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}
-                                        </td>
-                                        <td class="text-right">{{ row.isComparisonTarget ?
-                                            formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu,
-                                            row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
-                                        <td>
-                                            <span class="badge" :class="badgeClass(row.xepLoai)">
-                                                {{ getDanhGiaLabel(row.xepLoai) || '-' }}
-                                            </span>
-                                        </td>
-                                    </tr>
+                                    <template v-for="(row, index) in filteredRows" :key="row.groupKey">
+                                        <tr class="parent-row">
+                                            <td>{{ index + 1 }}</td>
+                                            <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
+                                            <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
+                                            <td>{{ row.tenDonViNhan || '-' }}</td>
+                                            <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
+                                            <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
+                                            <td class="text-right">{{ row.isComparisonTarget ?
+                                                formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu,
+                                                row.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat,
+                                                row.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai,
+                                                row.donViTinh) }}</td>
+                                            <td class="text-right">{{ row.isComparisonTarget ?
+                                                formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu,
+                                                row.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
+                                            <td>
+                                                <span class="badge" :class="badgeClass(row.xepLoai)">
+                                                    {{ getDanhGiaLabel(row.xepLoai) || '-' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        <tr v-for="child in row.children" :key="`${row.groupKey}-${child.groupKey}`"
+                                            class="child-row">
+                                            <td></td>
+                                            <td>
+                                                <div class="child-title"
+                                                    :style="{ paddingLeft: `${12 + ((child.treeLevel || 1) - 1) * 18}px` }">
+                                                    <span>{{ child.tenDanhMucChiTieu || child.tenChiTieu || '-' }}</span>
+                                                </div>
+                                            </td>
+                                            <td>{{ child.tenChiTieuGiao || child.tenChiTieuCha || '-' }}</td>
+                                            <td>{{ child.tenDonViNhan || '-' }}</td>
+                                            <td>{{ child.tenDotGiaoChiTieu || '-' }}</td>
+                                            <td>{{ child.maKyGanNhat || '-' }} - {{ child.tenKyGanNhat || '-' }}</td>
+                                            <td class="text-right">{{ child.isComparisonTarget ?
+                                                formatPercent(child.giaTriMucTieu) : formatNumber(child.giaTriMucTieu,
+                                                child.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatNumber(child.giaTriCuoiKyGanNhat,
+                                                child.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatNumber(child.giaTriLuyKeHienTai,
+                                                child.donViTinh) }}</td>
+                                            <td class="text-right">{{ child.isComparisonTarget ?
+                                                formatPercent(child.soDuMucTieu) : formatNumber(child.soDuMucTieu,
+                                                child.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatPercent(child.tyLeHoanThanh) }}</td>
+                                            <td>
+                                                <span class="badge child-badge" :class="badgeClass(child.xepLoai)">
+                                                    {{ getDanhGiaLabel(child.xepLoai) || '-' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </template>
                                 </tbody>
                             </table>
                         </div>
@@ -166,7 +209,6 @@
         donViOptions,
         filteredRows,
         thongKe,
-        tongGiaTriThucHienCongDon,
         averageCompletion,
         fetchBaoCaoTongHop,
         resetFilters,
@@ -352,34 +394,139 @@
     }
 
     .table-wrapper table {
-        width: max-content;
+        width: 1600px;
         min-width: 100%;
         border-collapse: collapse;
-        table-layout: auto;
+        table-layout: fixed;
         border: 1px solid #dcdfe6;
+    }
+
+    .table-wrapper :deep(table.managed-table) {
+        width: 1760px !important;
+        min-width: 1760px !important;
+        table-layout: fixed !important;
+    }
+
+    .table-wrapper :deep(table.managed-table thead th) {
+        white-space: normal !important;
+        overflow: visible !important;
+        overflow-wrap: break-word !important;
+        word-break: normal !important;
+        line-height: 1.25 !important;
+        padding: 10px 8px !important;
+        height: auto !important;
+        vertical-align: middle !important;
+    }
+
+    .table-wrapper .col-stt {
+        width: 54px;
+    }
+
+    .table-wrapper .col-danh-muc {
+        width: 210px;
+    }
+
+    .table-wrapper .col-chi-tieu {
+        width: 190px;
+    }
+
+    .table-wrapper .col-don-vi {
+        width: 145px;
+    }
+
+    .table-wrapper .col-dot-giao {
+        width: 160px;
+    }
+
+    .table-wrapper .col-ky {
+        width: 135px;
+    }
+
+    .table-wrapper .col-number {
+        width: 115px;
+    }
+
+    .table-wrapper .col-percent {
+        width: 105px;
+    }
+
+    .table-wrapper .col-status {
+        width: 130px;
     }
 
     .table-wrapper th,
     .table-wrapper td {
         border: 1px solid #dcdfe6;
-        padding: 10px 12px;
-        vertical-align: middle;
+        padding: 8px 10px;
+        vertical-align: top;
         box-sizing: border-box;
-        white-space: nowrap;
+        white-space: normal;
+        overflow: hidden;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.35;
     }
 
     .table-wrapper th {
         background: #f5f7fa;
         text-align: center;
         font-weight: 600;
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.25;
     }
 
     .table-wrapper td {
         text-align: left;
     }
 
-    .text-right {
+    .table-wrapper td.text-right {
         text-align: right;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    .table-wrapper th:nth-child(1),
+    .table-wrapper td:nth-child(1),
+    .table-wrapper th:nth-child(n + 7),
+    .table-wrapper td:nth-child(n + 7) {
+        vertical-align: middle;
+    }
+
+    .parent-row {
+        background: #ffffff;
+        font-weight: 700;
+    }
+
+    .parent-row td {
+        border-top: 2px solid #b8c7dc;
+    }
+
+    .child-row {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 13px;
+    }
+
+    .child-row td {
+        border-color: #e5eaf2;
+    }
+
+    .child-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        white-space: normal;
+    }
+
+    .child-badge {
+        min-width: 72px;
+        padding: 5px 8px;
+        font-size: 11px;
     }
 
     .sub-label {
@@ -414,12 +561,15 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 88px;
+        min-width: 0;
+        max-width: 100%;
         padding: 6px 10px;
         border-radius: 999px;
         font-size: 12px;
         font-weight: 700;
-        white-space: nowrap;
+        line-height: 1.25;
+        text-align: center;
+        white-space: normal;
     }
 
     .badge-excellent {

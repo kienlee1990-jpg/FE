@@ -7,9 +7,9 @@
                         <i class="bi bi-collection"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">TỔNG HỢP ĐÁNH GIÁ LŨY KẾ</div>
+                        <div class="gov-title">TỔNG HỢP SỐ LIỆU CUỐI KỲ</div>
                         <div class="gov-sub">
-                            Mỗi dòng phản ánh một chỉ tiêu chi tiết tại đơn vị, lấy số liệu cuối kỳ gần nhất tính đến thời điểm xem báo cáo.
+                            Tổng hợp giá trị cuối kỳ theo danh mục chỉ tiêu, chỉ áp dụng cho các chỉ tiêu không phải định tính.
                         </div>
                     </div>
                 </div>
@@ -45,24 +45,20 @@
 
                     <div class="summary-grid">
                         <div class="summary-card">
-                            <span class="label">Tổng số chỉ tiêu chi tiết</span>
-                            <strong>{{ filteredRows.length }}</strong>
+                            <span class="label">Tổng danh mục chỉ tiêu</span>
+                            <strong>{{ summaryTotals.tongDanhMuc }}</strong>
                         </div>
                         <div class="summary-card">
-                            <span class="label">Hoàn thành vượt mức</span>
-                            <strong>{{ thongKe.HOAN_THANH_VUOT_MUC }}</strong>
+                            <span class="label">Dòng báo cáo được tổng hợp</span>
+                            <strong>{{ summaryTotals.tongChiTiet }}</strong>
                         </div>
                         <div class="summary-card">
-                            <span class="label">Hoàn thành</span>
-                            <strong>{{ thongKe.HOAN_THANH }}</strong>
+                            <span class="label">Lượt đơn vị</span>
+                            <strong>{{ summaryTotals.tongLuotDonVi }}</strong>
                         </div>
                         <div class="summary-card">
-                            <span class="label">Chưa hoàn thành</span>
-                            <strong>{{ thongKe.CHUA_HOAN_THANH }}</strong>
-                        </div>
-                        <div class="summary-card">
-                            <span class="label">Không hoàn thành</span>
-                            <strong>{{ thongKe.KHONG_HOAN_THANH }}</strong>
+                            <span class="label">Danh mục có số cuối kỳ</span>
+                            <strong>{{ summaryTotals.danhMucCoCuoiKy }}</strong>
                         </div>
                     </div>
 
@@ -79,49 +75,37 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
+                                        <th>Mã chỉ tiêu</th>
                                         <th>Danh mục chỉ tiêu</th>
-                                        <th>Chỉ tiêu giao</th>
-                                        <th>Đơn vị</th>
-                                        <th>Đợt giao chỉ tiêu</th>
+                                        <th>Loại chỉ tiêu</th>
+                                        <th>Số dòng tổng hợp</th>
+                                        <th>Số đơn vị</th>
+                                        <th>Số đợt giao</th>
                                         <th>Kỳ cập nhật gần nhất</th>
-                                        <th>Giá trị mục tiêu</th>
-                                        <th>Đầu kỳ gần nhất</th>
-                                        <th>Cuối kỳ gần nhất</th>
-                                        <th>Lũy kế hiện tại</th>
-                                        <th>Số dư mục tiêu</th>
-                                        <th>% hoàn thành</th>
-                                        <th>Đánh giá</th>
+                                        <th>Tổng đầu kỳ</th>
+                                        <th>Tổng cuối kỳ</th>
+                                        <th>Tổng lũy kế</th>
+                                        <th>Đơn vị tính</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="13" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="12" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
 
                                     <tr v-for="(row, index) in filteredRows" :key="row.groupKey">
                                         <td>{{ index + 1 }}</td>
-                                        <td>
-                                            <div>{{ row.tenChiTieu || '-' }}</div>
-                                            <div v-if="row.tenChiTieuCha" class="sub-label">
-                                                Thuộc chỉ tiêu cha: {{ row.tenChiTieuCha }}
-                                            </div>
-                                        </td>
-                                        <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
-                                        <td>{{ row.tenDonViNhan || '-' }}</td>
-                                        <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
+                                        <td>{{ row.maChiTieu || '-' }}</td>
+                                        <td>{{ row.tenChiTieu || '-' }}</td>
+                                        <td>{{ row.tieuChiDanhGia || row.loaiChiTieu || '-' }}</td>
+                                        <td class="text-center">{{ row.soChiTiet }}</td>
+                                        <td class="text-center">{{ row.soDonVi }}</td>
+                                        <td class="text-center">{{ row.soDotGiao }}</td>
                                         <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
-                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriDauKyGanNhat, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ row.isComparisonTarget ? formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu, row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
-                                        <td>
-                                            <span class="badge" :class="badgeClass(row.xepLoai)">
-                                                {{ getDanhGiaLabel(row.xepLoai) || '-' }}
-                                            </span>
-
-                                        </td>
+                                        <td class="text-right">{{ formatNumber(row.tongGiaTriDauKy, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.tongGiaTriCuoiKy, row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumber(row.tongGiaTriLuyKe, row.donViTinh) }}</td>
+                                        <td>{{ row.donViTinh || '-' }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -144,17 +128,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         kyBaoCaoOptions,
         filters,
         filteredRows,
-        thongKe,
+        summaryTotals,
         fetchTongHopDanhGia,
         resetFilters,
         getId,
         getKyLabel,
-        buildLatestKyMeta,
         formatNumber,
-        formatPercent,
-        badgeClass,
-        getDanhGiaLabel,
-        getThoiHanLabel,
         exportCsv
     } = useTongHopDanhGiaPage()
 </script>
@@ -294,7 +273,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 16px;
         margin-bottom: 16px;
     }
@@ -359,6 +338,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     .text-right {
         text-align: right;
+    }
+
+    .text-center {
+        text-align: center;
     }
 
     .sub-label {

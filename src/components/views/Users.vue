@@ -165,8 +165,8 @@
                 </div>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label">Tên đăng nhập</label>
-                    <input v-model="form.userName" placeholder="Nhập tên đăng nhập" class="form-control shadow-sm"
+                    <label class="form-label">Tên sử dụng</label>
+                    <input v-model="form.userName" placeholder="Nhập tên sử dụng" class="form-control shadow-sm"
                       autocomplete="off" autocapitalize="none" />
                   </div>
                   <div class="col-md-6">
@@ -175,8 +175,8 @@
                       autocomplete="off" />
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Email</label>
-                    <input v-model="form.email" placeholder="Nhập email" class="form-control shadow-sm"
+                    <label class="form-label">Email(hoặc Tên đăng nhập)</label>
+                    <input v-model="form.email" placeholder="Nhập email hoặc tên đăng nhập" class="form-control shadow-sm"
                       autocomplete="off" autocapitalize="none" />
                   </div>
                   <div class="col-md-6">
@@ -407,20 +407,19 @@
     AssignTargetsToPhong: 'Giao chỉ tiêu cho Phòng',
     AssignTargetsToCadp: 'Giao chỉ tiêu cho CADP phường/xã',
     ViewAssignedTargetsList: 'Xem danh sách chỉ tiêu được giao',
-    SubmitPeriodicReports: 'Nhập báo cáo định kỳ',
+    SubmitPeriodicReports: 'Nhập kết quả báo cáo',
     ViewExecutionProgress: 'Xem tiến độ thực hiện',
-    ViewUnitsPendingUpdate: 'Xem đơn vị chưa cập nhật',
+    ViewUnitsPendingUpdate: 'Xem đơn vị chưa nộp báo cáo',
     ConfigureEvaluationThresholds: 'Cấu hình ngưỡng đánh giá',
-    ViewAccumulatedEvaluation: 'Xem tổng hợp đánh giá lũy kế',
+    ViewAccumulatedEvaluation: 'Xem tổng hợp số liệu cuối kỳ',
     ViewRiskWarnings: 'Xem cảnh báo rủi ro',
     CompareUnits: 'So sánh đơn vị',
     RankUnits: 'Xếp hạng đơn vị',
     ConfigureCompetitionGroups: 'Thiết lập nhóm thi đua',
-    ViewCompetitionGroups: 'Xem nhóm thi đua',
+    ViewCompetitionGroups: 'Xem xếp hạng nhóm thi đua',
     ViewSummaryReports: 'Xem báo cáo tổng hợp',
     ViewReportsByUnit: 'Xem báo cáo theo đơn vị',
     ViewReportsByIndicator: 'Xem báo cáo theo chỉ tiêu',
-    ExportReports: 'Xuất báo cáo',
     ManageUsers: 'Quản trị người dùng',
     ResetUserPasswords: 'Cấp lại mật khẩu',
     ManagePermissions: 'Quản trị phân quyền',

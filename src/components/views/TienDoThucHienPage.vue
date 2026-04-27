@@ -41,7 +41,7 @@
                                 <label class="form-label">Chỉ tiêu</label>
                                 <select v-model.number="filters.chiTietGiaoChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
-                                    <option v-for="item in chiTietGiaoChiTieuOptions" :key="getId(item)"
+                                    <option v-for="item in flatChiTietGiaoChiTieuOptions" :key="getId(item)"
                                         :value="getId(item)">
                                         {{ getChiTietDisplay(item) }}
                                     </option>
@@ -160,7 +160,7 @@
                                         {{ item.trangThaiTienDo }}
                                     </span>
                                     <small class="text-muted">
-                                        Mục tiêu: {{ formatNumber(item.giaTriMucTieu) }}
+                                        Mục tiêu: {{ formatTargetValue(item) }}
                                         <span v-if="item.giaTriMucTieuText">({{ item.giaTriMucTieuText }})</span>
                                     </small>
                                     <button class="btn btn-sm btn-outline-primary" @click="toggleExpand(item.key)">
@@ -177,7 +177,7 @@
                                 <div class="col-12 col-md-6 col-xl-3">
                                     <div class="metric-box">
                                         <div class="metric-label">Lũy kế hiện tại</div>
-                                        <div class="metric-value">{{ formatNumber(item.giaTriLuyKe) }}</div>
+                                        <div class="metric-value">{{ formatNumber(item.giaTriLuyKe, item.donViTinh) }}</div>
                                     </div>
                                 </div>
 
@@ -190,8 +190,15 @@
 
                                 <div class="col-12 col-md-6 col-xl-3">
                                     <div class="metric-box">
-                                        <div class="metric-label">Còn thiếu</div>
-                                        <div class="metric-value">{{ formatNumber(item.conThieu) }}</div>
+                                        <div class="metric-label">Số dư mục tiêu</div>
+                                        <div class="metric-value">{{ formatGapValue(item) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6 col-xl-3">
+                                    <div class="metric-box">
+                                        <div class="metric-label">Cuối kỳ gần nhất</div>
+                                        <div class="metric-value">{{ formatNumber(item.giaTriCuoiKyGanNhat, item.donViTinh) }}</div>
                                     </div>
                                 </div>
 
@@ -207,8 +214,8 @@
 
                             <div class="progress mb-4 progress-custom">
                                 <div class="progress-bar" role="progressbar"
-                                    :style="{ width: `${Math.min(item.tyLeHoanThanh, 100)}%` }"
-                                    :aria-valuenow="item.tyLeHoanThanh" aria-valuemin="0" aria-valuemax="100">
+                                    :style="{ width: `${progressBarWidth(item.tyLeHoanThanh)}%` }"
+                                    :aria-valuenow="progressBarWidth(item.tyLeHoanThanh)" aria-valuemin="0" aria-valuemax="100">
                                     {{ formatPercent(item.tyLeHoanThanh) }}
                                 </div>
                             </div>
@@ -255,6 +262,7 @@
                                             <th>Thực hiện trong kỳ</th>
                                             <th>Cuối kỳ</th>
                                             <th>Lũy kế</th>
+                                            <th>Phát sinh lũy kế</th>
                                             <th>Trạng thái</th>
                                             <th>Nhận xét</th>
                                         </tr>
@@ -272,6 +280,8 @@
                                             <td>{{ formatNumber(history.giaTriCuoiKy, history.donViTinh ||
                                                 item.donViTinh) }}</td>
                                             <td>{{ formatNumber(history.giaTriLuyKe, history.donViTinh ||
+                                                item.donViTinh) }}</td>
+                                            <td>{{ formatNumber(history.giaTriPhatSinhLuyKe, history.donViTinh ||
                                                 item.donViTinh) }}</td>
                                             <td>
                                                 <span class="badge rounded-pill"
@@ -301,6 +311,7 @@
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
+        danhGiaKPI: '/DanhGiaKPI',
         chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
         kyBaoCaoKPI: '/KyBaoCaoKPI',
         dotGiaoChiTieu: '/dot-giao-chi-tieu',
@@ -314,6 +325,7 @@
     const currentProfile = ref(getStoredUserProfile())
 
     const progressItems = ref([])
+    const danhGiaItems = ref([])
     const chiTietGiaoChiTieuOptions = ref([])
     const kyBaoCaoOptions = ref([])
     const dotOptions = ref([])
@@ -345,11 +357,91 @@
     }
 
     const getChiTietDisplay = (item) => {
-        const ma = item?.MaChiTieu || item?.maChiTieu || ''
-        const ten = item?.TenChiTieu || item?.tenChiTieu || ''
-        const donVi = item?.TenDonViNhan || item?.tenDonViNhan || ''
+        const ma = item?.MaChiTieu || item?.maChiTieu || item?.MaDanhMucChiTieu || item?.maDanhMucChiTieu || ''
+        const ten = item?.TenChiTieu || item?.tenChiTieu || item?.TenDanhMucChiTieu || item?.tenDanhMucChiTieu || ''
+        const donVi = item?.TenDonViNhanHienThi || item?.TenDonViNhan || item?.tenDonViNhan || ''
         return [ma, ten, donVi].filter(Boolean).join(' - ') || '-'
     }
+
+    const pick = (source, ...keys) => {
+        for (const key of keys) {
+            if (source?.[key] !== undefined && source?.[key] !== null) return source[key]
+        }
+        return undefined
+    }
+
+    const normalizeCode = (value) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '_')
+
+    const getNumberOrNull = (value) => {
+        if (value === null || value === undefined || value === '') return null
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : null
+    }
+
+    const getChildren = (item) => {
+        const children = item?.TieuChiCon ?? item?.tieuChiCon ?? []
+        return Array.isArray(children) ? children : []
+    }
+
+    const flattenChiTietGiaoChiTieu = (items, parent = null) => {
+        return items.flatMap((item) => {
+            const current = {
+                ...item,
+                ChiTietGiaoChaIdHienThi:
+                    pick(item, 'ChiTietGiaoChaId', 'chiTietGiaoChaId') ??
+                    parent?.Id ??
+                    parent?.id ??
+                    null,
+                TenChiTieuChaHienThi:
+                    pick(parent, 'TenDanhMucChiTieu', 'tenDanhMucChiTieu', 'TenChiTieu', 'tenChiTieu') ||
+                    parent?.TenChiTieuHienThi ||
+                    '',
+                DotGiaoChiTieuIdHienThi:
+                    pick(item, 'DotGiaoChiTieuId', 'dotGiaoChiTieuId') ??
+                    parent?.DotGiaoChiTieuIdHienThi ??
+                    null,
+                DonViNhanIdHienThi:
+                    pick(item, 'DonViNhanId', 'donViNhanId') ??
+                    parent?.DonViNhanIdHienThi ??
+                    null,
+                TenDonViNhanHienThi:
+                    pick(item, 'TenDonViNhan', 'tenDonViNhan') ||
+                    parent?.TenDonViNhanHienThi ||
+                    '',
+                TenDotGiaoChiTieuHienThi:
+                    pick(item, 'TenDotGiaoChiTieu', 'tenDotGiaoChiTieu', 'TenDotGiao', 'tenDotGiao') ||
+                    parent?.TenDotGiaoChiTieuHienThi ||
+                    '',
+                DonViTinhHienThi:
+                    pick(item, 'DonViTinh', 'donViTinh') ||
+                    parent?.DonViTinhHienThi ||
+                    ''
+            }
+
+            return [
+                current,
+                ...flattenChiTietGiaoChiTieu(getChildren(item), current)
+            ]
+        })
+    }
+
+    const flatChiTietGiaoChiTieuOptions = computed(() => flattenChiTietGiaoChiTieu(chiTietGiaoChiTieuOptions.value))
+
+    const chiTietById = computed(() => {
+        const map = new Map()
+        flatChiTietGiaoChiTieuOptions.value.forEach((item) => {
+            const id = getId(item)
+            if (id > 0) map.set(id, item)
+        })
+        return map
+    })
 
     const fetchData = async () => {
         try {
@@ -357,12 +449,14 @@
 
             const [
                 progressResponse,
+                danhGiaResponse,
                 chiTietResponse,
                 kyBaoCaoResponse,
                 dotResponse,
                 donViResponse
             ] = await Promise.all([
                 apiRequest(API_PATHS.theoDoiThucHienKPI),
+                apiRequest(API_PATHS.danhGiaKPI),
                 canManageAllUnits.value
                     ? apiRequest(API_PATHS.chiTietGiaoChiTieu)
                     : apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/by-donvi-nhan/${currentDonViId.value}`),
@@ -372,6 +466,7 @@
             ])
 
             progressItems.value = normalizeList(progressResponse)
+            danhGiaItems.value = normalizeList(danhGiaResponse)
             chiTietGiaoChiTieuOptions.value = normalizeList(chiTietResponse)
             kyBaoCaoOptions.value = normalizeList(kyBaoCaoResponse)
             dotOptions.value = normalizeList(dotResponse)
@@ -396,12 +491,13 @@
             const chiTietId = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
             const kyId = Number(item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? 0)
 
-            const chiTiet = chiTietGiaoChiTieuOptions.value.find((x) => getId(x) === chiTietId)
+            const chiTiet = chiTietById.value.get(chiTietId)
             const ky = kyBaoCaoOptions.value.find((x) => getId(x) === kyId)
 
             const dotId = Number(
                 item.DotGiaoChiTieuId ??
                 item.dotGiaoChiTieuId ??
+                chiTiet?.DotGiaoChiTieuIdHienThi ??
                 chiTiet?.DotGiaoChiTieuId ??
                 chiTiet?.dotGiaoChiTieuId ??
                 0
@@ -410,6 +506,7 @@
             const donViId = Number(
                 item.DonViNhanId ??
                 item.donViNhanId ??
+                chiTiet?.DonViNhanIdHienThi ??
                 chiTiet?.DonViNhanId ??
                 chiTiet?.donViNhanId ??
                 0
@@ -429,16 +526,21 @@
                     item.maChiTieu ||
                     chiTiet?.MaChiTieu ||
                     chiTiet?.maChiTieu ||
+                    chiTiet?.MaDanhMucChiTieu ||
+                    chiTiet?.maDanhMucChiTieu ||
                     '',
                 tenChiTieu:
                     item.TenChiTieu ||
                     item.tenChiTieu ||
                     chiTiet?.TenChiTieu ||
                     chiTiet?.tenChiTieu ||
+                    chiTiet?.TenDanhMucChiTieu ||
+                    chiTiet?.tenDanhMucChiTieu ||
                     '',
                 tenDonVi:
                     item.TenDonViNhan ||
                     item.tenDonViNhan ||
+                    chiTiet?.TenDonViNhanHienThi ||
                     chiTiet?.TenDonViNhan ||
                     chiTiet?.tenDonViNhan ||
                     donVi?.TenDonVi ||
@@ -447,6 +549,9 @@
                 tenDotGiao:
                     item.TenDotGiao ||
                     item.tenDotGiao ||
+                    chiTiet?.TenDotGiaoChiTieuHienThi ||
+                    chiTiet?.TenDotGiaoChiTieu ||
+                    chiTiet?.tenDotGiaoChiTieu ||
                     dot?.TenDotGiao ||
                     dot?.tenDotGiao ||
                     '',
@@ -470,11 +575,8 @@
                 loaiKy: item.LoaiKy || item.loaiKy || ky?.LoaiKy || ky?.loaiKy || '',
                 soKy: item.SoKy ?? item.soKy ?? ky?.SoKy ?? ky?.soKy ?? null,
                 giaTriMucTieu:
-                    item.GiaTriMucTieu ??
-                    item.giaTriMucTieu ??
-                    chiTiet?.GiaTriMucTieu ??
-                    chiTiet?.giaTriMucTieu ??
-                    0,
+                    getNumberOrNull(item.GiaTriMucTieu ?? item.giaTriMucTieu) ??
+                    getNumberOrNull(chiTiet?.GiaTriMucTieu ?? chiTiet?.giaTriMucTieu),
                 giaTriMucTieuText:
                     item.GiaTriMucTieuText ||
                     item.giaTriMucTieuText ||
@@ -484,17 +586,73 @@
                 donViTinh:
                     item.DonViTinh ||
                     item.donViTinh ||
+                    chiTiet?.DonViTinhHienThi ||
                     chiTiet?.DonViTinh ||
                     chiTiet?.donViTinh ||
                     '',
-                giaTriDauKy: Number(item.GiaTriDauKy ?? item.giaTriDauKy ?? 0),
-                giaTriThucHienTrongKy: Number(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0),
-                giaTriCuoiKy: Number(item.GiaTriCuoiKy ?? item.giaTriCuoiKy ?? 0),
-                giaTriLuyKe: Number(item.GiaTriLuyKe ?? item.giaTriLuyKe ?? 0),
+                tieuChiDanhGia: normalizeCode(
+                    item.TieuChiDanhGia ||
+                    item.tieuChiDanhGia ||
+                    chiTiet?.TieuChiDanhGia ||
+                    chiTiet?.tieuChiDanhGia ||
+                    chiTiet?.LoaiChiTieu ||
+                    chiTiet?.loaiChiTieu
+                ),
+                kieuSoSanh: normalizeCode(item.KieuSoSanh || item.kieuSoSanh || chiTiet?.KieuSoSanh || chiTiet?.kieuSoSanh),
+                loaiMocSoSanh: normalizeCode(item.LoaiMocSoSanh || item.loaiMocSoSanh || chiTiet?.LoaiMocSoSanh || chiTiet?.loaiMocSoSanh),
+                chieuSoSanh: normalizeCode(item.ChieuSoSanh || item.chieuSoSanh || chiTiet?.ChieuSoSanh || chiTiet?.chieuSoSanh),
+                quyTacDanhGia: normalizeCode(item.QuyTacDanhGia || item.quyTacDanhGia || chiTiet?.QuyTacDanhGia || chiTiet?.quyTacDanhGia),
+                giaTriDauKy: getNumberOrNull(item.GiaTriDauKy ?? item.giaTriDauKy),
+                giaTriPhatSinhTrongKy: getNumberOrNull(item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy),
+                giaTriThucHienTrongKy: getNumberOrNull(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy),
+                giaTriCuoiKy: getNumberOrNull(item.GiaTriCuoiKy ?? item.giaTriCuoiKy),
+                giaTriLuyKe: getNumberOrNull(item.GiaTriLuyKe ?? item.giaTriLuyKe),
+                giaTriPhatSinhLuyKe: getNumberOrNull(item.GiaTriPhatSinhLuyKe ?? item.giaTriPhatSinhLuyKe),
                 nhanXet: item.NhanXet || item.nhanXet || '',
                 trangThai: item.TrangThai || item.trangThai || 'MOI_TAO'
             }
         })
+    })
+
+    const enrichedDanhGiaItems = computed(() => {
+        return danhGiaItems.value
+            .map((item) => {
+                const chiTietId = Number(pick(item, 'ChiTietGiaoChiTieuId', 'chiTietGiaoChiTieuId') || 0)
+                const kyId = Number(pick(item, 'KyBaoCaoKPIId', 'kyBaoCaoKPIId') || 0)
+                const ky = kyBaoCaoOptions.value.find((x) => getId(x) === kyId)
+
+                return {
+                    chiTietGiaoChiTieuId: chiTietId,
+                    kyBaoCaoKPIId: kyId,
+                    maKy: pick(item, 'MaKy', 'maKy') || pick(ky, 'MaKy', 'maKy') || '',
+                    tenKy: pick(item, 'TenKy', 'tenKy') || pick(ky, 'TenKy', 'tenKy') || '',
+                    nam: Number(pick(item, 'Nam', 'nam') ?? pick(ky, 'Nam', 'nam') ?? 0),
+                    loaiKy: pick(item, 'LoaiKy', 'loaiKy') || pick(ky, 'LoaiKy', 'loaiKy') || '',
+                    soKy: Number(pick(item, 'SoKy', 'soKy') ?? pick(ky, 'SoKy', 'soKy') ?? 0),
+                    giaTriMucTieu: getNumberOrNull(pick(item, 'GiaTriMucTieu', 'giaTriMucTieu')),
+                    giaTriDauKy: getNumberOrNull(pick(item, 'GiaTriDauKy', 'giaTriDauKy')),
+                    giaTriCuoiKy: getNumberOrNull(pick(item, 'GiaTriCuoiKy', 'giaTriCuoiKy')),
+                    tyLeHoanThanh: getNumberOrNull(pick(item, 'TyLeHoanThanh', 'tyLeHoanThanh')),
+                    xepLoai: pick(item, 'XepLoai', 'xepLoai') || '',
+                    ketQua: pick(item, 'KetQua', 'ketQua') || '',
+                    ngayDanhGia: pick(item, 'NgayDanhGia', 'ngayDanhGia', 'UpdatedAt', 'updatedAt', 'CreatedAt', 'createdAt') || ''
+                }
+            })
+            .filter((item) => item.chiTietGiaoChiTieuId > 0 && item.kyBaoCaoKPIId > 0)
+    })
+
+    const danhGiaByChiTietKy = computed(() => {
+        const map = new Map()
+
+        enrichedDanhGiaItems.value.forEach((item) => {
+            const key = `${item.chiTietGiaoChiTieuId}-${item.kyBaoCaoKPIId}`
+            const existing = map.get(key)
+            if (!existing || compareDanhGia(item, existing) > 0) {
+                map.set(key, item)
+            }
+        })
+
+        return map
     })
 
     const filteredProgressItems = computed(() => {
@@ -542,6 +700,11 @@
                     giaTriMucTieu: item.giaTriMucTieu,
                     giaTriMucTieuText: item.giaTriMucTieuText,
                     donViTinh: item.donViTinh || '',
+                    tieuChiDanhGia: item.tieuChiDanhGia || '',
+                    kieuSoSanh: item.kieuSoSanh || '',
+                    loaiMocSoSanh: item.loaiMocSoSanh || '',
+                    chieuSoSanh: item.chieuSoSanh || '',
+                    quyTacDanhGia: item.quyTacDanhGia || '',
                     lichSu: []
                 })
             }
@@ -552,10 +715,24 @@
         const result = Array.from(groups.values()).map((group) => {
             const lichSu = [...group.lichSu].sort(compareKy)
             const kyGanNhat = lichSu[lichSu.length - 1] || null
-            const giaTriLuyKe = kyGanNhat?.giaTriLuyKe ?? 0
-            const giaTriMucTieu = Number(group.giaTriMucTieu ?? 0)
-            const tyLeHoanThanh = giaTriMucTieu > 0 ? (giaTriLuyKe / giaTriMucTieu) * 100 : 0
-            const conThieu = Math.max(giaTriMucTieu - giaTriLuyKe, 0)
+            const danhGiaGanNhat = kyGanNhat
+                ? danhGiaByChiTietKy.value.get(`${group.chiTietGiaoChiTieuId}-${kyGanNhat.kyBaoCaoKPIId}`)
+                : null
+            const giaTriMucTieu = danhGiaGanNhat?.giaTriMucTieu ?? group.giaTriMucTieu
+            const giaTriLuyKe =
+                kyGanNhat?.giaTriLuyKe ??
+                kyGanNhat?.giaTriCuoiKy ??
+                danhGiaGanNhat?.giaTriCuoiKy ??
+                null
+            const giaTriCuoiKyGanNhat = kyGanNhat?.giaTriCuoiKy ?? danhGiaGanNhat?.giaTriCuoiKy ?? null
+            const metricSnapshot = calculateTargetProgress(
+                { ...group, giaTriMucTieu },
+                kyGanNhat,
+                lichSu,
+                giaTriLuyKe
+            )
+            const tyLeHoanThanh = danhGiaGanNhat?.tyLeHoanThanh ?? metricSnapshot.tyLeHoanThanh
+            const conThieu = metricSnapshot.soDuMucTieu
 
             const chartPoints = buildChartPoints(lichSu.map((x) => Number(x.giaTriLuyKe ?? 0)))
             const chartPolyline = chartPoints.map((p) => `${p.x},${p.y}`).join(' ')
@@ -565,10 +742,14 @@
                 lichSu,
                 tenKyGanNhat: kyGanNhat?.tenKy || '',
                 kyBaoCaoKPIIdGanNhat: kyGanNhat?.kyBaoCaoKPIId ?? null,
+                giaTriMucTieu,
                 giaTriLuyKe,
+                giaTriCuoiKyGanNhat,
                 tyLeHoanThanh,
                 conThieu,
-                trangThaiTienDo: getTienDoText(giaTriLuyKe, giaTriMucTieu),
+                isComparisonTarget: metricSnapshot.isComparisonTarget,
+                xepLoai: danhGiaGanNhat?.xepLoai || '',
+                trangThaiTienDo: getTienDoText(giaTriLuyKe, giaTriMucTieu, tyLeHoanThanh, danhGiaGanNhat?.xepLoai),
                 chartPoints,
                 chartPolyline
             }
@@ -601,6 +782,15 @@
         return (a.soKy ?? 0) - (b.soKy ?? 0)
     }
 
+    const compareDanhGia = (a, b) => {
+        const kyDiff = compareKy(a, b)
+        if (kyDiff !== 0) return kyDiff
+
+        const aTime = new Date(a.ngayDanhGia || 0).getTime() || 0
+        const bTime = new Date(b.ngayDanhGia || 0).getTime() || 0
+        return aTime - bTime
+    }
+
     const thuTuLoaiKy = (loaiKy) => {
         switch ((loaiKy || '').trim().toUpperCase()) {
             case 'THANG':
@@ -614,6 +804,145 @@
             default:
                 return 99
         }
+    }
+
+    const calculateTargetProgress = (assignment, latestTheoDoi, theoDoiItems, giaTriLuyKeHienTai) => {
+        if (normalizeCode(assignment?.tieuChiDanhGia || assignment?.loaiChiTieu) === 'DINH_TINH') {
+            return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: false }
+        }
+
+        const mucTieu = getNumberOrNull(assignment?.giaTriMucTieu)
+        if (mucTieu === null || mucTieu <= 0) {
+            return {
+                tyLeHoanThanh: null,
+                soDuMucTieu: null,
+                isComparisonTarget: isComparisonCriterion(assignment)
+            }
+        }
+
+        if (isComparisonCriterion(assignment)) {
+            const tyLeThucTe = calculateComparisonActualPercent(assignment, latestTheoDoi, theoDoiItems)
+            if (tyLeThucTe === null) {
+                return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: true }
+            }
+
+            const nguongDat = calculateComparisonThreshold(assignment, mucTieu)
+            return {
+                tyLeHoanThanh: roundNumber(calculateComparisonProgress(tyLeThucTe, mucTieu, assignment)),
+                soDuMucTieu: roundNumber(calculateComparisonGap(tyLeThucTe, nguongDat, assignment)),
+                isComparisonTarget: true
+            }
+        }
+
+        const luyKe = getNumberOrNull(giaTriLuyKeHienTai)
+        if (luyKe === null) {
+            return { tyLeHoanThanh: null, soDuMucTieu: null, isComparisonTarget: false }
+        }
+
+        return {
+            tyLeHoanThanh: roundNumber(calculateProgressByRule(luyKe, mucTieu, assignment?.quyTacDanhGia)),
+            soDuMucTieu: roundNumber(mucTieu - luyKe),
+            isComparisonTarget: false
+        }
+    }
+
+    const calculateComparisonActualPercent = (assignment, latestTheoDoi, theoDoiItems) => {
+        if (!latestTheoDoi) return null
+
+        if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') {
+            const phatSinhLuyKe = getNumberOrNull(latestTheoDoi.giaTriPhatSinhLuyKe)
+            const giaTriLuyKe = getNumberOrNull(latestTheoDoi.giaTriLuyKe)
+            if (phatSinhLuyKe === null || phatSinhLuyKe <= 0 || giaTriLuyKe === null) return null
+            return roundNumber((giaTriLuyKe / phatSinhLuyKe) * 100)
+        }
+
+        const giaTriMoc = resolveComparisonBenchmark(assignment, latestTheoDoi, theoDoiItems)
+        if (giaTriMoc === null || giaTriMoc === 0) return null
+
+        const giaTriLuyKe = getNumberOrNull(latestTheoDoi.giaTriLuyKe)
+        if (giaTriLuyKe === null) return null
+
+        return roundNumber((giaTriLuyKe / giaTriMoc) * 100)
+    }
+
+    const resolveComparisonBenchmark = (assignment, latestTheoDoi, theoDoiItems) => {
+        const loaiMoc = normalizeCode(assignment?.loaiMocSoSanh)
+        if (loaiMoc === 'DAU_KY') {
+            return getNumberOrNull(latestTheoDoi?.giaTriDauKy)
+        }
+
+        if (loaiMoc === 'CUNG_KY') {
+            const match = theoDoiItems.find((item) =>
+                Number(item.nam || 0) === Number(latestTheoDoi.nam || 0) - 1 &&
+                normalizeCode(item.loaiKy) === normalizeCode(latestTheoDoi.loaiKy) &&
+                Number(item.soKy || 0) === Number(latestTheoDoi.soKy || 0)
+            )
+            return getNumberOrNull(match?.giaTriCuoiKy ?? match?.giaTriLuyKe)
+        }
+
+        if (loaiMoc === 'KY_TRUOC') {
+            const previous = [...theoDoiItems]
+                .filter((item) => compareKy(item, latestTheoDoi) < 0)
+                .sort((left, right) => compareKy(right, left))[0]
+            return getNumberOrNull(previous?.giaTriCuoiKy ?? previous?.giaTriLuyKe)
+        }
+
+        if (loaiMoc === 'TONG_NAM_TRUOC') {
+            const previousYear = [...theoDoiItems]
+                .filter((item) => Number(item.nam || 0) === Number(latestTheoDoi.nam || 0) - 1)
+                .sort((left, right) => compareKy(right, left))[0]
+            return getNumberOrNull(previousYear?.giaTriCuoiKy ?? previousYear?.giaTriLuyKe)
+        }
+
+        return null
+    }
+
+    const isComparisonCriterion = (assignment) => {
+        return normalizeCode(assignment?.tieuChiDanhGia || assignment?.loaiChiTieu) === 'DINH_LUONG_SO_SANH'
+    }
+
+    const calculateProgressByRule = (giaTriThucTe, giaTriMucTieu, quyTacDanhGia) => {
+        if (!Number.isFinite(giaTriThucTe) || !Number.isFinite(giaTriMucTieu) || giaTriMucTieu <= 0) {
+            return null
+        }
+
+        if (normalizeCode(quyTacDanhGia) === 'KHONG_VUOT_NGUONG') {
+            if (giaTriThucTe <= giaTriMucTieu) return 100
+            return (giaTriMucTieu / giaTriThucTe) * 100
+        }
+
+        return (giaTriThucTe / giaTriMucTieu) * 100
+    }
+
+    const calculateComparisonThreshold = (assignment, mucTieuPhanTram) => {
+        if (!Number.isFinite(mucTieuPhanTram) || mucTieuPhanTram <= 0) return null
+        if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') return mucTieuPhanTram
+        return normalizeCode(assignment?.chieuSoSanh) === 'GIAM'
+            ? 100 - mucTieuPhanTram
+            : 100 + mucTieuPhanTram
+    }
+
+    const calculateComparisonProgress = (tyLeThucTe, mucTieuPhanTram, assignment) => {
+        const nguongDat = calculateComparisonThreshold(assignment, mucTieuPhanTram)
+        if (!Number.isFinite(tyLeThucTe) || !Number.isFinite(nguongDat) || nguongDat <= 0 || tyLeThucTe <= 0) {
+            return null
+        }
+
+        if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') {
+            return (tyLeThucTe / nguongDat) * 100
+        }
+
+        return normalizeCode(assignment?.chieuSoSanh) === 'GIAM'
+            ? (nguongDat / tyLeThucTe) * 100
+            : (tyLeThucTe / nguongDat) * 100
+    }
+
+    const calculateComparisonGap = (tyLeThucTe, nguongDat, assignment) => {
+        if (!Number.isFinite(tyLeThucTe) || !Number.isFinite(nguongDat)) return null
+        if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') return nguongDat - tyLeThucTe
+        return normalizeCode(assignment?.chieuSoSanh) === 'GIAM'
+            ? tyLeThucTe - nguongDat
+            : nguongDat - tyLeThucTe
     }
 
     const buildChartPoints = (values) => {
@@ -650,12 +979,15 @@
         window.location.href = url
     }
 
-    const getTienDoText = (giaTriLuyKe, giaTriMucTieu) => {
+    const getTienDoText = (giaTriLuyKe, giaTriMucTieu, tyLeHoanThanh, xepLoai) => {
         const luyKe = Number(giaTriLuyKe ?? 0)
         const mucTieu = Number(giaTriMucTieu ?? 0)
+        const tyLe = Number(tyLeHoanThanh ?? 0)
+        const status = normalizeCode(xepLoai)
 
-        if (luyKe <= 0) return 'Chưa bắt đầu'
-        if (mucTieu > 0 && luyKe >= mucTieu) return 'Đạt/Vượt mục tiêu'
+        if (status === 'HOAN_THANH' || status === 'HOAN_THANH_VUOT_MUC') return 'Đạt/Vượt mục tiêu'
+        if (luyKe <= 0 && tyLe <= 0) return 'Chưa bắt đầu'
+        if ((mucTieu > 0 && luyKe >= mucTieu) || tyLe >= 100) return 'Đạt/Vượt mục tiêu'
         return 'Đang thực hiện'
     }
 
@@ -692,14 +1024,43 @@
 
     const formatNumber = (value, donViTinh = '') => {
         if (value === null || value === undefined || value === '') return '-'
-        const formatted = Number(value).toLocaleString('vi-VN')
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed)) return '-'
+        const formatted = parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
         const unit = String(donViTinh || '').trim()
         return unit ? `${formatted} ${unit}` : formatted
     }
 
     const formatPercent = (value) => {
-        if (value === null || value === undefined || Number.isNaN(Number(value))) return '0%'
-        return `${Number(value).toFixed(1)}%`
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-'
+        return `${Number(value).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`
+    }
+
+    const formatTargetValue = (item) => {
+        if (item?.isComparisonTarget) {
+            return formatPercent(item.giaTriMucTieu)
+        }
+
+        return formatNumber(item?.giaTriMucTieu, item?.donViTinh)
+    }
+
+    const formatGapValue = (item) => {
+        if (item?.isComparisonTarget) {
+            return formatPercent(item.conThieu)
+        }
+
+        return formatNumber(item?.conThieu, item?.donViTinh)
+    }
+
+    const progressBarWidth = (value) => {
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed) || parsed <= 0) return 0
+        return Math.min(parsed, 100)
+    }
+
+    const roundNumber = (value) => {
+        if (value === null || value === undefined || !Number.isFinite(Number(value))) return null
+        return Number(Number(value).toFixed(2))
     }
 
     const resetFilters = () => {

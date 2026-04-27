@@ -7,7 +7,7 @@
                         <i class="bi bi-shield-exclamation"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">CẢNH BÁO RỦI RO </div>
+                        <div class="gov-title">CẢNH BÁO RỦI RO</div>
                         <div class="gov-sub">
                         </div>
                     </div>
@@ -259,7 +259,7 @@
                                             <td>{{ index + 1 }}</td>
                                             <td>{{ item.tenChiTieu || '-' }}</td>
                                             <td>{{ item.tenDonViNhan || '-' }}</td>
-                                            <td>{{ item.tenKy || item.maKy || '-' }}</td>
+                                            <td>{{ item.tenKyGanNhat || item.maKyGanNhat || '-' }}</td>
                                             <td>{{ formatPercent(item.tyLeHoanThanh) }}</td>
                                             <td>
                                                 <span :class="['badge', badgeClass(item.xepLoai)]">
@@ -290,11 +290,11 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, reactive, ref } from 'vue'
+    import { computed, reactive } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
-    import { apiRequest } from '../../services/api.js'
     import VueApexCharts from 'vue3-apexcharts'
+    import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
     import {
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
@@ -302,11 +302,16 @@
     } from '../../utils/danhGiaStatusClean.js'
 
     const apexchart = VueApexCharts
-
-    const loading = ref(false)
-    const errorMessage = ref('')
-    const rows = ref([])
-    const kyBaoCaoOptions = ref([])
+    const {
+        loading,
+        errorMessage,
+        kyBaoCaoOptions,
+        donViOptions,
+        filteredRows: reportRows,
+        filters: reportFilters,
+        fetchBaoCaoTongHop
+    } = useBaoCaoTongHopPage()
+    const rows = computed(() => reportRows.value)
 
     const filters = reactive({
         kyBaoCaoKPIId: '',
@@ -329,12 +334,6 @@
         'thấp',
         'chưa đạt'
     ]
-
-    const donViOptions = computed(() => {
-        return [...new Set(rows.value.map(item => item.tenDonViNhan).filter(Boolean))].sort((a, b) =>
-            a.localeCompare(b, 'vi')
-        )
-    })
 
     const enrichedRows = computed(() => {
         return rows.value.map(item => {
@@ -366,8 +365,8 @@
                     item.maChiTieu,
                     item.tenChiTieu,
                     item.tenDonViNhan,
-                    item.tenKy,
-                    item.maKy,
+                    item.tenKyGanNhat,
+                    item.maKyGanNhat,
                     item.xepLoai,
                     item.nhanXetDanhGia,
                     ...(item.riskReasons || [])
@@ -379,10 +378,10 @@
 
         return data.sort((a, b) => {
             if (filters.sortBy === 'completionAsc') {
-                return numberOrZero(a.tyLeHoanThanh) - numberOrZero(b.tyLeHoanThanh)
+                return numberOrInfinity(a.tyLeHoanThanh) - numberOrInfinity(b.tyLeHoanThanh)
             }
             if (filters.sortBy === 'growthAsc') {
-                return numberOrZero(a.tyLeTangTruongSoVoiDauKy) - numberOrZero(b.tyLeTangTruongSoVoiDauKy)
+                return numberOrInfinity(a.tyLeTangTruongSoVoiDauKy) - numberOrInfinity(b.tyLeTangTruongSoVoiDauKy)
             }
             return b.riskScore - a.riskScore
         })
@@ -537,48 +536,32 @@
     )
 
     const lowCompletionCount = computed(() =>
-        filteredRiskRows.value.filter(item => numberOrZero(item.tyLeHoanThanh) < 70).length
+        filteredRiskRows.value.filter(item => {
+            const value = numberOrNull(item.tyLeHoanThanh)
+            return value !== null && value < 70
+        }).length
     )
 
     const negativeDauKyCount = computed(() =>
-        filteredRiskRows.value.filter(item => numberOrZero(item.tyLeTangTruongSoVoiDauKy) < 0).length
+        filteredRiskRows.value.filter(item => {
+            const value = numberOrNull(item.tyLeTangTruongSoVoiDauKy)
+            return value !== null && value < 0
+        }).length
     )
 
     const negativeCungKyCount = computed(() =>
-        filteredRiskRows.value.filter(item => numberOrZero(item.tyLeTangTruongSoVoiCungKyNamTruoc) < 0).length
+        filteredRiskRows.value.filter(item => {
+            const value = numberOrNull(item.tyLeTangTruongSoVoiCungKyNamTruoc)
+            return value !== null && value < 0
+        }).length
     )
 
-    onMounted(async () => {
-        await Promise.all([fetchKyBaoCao(), fetchRiskData()])
-    })
-
-    async function fetchKyBaoCao() {
-        try {
-            const data = await apiRequest('/KyBaoCaoKPI')
-            kyBaoCaoOptions.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error('Lỗi tải kỳ báo cáo:', error)
-            kyBaoCaoOptions.value = []
-        }
-    }
-
     async function fetchRiskData() {
-        loading.value = true
-        errorMessage.value = ''
-
-        try {
-            const data = filters.kyBaoCaoKPIId
-                ? await apiRequest(`/DanhGiaKPI/by-ky-bao-cao/${filters.kyBaoCaoKPIId}`)
-                : await apiRequest('/DanhGiaKPI')
-
-            rows.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error(error)
-            errorMessage.value = error.message || 'Không thể tải dữ liệu cảnh báo rủi ro chỉ tiêu.'
-            rows.value = []
-        } finally {
-            loading.value = false
-        }
+        reportFilters.kyBaoCaoKPIId = filters.kyBaoCaoKPIId
+        reportFilters.donVi = ''
+        reportFilters.xepLoai = ''
+        reportFilters.keyword = ''
+        await fetchBaoCaoTongHop()
     }
 
     function resetFilters() {
@@ -594,9 +577,9 @@
         let score = 0
         const reasons = []
 
-        const completion = numberOrZero(item.tyLeHoanThanh)
-        const dauKyGrowth = numberOrZero(item.tyLeTangTruongSoVoiDauKy)
-        const cungKyGrowth = numberOrZero(item.tyLeTangTruongSoVoiCungKyNamTruoc)
+        const completion = numberOrNull(item.tyLeHoanThanh)
+        const dauKyGrowth = numberOrNull(item.tyLeTangTruongSoVoiDauKy)
+        const cungKyGrowth = numberOrNull(item.tyLeTangTruongSoVoiCungKyNamTruoc)
         const xepLoai = getDanhGiaStatusCode(item.xepLoai)
         const nhanXet = normalizeText(item.nhanXetDanhGia)
 
@@ -608,31 +591,37 @@
             reasons.push('Xếp loại chưa hoàn thành')
         }
 
-        if (completion < 50) {
-            score += 35
-            reasons.push('% hoàn thành dưới 50%')
-        } else if (completion < 70) {
-            score += 25
-            reasons.push('% hoàn thành dưới 70%')
-        } else if (completion < 85) {
-            score += 10
-            reasons.push('% hoàn thành thấp hơn kỳ vọng')
+        if (completion !== null) {
+            if (completion < 50) {
+                score += 35
+                reasons.push('% hoàn thành dưới 50%')
+            } else if (completion < 70) {
+                score += 25
+                reasons.push('% hoàn thành dưới 70%')
+            } else if (completion < 85) {
+                score += 10
+                reasons.push('% hoàn thành thấp hơn kỳ vọng')
+            }
         }
 
-        if (dauKyGrowth < -20) {
-            score += 20
-            reasons.push('Giảm mạnh so với đầu kỳ')
-        } else if (dauKyGrowth < 0) {
-            score += 12
-            reasons.push('Tăng trưởng âm so với đầu kỳ')
+        if (dauKyGrowth !== null) {
+            if (dauKyGrowth < -20) {
+                score += 20
+                reasons.push('Giảm mạnh so với đầu kỳ')
+            } else if (dauKyGrowth < 0) {
+                score += 12
+                reasons.push('Tăng trưởng âm so với đầu kỳ')
+            }
         }
 
-        if (cungKyGrowth < -20) {
-            score += 16
-            reasons.push('Giảm mạnh so với cùng kỳ năm trước')
-        } else if (cungKyGrowth < 0) {
-            score += 10
-            reasons.push('Tăng trưởng âm so với cùng kỳ năm trước')
+        if (cungKyGrowth !== null) {
+            if (cungKyGrowth < -20) {
+                score += 16
+                reasons.push('Giảm mạnh so với cùng kỳ năm trước')
+            } else if (cungKyGrowth < 0) {
+                score += 10
+                reasons.push('Tăng trưởng âm so với cùng kỳ năm trước')
+            }
         }
 
         const matchedKeywords = warningKeywords.filter(keyword => nhanXet.includes(normalizeText(keyword)))
@@ -692,9 +681,14 @@
             .trim()
     }
 
-    function numberOrZero(value) {
+    function numberOrNull(value) {
         const number = Number(value)
-        return Number.isFinite(number) ? number : 0
+        return Number.isFinite(number) ? number : null
+    }
+
+    function numberOrInfinity(value) {
+        const number = Number(value)
+        return Number.isFinite(number) ? number : Number.POSITIVE_INFINITY
     }
 
     function roundNumber(value) {

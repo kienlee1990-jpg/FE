@@ -7,7 +7,7 @@
                         <i class="bi bi-trophy"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">XẾP HẠNG ĐƠN VỊ THEO CHỈ TIÊU KPI</div>
+                        <div class="gov-title">XẾP HẠNG ĐƠN VỊ THEO CHỈ TIÊU</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
@@ -226,10 +226,14 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         return ma ? `${ma} - ${ten}` : ten
     }
 
+    const flattenedChiTietGiaoRows = computed(() => {
+        return chiTietGiaoRows.value.flatMap(item => flattenChiTietGiao(item))
+    })
+
     const chiTieuOptions = computed(() => {
         if (!filters.dotGiaoChiTieuId) return []
 
-        const filtered = chiTietGiaoRows.value.filter(
+        const filtered = flattenedChiTietGiaoRows.value.filter(
             x => String(x.dotGiaoChiTieuId) === String(filters.dotGiaoChiTieuId)
         )
 
@@ -269,7 +273,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const chiTietByIdMap = computed(() => {
         const map = new Map()
 
-        for (const item of chiTietGiaoRows.value) {
+        for (const item of flattenedChiTietGiaoRows.value) {
             map.set(String(item.id), item)
         }
 
@@ -300,7 +304,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     danhMucChiTieuId: chiTiet.danhMucChiTieuId,
                     tenDanhMucChiTieu: chiTiet.tenDanhMucChiTieu,
                     tenDonViNhanFromGiao: chiTiet.tenDonViNhan,
-                    tenKyBaoCao: ky?.tenKy || ''
+                    tenKyBaoCao: ky?.tenKy || '',
+                    kySort: extractKySortInfo({ ...ky, ...dg })
                 }
             })
             .filter(Boolean)
@@ -345,7 +350,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     danhMucChiTieuId: item.danhMucChiTieuId,
                     dotGiaoChiTieuId: item.dotGiaoChiTieuId,
 
-                    giaTriMucTieu: Number(item.giaTriMucTieu || 0),
+                    giaTriMucTieu: toFiniteNumberOrNull(item.giaTriMucTieu),
                     giaTriDauKy: 0,
                     giaTriCuoiKy: 0,
 
@@ -353,7 +358,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     soBanGhiTyLe: 0,
 
                     kyBaoCaoIds: new Set(),
-                    xepLoaiList: [],
+                    latestItem: item,
 
                     ketQua: item.ketQua || '',
                     nguoiDanhGia: item.nguoiDanhGia || '',
@@ -364,15 +369,15 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
             const target = groupedMap.get(groupKey)
 
-            target.giaTriDauKy += Number(item.giaTriDauKy || 0)
-            target.giaTriCuoiKy += Number(item.giaTriCuoiKy || 0)
+            target.giaTriDauKy += numberOrZero(item.giaTriDauKy)
+            target.giaTriCuoiKy += numberOrZero(item.giaTriCuoiKy)
 
-            if (!target.giaTriMucTieu || target.giaTriMucTieu === 0) {
-                target.giaTriMucTieu = Number(item.giaTriMucTieu || 0)
+            if (target.giaTriMucTieu === null) {
+                target.giaTriMucTieu = toFiniteNumberOrNull(item.giaTriMucTieu)
             }
 
-            const tyLe = Number(item.tyLeHoanThanh)
-            if (!Number.isNaN(tyLe)) {
+            const tyLe = toFiniteNumberOrNull(item.tyLeHoanThanh)
+            if (tyLe !== null) {
                 target.tongTyLeHoanThanh += tyLe
                 target.soBanGhiTyLe += 1
             }
@@ -385,16 +390,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 target.kyBaoCaoIds.add(String(item.kyBaoCaoKPIId))
             }
 
-            if (item.xepLoai) {
-                target.xepLoaiList.push(item.xepLoai)
-            }
-
-            const currentTime = new Date(target.ngayDanhGia || 0).getTime()
-            const itemTime = new Date(
-                item.updatedAt || item.ngayDanhGia || item.createdAt || 0
-            ).getTime()
-
-            if (itemTime > currentTime) {
+            if (compareEvaluationOrder(item, target.latestItem) > 0) {
+                target.latestItem = item
                 target.ketQua = item.ketQua || ''
                 target.nguoiDanhGia = item.nguoiDanhGia || ''
                 target.ngayDanhGia = item.ngayDanhGia || null
@@ -404,21 +401,22 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
         return Array.from(groupedMap.values()).map(item => {
             const tyLeHoanThanh =
-                item.giaTriMucTieu > 0
-                    ? (item.giaTriCuoiKy / item.giaTriMucTieu) * 100
-                    : item.soBanGhiTyLe > 0
-                        ? item.tongTyLeHoanThanh / item.soBanGhiTyLe
-                        : 0
+                item.soBanGhiTyLe > 0
+                    ? item.tongTyLeHoanThanh / item.soBanGhiTyLe
+                    : null
 
-            const xepLoai =
-                item.xepLoaiList.length > 0
-                    ? item.xepLoaiList.sort((a, b) => getXepLoaiScore(b) - getXepLoaiScore(a))[0]
-                    : 'CHUA_DANH_GIA'
+            const latest = item.latestItem || null
+            const xepLoai = latest?.xepLoai || 'CHUA_DANH_GIA'
 
             return {
                 ...item,
+                giaTriMucTieu: item.giaTriMucTieu ?? toFiniteNumberOrNull(latest?.giaTriMucTieu) ?? 0,
                 tyLeHoanThanh,
                 xepLoai,
+                ketQua: latest?.ketQua || item.ketQua || '',
+                nguoiDanhGia: latest?.nguoiDanhGia || item.nguoiDanhGia || '',
+                ngayDanhGia: latest?.ngayDanhGia || item.ngayDanhGia || null,
+                nhanXetDanhGia: latest?.nhanXetDanhGia || item.nhanXetDanhGia || '',
                 soKyBaoCao: item.kyBaoCaoIds.size
             }
         })
@@ -479,12 +477,95 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const avgTyLeHoanThanh = computed(() => {
         const valid = rankedRows.value
             .map(x => Number(x.tyLeHoanThanh))
-            .filter(x => !Number.isNaN(x))
+            .filter(x => Number.isFinite(x))
 
         if (valid.length === 0) return null
 
         return valid.reduce((sum, value) => sum + value, 0) / valid.length
     })
+
+    function flattenChiTietGiao(item, parent = null) {
+        const children = Array.isArray(item?.tieuChiCon || item?.TieuChiCon)
+            ? (item.tieuChiCon || item.TieuChiCon)
+            : []
+
+        const current = {
+            ...item,
+            id: Number(item?.id || item?.Id || 0),
+            dotGiaoChiTieuId: Number(item?.dotGiaoChiTieuId || item?.DotGiaoChiTieuId || parent?.dotGiaoChiTieuId || 0),
+            danhMucChiTieuId: Number(item?.danhMucChiTieuId || item?.DanhMucChiTieuId || 0),
+            tenDanhMucChiTieu: item?.tenDanhMucChiTieu || item?.TenDanhMucChiTieu || item?.tenChiTieu || item?.TenChiTieu || '',
+            tenDonViNhan: item?.tenDonViNhan || item?.TenDonViNhan || parent?.tenDonViNhan || '',
+            tenDonViThucHienChinh: item?.tenDonViThucHienChinh || item?.TenDonViThucHienChinh || parent?.tenDonViThucHienChinh || ''
+        }
+
+        return [
+            current,
+            ...children.flatMap(child => flattenChiTietGiao(child, current))
+        ]
+    }
+
+    function toFiniteNumberOrNull(value) {
+        if (value === null || value === undefined || value === '') return null
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : null
+    }
+
+    function numberOrZero(value) {
+        return toFiniteNumberOrNull(value) ?? 0
+    }
+
+    function compareEvaluationOrder(left, right) {
+        const kyDiff = compareKySort(left?.kySort, right?.kySort)
+        if (kyDiff !== 0) return kyDiff
+
+        const leftDate = parseDate(left?.updatedAt || left?.ngayDanhGia || left?.createdAt)
+        const rightDate = parseDate(right?.updatedAt || right?.ngayDanhGia || right?.createdAt)
+        return (leftDate?.getTime() || 0) - (rightDate?.getTime() || 0)
+    }
+
+    function extractKySortInfo(source) {
+        return {
+            nam: Number(source?.nam || source?.Nam || 0),
+            loaiKy: source?.loaiKy || source?.LoaiKy || '',
+            soKy: Number(source?.soKy || source?.SoKy || 0),
+            kyBaoCaoKPIId: Number(source?.kyBaoCaoKPIId || source?.KyBaoCaoKPIId || source?.id || source?.Id || 0)
+        }
+    }
+
+    function compareKySort(left, right) {
+        const namDiff = Number(left?.nam || 0) - Number(right?.nam || 0)
+        if (namDiff !== 0) return namDiff
+
+        const loaiKyDiff = getLoaiKyOrder(left?.loaiKy) - getLoaiKyOrder(right?.loaiKy)
+        if (loaiKyDiff !== 0) return loaiKyDiff
+
+        const soKyDiff = Number(left?.soKy || 0) - Number(right?.soKy || 0)
+        if (soKyDiff !== 0) return soKyDiff
+
+        return Number(left?.kyBaoCaoKPIId || 0) - Number(right?.kyBaoCaoKPIId || 0)
+    }
+
+    function getLoaiKyOrder(loaiKy) {
+        switch (normalizeText(loaiKy).toUpperCase()) {
+            case 'THANG':
+                return 1
+            case 'QUY':
+                return 2
+            case '6THANG':
+                return 3
+            case 'NAM':
+                return 4
+            default:
+                return 99
+        }
+    }
+
+    function parseDate(value) {
+        if (!value) return null
+        const date = new Date(value)
+        return Number.isNaN(date.getTime()) ? null : date
+    }
 
     function formatPercent(value) {
         if (value === null || value === undefined || value === '') return '-'

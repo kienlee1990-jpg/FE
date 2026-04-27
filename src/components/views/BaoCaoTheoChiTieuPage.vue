@@ -137,7 +137,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         DANH_GIA_TRACKED_STATUS_ORDER,
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
-        getDanhGiaRank
+        getDanhGiaRank,
+        getDanhGiaStatusCode
     } from '../../utils/danhGiaStatusClean.js'
 
     const {
@@ -186,7 +187,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             }
 
             const group = grouped.get(key)
-            const tyLeHoanThanh = toNumber(item.tyLeHoanThanh)
+            const tyLeHoanThanh = toFiniteNumberOrNull(item.tyLeHoanThanh)
+            const statusCode = getDanhGiaStatusCode(item.xepLoai)
 
             group.soDonVi += 1
             group.tongMucTieu += toNumber(item.giaTriMucTieu)
@@ -194,13 +196,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             group.tongCuoiKy += toNumber(item.giaTriCuoiKyGanNhat)
             group.tongCungKyNamTruoc += toNumber(item.giaTriCungKyNamTruocGanNhat)
 
-            if (Number.isFinite(tyLeHoanThanh)) {
+            if (tyLeHoanThanh !== null) {
                 group.tongTyLeHoanThanh += tyLeHoanThanh
                 group.soKpiCoTyLe += 1
             }
 
-            if (Object.prototype.hasOwnProperty.call(group.statusCounts, item.xepLoai)) {
-                group.statusCounts[item.xepLoai] += 1
+            if (Object.prototype.hasOwnProperty.call(group.statusCounts, statusCode)) {
+                group.statusCounts[statusCode] += 1
             }
         })
 
@@ -267,6 +269,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         if (value === null || value === undefined || value === '') return 0
         const parsed = Number(value)
         return Number.isNaN(parsed) ? 0 : parsed
+    }
+
+    function toFiniteNumberOrNull(value) {
+        if (value === null || value === undefined || value === '') return null
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : null
     }
 
     function normalizeText(value) {

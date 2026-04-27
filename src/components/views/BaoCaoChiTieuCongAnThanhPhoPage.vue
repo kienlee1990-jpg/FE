@@ -48,7 +48,7 @@
 
                 <div class="summary-grid">
                     <div class="summary-card">
-                        <span class="label">Tổng số chỉ tiêu</span>
+                        <span class="label">Tổng số chỉ tiêu chính</span>
                         <strong>{{ filteredRows.length }}</strong>
                     </div>
                     <div class="summary-card">
@@ -83,6 +83,18 @@
                     <div v-else class="table-wrapper">
                         <ColumnVisibilityTools table-id="BaoCaoChiTieuCongAnThanhPhoPage-table" />
                         <table id="BaoCaoChiTieuCongAnThanhPhoPage-table" class="managed-table">
+                            <colgroup>
+                                <col class="col-stt" />
+                                <col class="col-danh-muc" />
+                                <col class="col-chi-tieu" />
+                                <col class="col-don-vi" />
+                                <col class="col-dot-giao" />
+                                <col class="col-tan-suat" />
+                                <col class="col-target" />
+                                <col class="col-ky" />
+                                <col class="col-status" />
+                                <col class="col-nhan-xet" />
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>STT</th>
@@ -102,22 +114,47 @@
                                     <td colspan="10" class="empty-cell">Không có dữ liệu</td>
                                 </tr>
 
-                                <tr v-for="(row, index) in filteredRows" :key="row.id">
-                                    <td>{{ index + 1 }}</td>
-                                    <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
-                                    <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
-                                    <td>{{ row.tenDonViNhan || '-' }}</td>
-                                    <td>{{ row.tenDotGiaoChiTieu || row.maDotGiao || '-' }}</td>
-                                    <td>{{ formatKyBaoCao(row.tanSuatBaoCao) }}</td>
-                                    <td class="text-right">{{ formatTarget(row) }}</td>
-                                    <td>{{ row.tenKy || row.maKy || 'Chưa có kỳ đánh giá' }}</td>
-                                    <td>
-                                        <span class="badge" :class="badgeClass(row.xepLoai)">
-                                            {{ getDanhGiaLabel(row.xepLoai) || 'Chưa đánh giá' }}
-                                        </span>
-                                    </td>
-                                    <td>{{ row.nhanXetDanhGia || '-' }}</td>
-                                </tr>
+                                <template v-for="(row, index) in filteredRows" :key="row.id">
+                                    <tr class="parent-row">
+                                        <td>{{ index + 1 }}</td>
+                                        <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
+                                        <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
+                                        <td>{{ row.tenDonViNhan || '-' }}</td>
+                                        <td>{{ row.tenDotGiaoChiTieu || row.maDotGiao || '-' }}</td>
+                                        <td>{{ formatKyBaoCao(row.tanSuatBaoCao) }}</td>
+                                        <td class="text-right">{{ formatTarget(row) }}</td>
+                                        <td>{{ row.tenKy || row.maKy || 'Chưa có kỳ đánh giá' }}</td>
+                                        <td>
+                                            <span class="badge" :class="badgeClass(row.xepLoai)">
+                                                {{ getDanhGiaLabel(row.xepLoai) || 'Chưa đánh giá' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ row.nhanXetDanhGia || '-' }}</td>
+                                    </tr>
+
+                                    <tr v-for="child in row.children || []" :key="`${row.id}-${child.id}`"
+                                        class="child-row">
+                                        <td></td>
+                                        <td>
+                                            <div class="child-title"
+                                                :style="{ paddingLeft: `${12 + ((child.treeLevel || 1) - 1) * 18}px` }">
+                                                <span>{{ child.tenDanhMucChiTieu || child.tenChiTieu || '-' }}</span>
+                                            </div>
+                                        </td>
+                                        <td>{{ child.tenChiTieuGiao || child.tenChiTieuCha || '-' }}</td>
+                                        <td>{{ child.tenDonViNhan || '-' }}</td>
+                                        <td>{{ child.tenDotGiaoChiTieu || child.maDotGiao || '-' }}</td>
+                                        <td>{{ formatKyBaoCao(child.tanSuatBaoCao) }}</td>
+                                        <td class="text-right">{{ formatTarget(child) }}</td>
+                                        <td>{{ child.tenKy || child.maKy || 'Chưa có kỳ đánh giá' }}</td>
+                                        <td>
+                                            <span class="badge child-badge" :class="badgeClass(child.xepLoai)">
+                                                {{ getDanhGiaLabel(child.xepLoai) || 'Chưa đánh giá' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ child.nhanXetDanhGia || '-' }}</td>
+                                    </tr>
+                                </template>
                             </tbody>
                         </table>
                     </div>
@@ -149,9 +186,9 @@
         errorMessage,
         fetchData,
         filters,
+        hierarchicalReportRows,
         kyBaoCaoOptions,
         loading,
-        reportRows,
         resetFilters
     } = useCatpKpiData()
 
@@ -163,7 +200,7 @@
     onMounted(fetchData)
 
     const filteredRows = computed(() => {
-        let rows = [...reportRows.value]
+        let rows = [...hierarchicalReportRows.value]
 
         if (filters.xepLoai) {
             rows = rows.filter(item => getDanhGiaStatusCode(item.xepLoai) === filters.xepLoai)
@@ -171,24 +208,14 @@
 
         if (filters.keyword) {
             const keyword = normalizeText(filters.keyword)
-            rows = rows.filter(item =>
-                [
-                    item.maChiTieu,
-                    item.tenDanhMucChiTieu,
-                    item.tenChiTieu,
-                    item.tenChiTieuGiao,
-                    item.tenChiTieuCha,
-                    item.tenDonViNhan,
-                    item.tenDotGiaoChiTieu,
-                    item.maDotGiao,
-                    item.maKy,
-                    item.tenKy,
-                    item.ketQua,
-                    item.nhanXetDanhGia
-                ]
-                    .filter(Boolean)
-                    .some(value => normalizeText(value).includes(keyword))
-            )
+            rows = rows
+                .map(item => {
+                    const matchedChildren = (item.children || []).filter(child => matchesKeyword(child, keyword))
+                    if (matchesKeyword(item, keyword)) return item
+                    if (matchedChildren.length) return { ...item, children: matchedChildren }
+                    return null
+                })
+                .filter(Boolean)
         }
 
         return rows.sort((left, right) => {
@@ -203,6 +230,25 @@
     const chuaDanhGiaCount = computed(() => {
         return filteredRows.value.filter(item => getDanhGiaStatusCode(item.xepLoai) === 'CHUA_DANH_GIA').length
     })
+
+    function matchesKeyword(item, keyword) {
+        return [
+            item.maChiTieu,
+            item.tenDanhMucChiTieu,
+            item.tenChiTieu,
+            item.tenChiTieuGiao,
+            item.tenChiTieuCha,
+            item.tenDonViNhan,
+            item.tenDotGiaoChiTieu,
+            item.maDotGiao,
+            item.maKy,
+            item.tenKy,
+            item.ketQua,
+            item.nhanXetDanhGia
+        ]
+            .filter(Boolean)
+            .some(value => normalizeText(value).includes(keyword))
+    }
 
     function badgeClass(xepLoai) {
         return getDanhGiaBadgeClass(xepLoai)
@@ -434,26 +480,92 @@
     }
 
     table {
-        width: max-content;
+        width: 1400px;
         min-width: 100%;
         border-collapse: collapse;
-        table-layout: auto;
+        table-layout: fixed;
         border: 1px solid #dcdfe6;
+    }
+
+    .table-wrapper :deep(table.managed-table) {
+        width: 1500px !important;
+        min-width: 1500px !important;
+        table-layout: fixed !important;
+    }
+
+    .table-wrapper :deep(table.managed-table thead th) {
+        white-space: normal !important;
+        overflow: visible !important;
+        overflow-wrap: break-word !important;
+        word-break: normal !important;
+        line-height: 1.25 !important;
+        padding: 10px 8px !important;
+        height: auto !important;
+        vertical-align: middle !important;
+    }
+
+    .col-stt {
+        width: 54px;
+    }
+
+    .col-danh-muc {
+        width: 220px;
+    }
+
+    .col-chi-tieu {
+        width: 180px;
+    }
+
+    .col-don-vi {
+        width: 145px;
+    }
+
+    .col-dot-giao {
+        width: 150px;
+    }
+
+    .col-tan-suat {
+        width: 95px;
+    }
+
+    .col-target {
+        width: 125px;
+    }
+
+    .col-ky {
+        width: 130px;
+    }
+
+    .col-status {
+        width: 140px;
+    }
+
+    .col-nhan-xet {
+        width: 165px;
     }
 
     th,
     td {
         border: 1px solid #dcdfe6;
-        padding: 10px 12px;
-        vertical-align: middle;
+        padding: 8px 10px;
+        vertical-align: top;
         box-sizing: border-box;
-        white-space: nowrap;
+        white-space: normal;
+        overflow: hidden;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.35;
     }
 
     th {
         background: #f5f7fa;
         text-align: center;
         font-weight: 600;
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.25;
     }
 
     .fw-semibold {
@@ -469,6 +581,45 @@
 
     .text-right {
         text-align: right;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    th:nth-child(1),
+    td:nth-child(1),
+    th:nth-child(n + 6),
+    td:nth-child(n + 6) {
+        vertical-align: middle;
+    }
+
+    .parent-row {
+        background: #ffffff;
+        font-weight: 700;
+    }
+
+    .parent-row td {
+        border-top: 2px solid #b8c7dc;
+    }
+
+    .child-row {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 13px;
+    }
+
+    .child-row td {
+        border-color: #e5eaf2;
+    }
+
+    .child-title {
+        min-width: 0;
+        white-space: normal;
+    }
+
+    .child-badge {
+        padding: 4px 8px;
+        font-size: 11px;
     }
 
     .empty-cell {
@@ -498,7 +649,10 @@
         border-radius: 999px;
         font-size: 12px;
         font-weight: 600;
-        white-space: nowrap;
+        max-width: 100%;
+        line-height: 1.25;
+        text-align: center;
+        white-space: normal;
     }
 
     .badge-excellent {

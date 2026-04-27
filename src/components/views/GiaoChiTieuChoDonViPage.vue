@@ -103,6 +103,7 @@
                             <table id="GiaoChiTieuChoDonViPage-table"
                                 class="table table-hover align-middle mb-0 custom-table managed-table assignment-table">
                                 <colgroup>
+                                    <col class="col-stt" />
                                     <col class="col-dot-giao" />
                                     <col class="col-don-vi" />
                                     <col class="col-danh-muc" />
@@ -115,6 +116,7 @@
                                 </colgroup>
                                 <thead>
                                     <tr>
+                                        <th class="text-center">STT</th>
                                         <th>Đợt giao</th>
                                         <th>{{ scopeMeta.receiverLabel }}</th>
                                         <th>Danh mục chỉ tiêu</th>
@@ -127,7 +129,8 @@
                                     </tr>
                                 </thead>
                                 <tbody v-if="isCatpScope">
-                                    <tr v-for="item in filteredItems" :key="item.id">
+                                    <tr v-for="(item, index) in filteredItems" :key="item.id">
+                                        <td class="text-center">{{ index + 1 }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
                                         </td>
@@ -193,7 +196,8 @@
                                     </tr>
                                 </tbody>
                                 <tbody v-else>
-                                    <tr v-for="item in filteredItems" :key="`${item.id}-default`">
+                                    <tr v-for="(item, index) in filteredItems" :key="`${item.id}-default`">
+                                        <td class="text-center">{{ index + 1 }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
                                         </td>
@@ -869,16 +873,16 @@
             icon: 'bi bi-buildings-fill',
             pageTitle: 'GIAO CHỈ TIÊU CHO CÔNG AN THÀNH PHỐ',
             filterHint: 'Tra cứu các bản giao chỉ tiêu cho Công an thành phố Đà Nẵng',
-            listTitle: 'Danh sách giao cho CATP',
+            listTitle: 'Danh sách giao chỉ tiêu cho CATP',
             listHint: 'Theo dõi các chỉ tiêu được giao trực tiếp cho Công an thành phố Đà Nẵng',
             modalHint: 'Chọn đợt giao, chỉ tiêu và khai báo mục tiêu, đầu kỳ cố định cho Công an thành phố Đà Nẵng.',
             receiverLabel: 'Đơn vị nhận'
         },
         PHONG: {
             icon: 'bi bi-building-fill-gear',
-            pageTitle: 'GIAO CHỈ TIÊU CHO ĐƠN VỊ PHÒNG',
+            pageTitle: 'GIAO CHỈ TIÊU CHO CÔNG AN CẤP PHÒNG',
             filterHint: 'Tra cứu các bản giao chỉ tiêu cho khối phòng nghiệp vụ',
-            listTitle: 'Danh sách giao cho Phòng',
+            listTitle: 'Danh sách giao chỉ tiêu cho Phòng',
             listHint: 'Hỗ trợ giao chỉ tiêu đơn và chỉ tiêu phân rã cho các phòng nghiệp vụ',
             modalHint: 'Chọn đợt giao, chỉ tiêu, phòng nhận chỉ tiêu và khai báo mục tiêu, đầu kỳ cố định.',
             receiverLabel: 'Phòng nhận chỉ tiêu'
@@ -887,7 +891,7 @@
             icon: 'bi bi-diagram-3-fill',
             pageTitle: 'GIAO CHỈ TIÊU CHO CADP PHƯỜNG/XÃ',
             filterHint: 'Tra cứu các bản giao chỉ tiêu cho Công an cấp xã, phường',
-            listTitle: 'Danh sách giao cho CADP phường/xã',
+            listTitle: 'Danh sách giao chỉ tiêu cho CADP phường/xã',
             listHint: 'Hỗ trợ giao chỉ tiêu đơn và chỉ tiêu phân rã cho Công an cấp xã, phường',
             modalHint: 'Chọn đợt giao, chỉ tiêu, đơn vị nhận và khai báo mục tiêu, đầu kỳ cố định.',
             receiverLabel: 'Đơn vị nhận'
@@ -2128,7 +2132,11 @@
     }
 
     :deep(.assignment-table) {
-        min-width: 1520px;
+        min-width: 1592px;
+    }
+
+    :deep(.assignment-table .col-stt) {
+        width: 72px;
     }
 
     :deep(.assignment-table .col-dot-giao) {

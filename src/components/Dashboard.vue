@@ -67,7 +67,7 @@
               <div class="stat-card">
                 <span class="stat-label">Tổng chỉ tiêu</span>
                 <strong class="stat-value">{{ filteredRows.length }}</strong>
-                <span class="stat-note">Bản ghi CATP sau khi lọc</span>
+                <span class="stat-note">Chỉ tính chỉ tiêu chính sau khi lọc</span>
               </div>
 
               <div class="stat-card success">
@@ -207,13 +207,13 @@
     errorMessage,
     fetchData: fetchDashboardData,
     filters,
+    hierarchicalReportRows,
     kyBaoCaoOptions,
     loading,
-    reportRows,
     resetFilters
   } = useCatpKpiData()
 
-  const groupedRows = computed(() => reportRows.value)
+  const groupedRows = computed(() => hierarchicalReportRows.value)
 
   const filteredRows = computed(() => {
     let data = [...groupedRows.value]

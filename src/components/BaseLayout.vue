@@ -31,12 +31,12 @@
 
             <nav v-if="hasAnyPermission(['ManageIndicatorCatalog', 'ManageUnitCatalog', 'ManageReportingPeriods'])"
                 class="nav-section">
-                <p v-if="!isCollapsed" class="section-label">Thiết lập nền</p>
+                <p v-if="!isCollapsed" class="section-label">Danh mục hệ thống</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('thietLapNen')">
                         <span class="nav-left">
                             <i class="bi bi-journal-bookmark"></i>
-                            <span v-if="!isCollapsed">Danh mục và kỳ báo cáo</span>
+                            <span v-if="!isCollapsed">Danh mục nền tảng</span>
                         </span>
                         <i v-if="!isCollapsed"
                             :class="['bi', menus.thietLapNen ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
@@ -60,12 +60,12 @@
 
             <nav v-if="hasAnyPermission(['ManageAssignmentWaves', 'AssignTargetsToCatp', 'AssignTargetsToPhong', 'AssignTargetsToCadp', 'ViewAssignedTargetsList'])"
                 class="nav-section">
-                <p v-if="!isCollapsed" class="section-label">Giao và phân bổ</p>
+                <p v-if="!isCollapsed" class="section-label">Giao chỉ tiêu</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('giaoVaPhanBo')">
                         <span class="nav-left">
                             <i class="bi bi-diagram-3"></i>
-                            <span v-if="!isCollapsed">Phân bổ chỉ tiêu</span>
+                            <span v-if="!isCollapsed">Giao và phân bổ chỉ tiêu</span>
                         </span>
                         <i v-if="!isCollapsed"
                             :class="['bi', menus.giaoVaPhanBo ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
@@ -77,15 +77,15 @@
                         </RouterLink>
                         <RouterLink v-if="hasPermission('AssignTargetsToCatp')" to="/giao-cho-catp" class="sub-item"
                             active-class="active">
-                            Bộ giao CATP
+                            Giao chỉ tiêu cho CATP
                         </RouterLink>
                         <RouterLink v-if="hasPermission('AssignTargetsToPhong')" to="/giao-cho-phong" class="sub-item"
                             active-class="active">
-                            Giao Công an cấp Phòng
+                            Giao chỉ tiêu cho Phòng
                         </RouterLink>
                         <RouterLink v-if="hasPermission('AssignTargetsToCadp')" to="/giao-cho-cadp-phuong-xa"
                             class="sub-item" active-class="active">
-                            Giao CADP cấp Phường/Xã
+                            Giao chỉ tiêu cho CADP phường/xã
                         </RouterLink>
                         <RouterLink v-if="hasPermission('ViewAssignedTargetsList')" to="/danh-sach-chi-tieu-duoc-giao"
                             class="sub-item" active-class="active">
@@ -110,7 +110,7 @@
                     <div v-show="menus.theoDoiThucHien && !isCollapsed" class="sub-menu">
                         <RouterLink v-if="hasPermission('SubmitPeriodicReports')" to="/nhap-ket-qua" class="sub-item"
                             active-class="active">
-                            Nhập báo cáo định kỳ
+                            Nhập kết quả báo cáo
                         </RouterLink>
                         <RouterLink v-if="hasPermission('ViewExecutionProgress')" to="/tien-do-thuc-hien"
                             class="sub-item" active-class="active">
@@ -118,15 +118,15 @@
                         </RouterLink>
                         <RouterLink v-if="hasPermission('ViewUnitsPendingUpdate')" to="/don-vi-chua-cap-nhat"
                             class="sub-item" active-class="active">
-                            Đơn vị chưa cập nhật
+                            Đơn vị chưa nộp báo cáo
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav v-if="hasAnyPermission(['ConfigureEvaluationThresholds', 'ViewAccumulatedEvaluation', 'ViewRiskWarnings', 'CompareUnits', 'RankUnits', 'ConfigureCompetitionGroups', 'ViewCompetitionGroups'])"
+            <nav v-if="hasAnyPermission(['ConfigureEvaluationThresholds', 'ViewRiskWarnings', 'CompareUnits', 'RankUnits', 'ConfigureCompetitionGroups', 'ViewCompetitionGroups'])"
                 class="nav-section">
-                <p v-if="!isCollapsed" class="section-label">Đánh giá</p>
+                <p v-if="!isCollapsed" class="section-label">Đánh giá - phân tích</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('danhGia')">
                         <span class="nav-left">
@@ -140,10 +140,6 @@
                         <RouterLink v-if="hasPermission('ConfigureEvaluationThresholds')"
                             to="/cau-hinh-danh-gia-chi-tieu" class="sub-item" active-class="active">
                             Cấu hình ngưỡng đánh giá
-                        </RouterLink>
-                        <RouterLink v-if="hasPermission('ViewAccumulatedEvaluation')" to="/tong-hop-danh-gia-luy-ke"
-                            class="sub-item" active-class="active">
-                            Tổng hợp đánh giá lũy kế
                         </RouterLink>
                         <RouterLink v-if="hasPermission('ViewRiskWarnings')" to="/canh-bao-rui-ro" class="sub-item"
                             active-class="active">
@@ -163,20 +159,20 @@
                         </RouterLink>
                         <RouterLink v-if="hasPermission('ViewCompetitionGroups')" to="/nhom-thi-dua" class="sub-item"
                             active-class="active">
-                            Nhóm thi đua
+                            Xếp hạng nhóm thi đua
                         </RouterLink>
                     </div>
                 </div>
             </nav>
 
-            <nav v-if="hasAnyPermission(['ViewSummaryReports', 'ViewReportsByUnit', 'ViewReportsByIndicator', 'ExportReports'])"
+            <nav v-if="hasAnyPermission(['ViewSummaryReports', 'ViewAccumulatedEvaluation', 'ViewReportsByUnit', 'ViewReportsByIndicator'])"
                 class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Báo cáo</p>
                 <div class="nav-group">
                     <button class="nav-item nav-toggle" @click="toggleMenu('baoCao')">
                         <span class="nav-left">
                             <i class="bi bi-file-earmark-bar-graph"></i>
-                            <span v-if="!isCollapsed">Báo cáo tổng hợp</span>
+                            <span v-if="!isCollapsed">Báo cáo và tổng hợp</span>
                         </span>
                         <i v-if="!isCollapsed"
                             :class="['bi', menus.baoCao ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
@@ -186,6 +182,10 @@
                             active-class="active">
                             Báo cáo tổng hợp
                         </RouterLink>
+                        <RouterLink v-if="hasPermission('ViewAccumulatedEvaluation')" to="/tong-hop-so-lieu-cuoi-ky"
+                            class="sub-item" active-class="active">
+                            Tổng hợp số liệu cuối kỳ
+                        </RouterLink>
                         <RouterLink v-if="hasPermission('ViewReportsByUnit')" to="/bao-cao-theo-don-vi" class="sub-item"
                             active-class="active">
                             Báo cáo theo đơn vị
@@ -193,10 +193,6 @@
                         <RouterLink v-if="hasPermission('ViewReportsByIndicator')" to="/bao-cao-theo-chi-tieu"
                             class="sub-item" active-class="active">
                             Báo cáo theo chỉ tiêu
-                        </RouterLink>
-                        <RouterLink v-if="hasPermission('ExportReports')" to="/xuat-bao-cao" class="sub-item"
-                            active-class="active">
-                            Xuất Excel / PDF
                         </RouterLink>
                     </div>
                 </div>

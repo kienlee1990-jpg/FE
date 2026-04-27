@@ -157,19 +157,30 @@
                         <div v-else class="table-responsive">
                             <ColumnVisibilityTools table-id="DanhMucChiTieuPage-table" />
                             <table id="DanhMucChiTieuPage-table"
-                                class="table table-hover align-middle mb-0 custom-table managed-table">
+                                class="table table-hover align-middle mb-0 custom-table managed-table danh-muc-table">
+                                <colgroup>
+                                    <col class="col-stt" />
+                                    <col class="col-name" />
+                                    <col class="col-unit" />
+                                    <col class="col-type" />
+                                    <col class="col-criteria" />
+                                    <col class="col-status" />
+                                    <col class="col-actions" />
+                                </colgroup>
                                 <thead>
                                     <tr>
+                                        <th class="text-center">STT</th>
                                         <th>Tên danh mục chỉ tiêu</th>
                                         <th>Đơn vị tính</th>
                                         <th>Loại</th>
                                         <th>Bộ tiêu chí</th>
                                         <th>Trạng thái</th>
-                                        <th class="text-center" style="width: 180px">Thao tác</th>
+                                        <th class="text-center">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in items" :key="item.id">
+                                    <tr v-for="(item, index) in items" :key="item.id">
+                                        <td class="text-center">{{ index + 1 }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ item.tenChiTieu }}</div>
                                             <div class="small text-muted mt-1">{{ item.nguonChiTieuLabel }} | {{
@@ -1560,6 +1571,66 @@
         padding: 48px 20px;
         text-align: center;
         color: #64748b;
+    }
+
+    .danh-muc-table {
+        border: 1px solid #dbe3ef;
+        border-collapse: collapse;
+        min-width: 1180px;
+        table-layout: fixed;
+    }
+
+    .danh-muc-table .col-stt {
+        width: 72px;
+    }
+
+    .danh-muc-table .col-name {
+        width: 34%;
+    }
+
+    .danh-muc-table .col-unit {
+        width: 14%;
+    }
+
+    .danh-muc-table .col-type {
+        width: 14%;
+    }
+
+    .danh-muc-table .col-criteria {
+        width: 20%;
+    }
+
+    .danh-muc-table .col-status {
+        width: 130px;
+    }
+
+    .danh-muc-table .col-actions {
+        width: 180px;
+    }
+
+    :deep(.danh-muc-table th),
+    :deep(.danh-muc-table td) {
+        border: 1px solid #dbe3ef;
+        padding: 16px 18px;
+        vertical-align: top;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    :deep(.danh-muc-table thead th) {
+        background: #f8fafc;
+        border-bottom: 2px solid #cbd5e1;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    :deep(.danh-muc-table tbody tr) {
+        border-bottom: 1px solid #dbe3ef;
+    }
+
+    :deep(.danh-muc-table tbody td:first-child),
+    :deep(.danh-muc-table tbody td:last-child) {
+        vertical-align: middle;
     }
 
     .criteria-block,

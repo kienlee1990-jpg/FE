@@ -7,7 +7,7 @@
                         <i class="bi bi-building"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">QUẢN LÝ ĐƠN VỊ</div>
+                        <div class="gov-title">QUẢN LÝ DANH MỤC ĐƠN VỊ</div>
                         <div class="gov-sub"></div>
                     </div>
                 </div>
@@ -150,6 +150,7 @@
                                 class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
+                                        <th class="text-center" style="width: 72px">STT</th>
                                         <th>Tên đơn vị</th>
                                         <th>Loại đơn vị</th>
                                         <th>Đơn vị quản lý trực tiếp</th>
@@ -158,7 +159,8 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in filteredItems" :key="item.id">
+                                    <tr v-for="(item, index) in filteredItems" :key="item.id">
+                                        <td class="text-center">{{ index + 1 }}</td>
                                         <td>{{ item.tenDonVi }}</td>
                                         <td>{{ mapLoaiDonVi(item.loaiDonVi) }}</td>
                                         <td>{{ getParentName(item.donViChaId) }}</td>

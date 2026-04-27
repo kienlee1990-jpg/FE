@@ -258,21 +258,26 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, reactive, ref } from 'vue'
+    import { computed, reactive } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
-    import { apiRequest } from '../../services/api.js'
     import VueApexCharts from 'vue3-apexcharts'
-    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+    import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
     import { countTrackedStatuses, getDanhGiaStatusCode, isKhongHoanThanhStatus } from '../../utils/danhGiaStatusClean.js'
 
     const apexchart = VueApexCharts
-
-    const loading = ref(false)
-    const errorMessage = ref('')
-    const rows = ref([])
-    const kyBaoCaoOptions = ref([])
-    const currentProfile = ref(getStoredUserProfile())
+    const {
+        loading,
+        errorMessage,
+        kyBaoCaoOptions,
+        donViOptions,
+        filteredRows: reportRows,
+        filters: reportFilters,
+        canViewAllUnits,
+        currentUnitName,
+        fetchBaoCaoTongHop
+    } = useBaoCaoTongHopPage()
+    const rows = computed(() => reportRows.value)
 
     const filters = reactive({
         kyBaoCaoKPIId: '',
@@ -281,17 +286,6 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         sortBy: 'avgCompletion',
         keyword: ''
     })
-    const canViewAllUnits = computed(() =>
-        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-    )
-    const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
-
-    const donViOptions = computed(() => {
-        return [...new Set(rows.value.map(item => item.tenDonViNhan).filter(Boolean))].sort((a, b) =>
-            a.localeCompare(b, 'vi')
-        )
-    })
-
     const filteredRows = computed(() => {
         let data = [...rows.value]
 
@@ -307,8 +301,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     item.maChiTieu,
                     item.tenChiTieu,
                     item.xepLoai,
-                    item.tenKy,
-                    item.maKy
+                    item.tenKyGanNhat,
+                    item.maKyGanNhat
                 ]
                     .filter(Boolean)
                     .some(value => normalizeText(String(value)).includes(keyword))
@@ -501,37 +495,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     }))
 
-    onMounted(async () => {
-        await Promise.all([fetchKyBaoCao(), fetchCompareData()])
-    })
-
-    async function fetchKyBaoCao() {
-        try {
-            const data = await apiRequest('/KyBaoCaoKPI')
-            kyBaoCaoOptions.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error('Lỗi tải kỳ báo cáo:', error)
-            kyBaoCaoOptions.value = []
-        }
-    }
-
     async function fetchCompareData() {
-        loading.value = true
-        errorMessage.value = ''
-
-        try {
-            const data = filters.kyBaoCaoKPIId
-                ? await apiRequest(`/DanhGiaKPI/by-ky-bao-cao/${filters.kyBaoCaoKPIId}`)
-                : await apiRequest('/DanhGiaKPI')
-
-            rows.value = Array.isArray(data) ? data : []
-        } catch (error) {
-            console.error(error)
-            errorMessage.value = error.message || 'Không thể tải dữ liệu so sánh đơn vị.'
-            rows.value = []
-        } finally {
-            loading.value = false
-        }
+        reportFilters.kyBaoCaoKPIId = filters.kyBaoCaoKPIId
+        reportFilters.donVi = ''
+        reportFilters.xepLoai = ''
+        reportFilters.keyword = ''
+        await fetchBaoCaoTongHop()
     }
 
     function resetFilters() {
