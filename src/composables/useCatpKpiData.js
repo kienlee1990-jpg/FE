@@ -139,10 +139,10 @@ export function useCatpKpiData() {
         })
       ])
 
-      chiTietRows.value = Array.isArray(chiTietData) ? chiTietData : []
-      danhGiaRows.value = Array.isArray(danhGiaData) ? danhGiaData : []
-      kyBaoCaoOptions.value = Array.isArray(kyData) ? sortKyBaoCaoOptions(kyData) : []
-      theoDoiRows.value = Array.isArray(theoDoiData) ? theoDoiData : []
+      chiTietRows.value = normalizeList(chiTietData)
+      danhGiaRows.value = normalizeList(danhGiaData)
+      kyBaoCaoOptions.value = sortKyBaoCaoOptions(normalizeList(kyData))
+      theoDoiRows.value = normalizeList(theoDoiData)
     } catch (error) {
       console.error(error)
       errorMessage.value = error.message || 'Không thể tải dữ liệu chỉ tiêu Công an thành phố.'
@@ -348,6 +348,15 @@ function groupRowsById(items, getKey) {
     map.get(key).push(item)
     return map
   }, new Map())
+}
+
+function normalizeList(response) {
+  if (Array.isArray(response)) return response
+  if (Array.isArray(response?.data)) return response.data
+  if (Array.isArray(response?.data?.data)) return response.data.data
+  if (Array.isArray(response?.data?.items)) return response.data.items
+  if (Array.isArray(response?.items)) return response.items
+  return []
 }
 
 function resolveEvaluationForAssignment(evaluations, selectedKyBaoCaoKPIId) {

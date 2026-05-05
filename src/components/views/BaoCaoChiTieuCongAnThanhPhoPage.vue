@@ -347,7 +347,7 @@
             'Nhận xét'
         ]
 
-        const csvRows = filteredRows.value.map(item => [
+        const csvRows = flattenRowsForExport(filteredRows.value).map(item => [
             item.maChiTieu || '',
             item.tenChiTieu || '',
             item.tenDonViNhan || '',
@@ -380,6 +380,13 @@
         link.click()
         document.body.removeChild(link)
         window.URL.revokeObjectURL(url)
+    }
+
+    function flattenRowsForExport(rows) {
+        return rows.flatMap(item => [
+            item,
+            ...(item.children || [])
+        ])
     }
 </script>
 

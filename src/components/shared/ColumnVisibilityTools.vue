@@ -84,6 +84,11 @@ const applyVisibility = () => {
 
   rows.forEach(row => {
     const cells = Array.from(row.children)
+    if (cells.length === 1 && Number(cells[0].getAttribute('colspan') || 0) > 1) {
+      cells[0].style.display = ''
+      return
+    }
+
     cells.forEach((cell, index) => {
       cell.style.display = hiddenSet.value.has(index) ? 'none' : ''
     })

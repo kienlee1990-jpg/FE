@@ -1,5 +1,9 @@
 ﻿<template>
-    <div class="app-shell">
+    <template v-if="isNestedLayout">
+        <slot />
+    </template>
+
+    <div v-else class="app-shell">
         <aside :class="['sidebar', { collapsed: isCollapsed }]">
             <div class="brand">
                 <button class="icon-btn" @click="toggleSidebar" aria-label="Thu gọn menu">
@@ -280,13 +284,19 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, onUnmounted, ref, reactive, watch } from 'vue'
+    import { computed, inject, onMounted, onUnmounted, provide, ref, reactive, watch } from 'vue'
     import { RouterLink, useRouter } from 'vue-router'
     import { useAuth } from '../composables/useAuth'
     import { canAccessAnyPermission, canAccessPermission, hasRole, resolveEffectivePermissions } from '../utils/accessControl'
 
     const router = useRouter()
     const { getMe, logout: authLogout, user } = useAuth()
+    const layoutContextKey = 'kpi-tracker-base-layout'
+    const isNestedLayout = inject(layoutContextKey, false)
+
+    if (!isNestedLayout) {
+        provide(layoutContextKey, true)
+    }
 
     const dropdownOpen = ref(false)
     const sidebarCollapsedStorageKey = 'sidebar_collapsed_v2'
@@ -305,10 +315,10 @@
         heThong: false
     }
 
-    const savedMenus = localStorage.getItem(sidebarMenusStorageKey)
+    const savedMenus = readStoredMenus()
     const menus = reactive({
         ...defaultMenus,
-        ...(savedMenus ? JSON.parse(savedMenus) : {})
+        ...savedMenus
     })
 
     watch(
@@ -367,6 +377,18 @@
         menus[menu] = !menus[menu]
     }
 
+    function readStoredMenus() {
+        try {
+            const raw = localStorage.getItem(sidebarMenusStorageKey)
+            if (!raw) return {}
+            const parsed = JSON.parse(raw)
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+        } catch (error) {
+            localStorage.removeItem(sidebarMenusStorageKey)
+            return {}
+        }
+    }
+
     const toggleDropdown = (e) => {
         e.stopPropagation()
         dropdownOpen.value = !dropdownOpen.value
@@ -381,6 +403,8 @@
     }
 
     onMounted(async () => {
+        if (isNestedLayout) return
+
         timer = setInterval(() => {
             now.value = new Date()
         }, 1000)
@@ -398,6 +422,8 @@
     })
 
     onUnmounted(() => {
+        if (isNestedLayout) return
+
         if (timer) clearInterval(timer)
         document.removeEventListener('click', handleClickOutside)
     })
