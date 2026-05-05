@@ -3,7 +3,7 @@
         <aside :class="['sidebar', { collapsed: isCollapsed }]">
             <div class="brand">
                 <button class="icon-btn" @click="toggleSidebar" aria-label="Thu gọn menu">
-                    <img src="/hieu.png" alt="Logo" class="brand-logo" />
+                    <img src="/logo.png" alt="Logo" class="brand-logo" />
                 </button>
                 <div v-if="!isCollapsed" class="brand-text">
                     <h1>CATP ĐÀ NẴNG</h1>
@@ -77,7 +77,7 @@
                         </RouterLink>
                         <RouterLink v-if="hasPermission('AssignTargetsToCatp')" to="/giao-cho-catp" class="sub-item"
                             active-class="active">
-                            Giao chỉ tiêu cho CATP
+                            Bộ giao CATP
                         </RouterLink>
                         <RouterLink v-if="hasPermission('AssignTargetsToPhong')" to="/giao-cho-phong" class="sub-item"
                             active-class="active">
@@ -85,7 +85,7 @@
                         </RouterLink>
                         <RouterLink v-if="hasPermission('AssignTargetsToCadp')" to="/giao-cho-cadp-phuong-xa"
                             class="sub-item" active-class="active">
-                            Giao chỉ tiêu cho CADP phường/xã
+                            Giao chỉ tiêu cho phường/xã
                         </RouterLink>
                         <RouterLink v-if="hasPermission('ViewAssignedTargetsList')" to="/danh-sach-chi-tieu-duoc-giao"
                             class="sub-item" active-class="active">
@@ -235,9 +235,8 @@
             <header class="topbar">
                 <div class="topbar-left">
                     <div class="vn-header">
-                        <img src="/dn.png" alt="Đà Nẵng" class="vn-flag" />
                         <div>
-                            <h2>HỆ THỐNG THEO DÕI CHỈ TIÊU</h2>
+                            <h2>HỆ THỐNG THEO DÕI ĐÁNH GIÁ KẾT QUẢ CHỈ TIÊU</h2>
                             <p>{{ currentDateTime }}</p>
                         </div>
                     </div>
@@ -290,21 +289,23 @@
     const { getMe, logout: authLogout, user } = useAuth()
 
     const dropdownOpen = ref(false)
-    const savedCollapsed = localStorage.getItem('sidebar_collapsed')
+    const sidebarCollapsedStorageKey = 'sidebar_collapsed_v2'
+    const sidebarMenusStorageKey = 'sidebar_menus_v2'
+    const savedCollapsed = localStorage.getItem(sidebarCollapsedStorageKey)
     const isCollapsed = ref(savedCollapsed === null ? true : savedCollapsed === 'true')
     const now = ref(new Date())
     let timer = null
 
     const defaultMenus = {
-        thietLapNen: true,
-        giaoVaPhanBo: true,
-        theoDoiThucHien: true,
-        danhGia: true,
+        thietLapNen: false,
+        giaoVaPhanBo: false,
+        theoDoiThucHien: false,
+        danhGia: false,
         baoCao: false,
         heThong: false
     }
 
-    const savedMenus = localStorage.getItem('sidebar_menus')
+    const savedMenus = localStorage.getItem(sidebarMenusStorageKey)
     const menus = reactive({
         ...defaultMenus,
         ...(savedMenus ? JSON.parse(savedMenus) : {})
@@ -313,13 +314,13 @@
     watch(
         menus,
         (newValue) => {
-            localStorage.setItem('sidebar_menus', JSON.stringify(newValue))
+            localStorage.setItem(sidebarMenusStorageKey, JSON.stringify(newValue))
         },
         { deep: true }
     )
 
     watch(isCollapsed, (value) => {
-        localStorage.setItem('sidebar_collapsed', String(value))
+        localStorage.setItem(sidebarCollapsedStorageKey, String(value))
     })
 
     const userRoleLabel = computed(() => {

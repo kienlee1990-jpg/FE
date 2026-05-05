@@ -9,6 +9,7 @@ export function useCatpKpiData() {
   const errorMessage = ref('')
   const chiTietRows = ref([])
   const danhGiaRows = ref([])
+  const theoDoiRows = ref([])
   const kyBaoCaoOptions = ref([])
   const currentProfile = ref(getStoredUserProfile())
 
@@ -59,18 +60,25 @@ export function useCatpKpiData() {
     return map
   })
 
+  const trackingMap = computed(() => groupRowsById(
+    normalizedTheoDoiRows.value,
+    item => item.chiTietGiaoChiTieuId
+  ))
+
   const reportRows = computed(() => {
-    return targetAssignments.value.map(item => buildReportRow(item, evaluationMap.value, filters.kyBaoCaoKPIId))
+    return targetAssignments.value.map(item =>
+      buildReportRow(item, evaluationMap.value, trackingMap.value, filters.kyBaoCaoKPIId)
+    )
   })
 
   const hierarchicalReportRows = computed(() => {
     return targetAssignments.value
       .filter(item => !item.parentId || !assignmentIds.value.has(item.parentId))
       .map(item => {
-        const row = buildReportRow(item, evaluationMap.value, filters.kyBaoCaoKPIId)
+        const row = buildReportRow(item, evaluationMap.value, trackingMap.value, filters.kyBaoCaoKPIId)
         row.children = collectDescendantAssignments(item.id, childAssignmentsByParentId.value)
           .map(({ assignment, level }) => ({
-            ...buildReportRow(assignment, evaluationMap.value, filters.kyBaoCaoKPIId),
+            ...buildReportRow(assignment, evaluationMap.value, trackingMap.value, filters.kyBaoCaoKPIId),
             treeLevel: level,
             parentId: item.id
           }))
@@ -83,26 +91,65 @@ export function useCatpKpiData() {
       .sort((left, right) => left.localeCompare(right, 'vi'))
   })
 
+  const kyBaoCaoById = computed(() => {
+    return kyBaoCaoOptions.value.reduce((map, item) => {
+      const id = Number(item?.id ?? item?.Id ?? 0)
+      if (id > 0) map.set(id, item)
+      return map
+    }, new Map())
+  })
+
+  const normalizedTheoDoiRows = computed(() => {
+    return theoDoiRows.value
+      .map(item => {
+        const kyBaoCaoKPIId = Number(pick(item, 'kyBaoCaoKPIId', 'KyBaoCaoKPIId') || 0)
+        const kyBaoCao = kyBaoCaoById.value.get(kyBaoCaoKPIId) || null
+
+        return {
+          chiTietGiaoChiTieuId: Number(pick(item, 'chiTietGiaoChiTieuId', 'ChiTietGiaoChiTieuId') || 0),
+          kyBaoCaoKPIId,
+          kySort: extractKySortInfo({ ...kyBaoCao, ...item }),
+          maKy: pick(item, 'maKy', 'MaKy') || pick(kyBaoCao, 'maKy', 'MaKy') || '',
+          tenKy: pick(item, 'tenKy', 'TenKy') || pick(kyBaoCao, 'tenKy', 'TenKy') || '',
+          loaiKy: pick(item, 'loaiKy', 'LoaiKy') || pick(kyBaoCao, 'loaiKy', 'LoaiKy') || '',
+          giaTriDauKy: getNumberOrNull(pick(item, 'giaTriDauKy', 'GiaTriDauKy')),
+          giaTriCuoiKy: getNumberOrNull(pick(item, 'giaTriCuoiKy', 'GiaTriCuoiKy')),
+          giaTriLuyKe: getNumberOrNull(pick(item, 'giaTriLuyKe', 'GiaTriLuyKe')),
+          giaTriPhatSinhLuyKe: getNumberOrNull(pick(item, 'giaTriPhatSinhLuyKe', 'GiaTriPhatSinhLuyKe')),
+          donViTinh: pick(item, 'donViTinh', 'DonViTinh') || '',
+          nhanXet: String(pick(item, 'nhanXet', 'NhanXet') || '').trim(),
+          ngayCapNhat: pick(item, 'ngayCapNhat', 'NgayCapNhat', 'updatedAt', 'UpdatedAt', 'createdAt', 'CreatedAt') || ''
+        }
+      })
+      .filter(item => item.chiTietGiaoChiTieuId > 0)
+  })
+
   async function fetchData() {
     loading.value = true
     errorMessage.value = ''
 
     try {
-      const [chiTietData, danhGiaData, kyData] = await Promise.all([
+      const [chiTietData, danhGiaData, kyData, theoDoiData] = await Promise.all([
         apiRequest('/ChiTietGiaoChiTieu'),
         apiRequest('/DanhGiaKPI'),
-        apiRequest('/KyBaoCaoKPI')
+        apiRequest('/KyBaoCaoKPI'),
+        apiRequest('/TheoDoiThucHienKPI').catch(error => {
+          console.warn('Không thể tải dữ liệu theo dõi KPI cho báo cáo CATP.', error)
+          return []
+        })
       ])
 
       chiTietRows.value = Array.isArray(chiTietData) ? chiTietData : []
       danhGiaRows.value = Array.isArray(danhGiaData) ? danhGiaData : []
       kyBaoCaoOptions.value = Array.isArray(kyData) ? sortKyBaoCaoOptions(kyData) : []
+      theoDoiRows.value = Array.isArray(theoDoiData) ? theoDoiData : []
     } catch (error) {
       console.error(error)
       errorMessage.value = error.message || 'Không thể tải dữ liệu chỉ tiêu Công an thành phố.'
       chiTietRows.value = []
       danhGiaRows.value = []
       kyBaoCaoOptions.value = []
+      theoDoiRows.value = []
     } finally {
       loading.value = false
     }
@@ -187,6 +234,7 @@ function flattenAssignments(items, parent = null) {
       tanSuatBaoCao: item.tanSuatBaoCao || item.TanSuatBaoCao || parent?.tanSuatBaoCao || '',
       tieuChiDanhGia: item.tieuChiDanhGia || item.TieuChiDanhGia || item.loaiChiTieu || item.LoaiChiTieu || '',
       giaTriMucTieu: getNumberOrNull(item.giaTriMucTieu ?? item.GiaTriMucTieu),
+      giaTriDauKyCoDinh: getNumberOrNull(item.giaTriDauKyCoDinh ?? item.GiaTriDauKyCoDinh ?? item.giaTriDauKy ?? item.GiaTriDauKy),
       giaTriMucTieuText: item.giaTriMucTieuText || item.GiaTriMucTieuText || ''
     }
 
@@ -200,9 +248,39 @@ function flattenAssignments(items, parent = null) {
   return flattened
 }
 
-function buildReportRow(item, evaluationMap, selectedKyBaoCaoKPIId) {
+function buildReportRow(item, evaluationMap, trackingMap, selectedKyBaoCaoKPIId) {
   const evaluations = evaluationMap.get(item.id) || []
+  const trackingItems = trackingMap.get(item.id) || []
   const selectedEvaluation = resolveEvaluationForAssignment(evaluations, selectedKyBaoCaoKPIId)
+  const selectedTracking = resolveTrackingForAssignment(trackingItems, selectedKyBaoCaoKPIId)
+  const submittedTrackingItems = resolveSubmittedTrackingItems(trackingItems, selectedTracking, selectedKyBaoCaoKPIId)
+  const giaTriMucTieu = getNumberOrNull(selectedEvaluation?.giaTriMucTieu ?? selectedEvaluation?.GiaTriMucTieu) ?? item.giaTriMucTieu
+  const giaTriDauKy =
+    selectedTracking?.giaTriDauKy ??
+    getNumberOrNull(selectedEvaluation?.giaTriDauKy ?? selectedEvaluation?.GiaTriDauKy) ??
+    item.giaTriDauKyCoDinh
+  const giaTriCuoiKy =
+    selectedTracking?.giaTriCuoiKy ??
+    getNumberOrNull(selectedEvaluation?.giaTriCuoiKy ?? selectedEvaluation?.GiaTriCuoiKy)
+  const giaTriLuyKe = getNumberOrNull(
+    selectedTracking?.giaTriLuyKe ??
+    selectedTracking?.giaTriCuoiKy ??
+    selectedEvaluation?.giaTriLuyKe ??
+    selectedEvaluation?.GiaTriLuyKe ??
+    selectedEvaluation?.giaTriCuoiKy ??
+    selectedEvaluation?.GiaTriCuoiKy
+  )
+  const tyLeHoanThanh =
+    getNumberOrNull(selectedEvaluation?.tyLeHoanThanh ?? selectedEvaluation?.TyLeHoanThanh) ??
+    calculateSimpleProgress(giaTriMucTieu, giaTriLuyKe, item)
+  const soDuMucTieu =
+    getNumberOrNull(selectedEvaluation?.soDuMucTieu ?? selectedEvaluation?.SoDuMucTieu) ??
+    calculateRemainingTarget(giaTriMucTieu, giaTriLuyKe)
+  const soLieuTrungBinhThang = calculateMonthlyAverage(
+    giaTriLuyKe,
+    submittedTrackingItems.length,
+    item.tanSuatBaoCao || selectedTracking?.loaiKy
+  )
 
   return {
     id: item.id,
@@ -217,25 +295,32 @@ function buildReportRow(item, evaluationMap, selectedKyBaoCaoKPIId) {
     tenChiTieuCha: item.tenChiTieuCha,
     tenChiTieuGiao: item.giaTriMucTieuText || item.tenChiTieuCha || '',
     donViTinh: item.donViTinh || '',
+    donViTinhLuyKe: selectedTracking?.donViTinh || item.donViTinh || '',
     tenDonViNhan: item.tenDonViNhan,
     tenDonViThucHienChinh: item.tenDonViThucHienChinh,
     tanSuatBaoCao: item.tanSuatBaoCao,
     tieuChiDanhGia: item.tieuChiDanhGia,
-    giaTriMucTieu: getNumberOrNull(selectedEvaluation?.giaTriMucTieu ?? selectedEvaluation?.GiaTriMucTieu) ?? item.giaTriMucTieu,
+    giaTriMucTieu,
+    giaTriDauKy,
+    giaTriCuoiKy,
+    giaTriLuyKe,
+    soLieuTrungBinhThang,
+    soDuMucTieu,
+    soKyDaTongHop: submittedTrackingItems.length,
     giaTriMucTieuText: item.giaTriMucTieuText,
-    kyBaoCaoKPIId: Number(selectedEvaluation?.kyBaoCaoKPIId || selectedEvaluation?.KyBaoCaoKPIId || 0),
-    maKy: selectedEvaluation?.maKy || selectedEvaluation?.MaKy || '',
-    tenKy: selectedEvaluation?.tenKy || selectedEvaluation?.TenKy || '',
-    loaiKy: selectedEvaluation?.loaiKy || selectedEvaluation?.LoaiKy || '',
+    kyBaoCaoKPIId: Number(selectedEvaluation?.kyBaoCaoKPIId || selectedEvaluation?.KyBaoCaoKPIId || selectedTracking?.kyBaoCaoKPIId || 0),
+    maKy: selectedEvaluation?.maKy || selectedEvaluation?.MaKy || selectedTracking?.maKy || '',
+    tenKy: selectedEvaluation?.tenKy || selectedEvaluation?.TenKy || selectedTracking?.tenKy || '',
+    loaiKy: selectedEvaluation?.loaiKy || selectedEvaluation?.LoaiKy || selectedTracking?.loaiKy || '',
     xepLoai: selectedEvaluation?.xepLoai || selectedEvaluation?.XepLoai || 'CHUA_DANH_GIA',
     ketQua: selectedEvaluation?.ketQua || selectedEvaluation?.KetQua || '',
     nguoiDanhGia: selectedEvaluation?.nguoiDanhGia || selectedEvaluation?.NguoiDanhGia || '',
-    nhanXetDanhGia: selectedEvaluation?.nhanXetDanhGia || selectedEvaluation?.NhanXetDanhGia || '',
-    tyLeHoanThanh: getNumberOrNull(selectedEvaluation?.tyLeHoanThanh || selectedEvaluation?.TyLeHoanThanh),
-    chenhLechSoVoiDauKy: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiDauKy || selectedEvaluation?.ChenhLechSoVoiDauKy),
-    tyLeTangTruongSoVoiDauKy: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiDauKy || selectedEvaluation?.TyLeTangTruongSoVoiDauKy),
-    chenhLechSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiCungKyNamTruoc || selectedEvaluation?.ChenhLechSoVoiCungKyNamTruoc),
-    tyLeTangTruongSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiCungKyNamTruoc || selectedEvaluation?.TyLeTangTruongSoVoiCungKyNamTruoc)
+    nhanXetDanhGia: selectedEvaluation?.nhanXetDanhGia || selectedEvaluation?.NhanXetDanhGia || selectedTracking?.nhanXet || '',
+    tyLeHoanThanh,
+    chenhLechSoVoiDauKy: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiDauKy ?? selectedEvaluation?.ChenhLechSoVoiDauKy),
+    tyLeTangTruongSoVoiDauKy: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiDauKy ?? selectedEvaluation?.TyLeTangTruongSoVoiDauKy),
+    chenhLechSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.chenhLechSoVoiCungKyNamTruoc ?? selectedEvaluation?.ChenhLechSoVoiCungKyNamTruoc),
+    tyLeTangTruongSoVoiCungKyNamTruoc: getNumberOrNull(selectedEvaluation?.tyLeTangTruongSoVoiCungKyNamTruoc ?? selectedEvaluation?.TyLeTangTruongSoVoiCungKyNamTruoc)
   }
 }
 
@@ -277,6 +362,35 @@ function resolveEvaluationForAssignment(evaluations, selectedKyBaoCaoKPIId) {
   return [...evaluations].sort(compareEvaluationOrder).at(-1) || null
 }
 
+function resolveTrackingForAssignment(items, selectedKyBaoCaoKPIId) {
+  if (!Array.isArray(items) || items.length === 0) return null
+
+  if (selectedKyBaoCaoKPIId) {
+    return items.find(item => String(item.kyBaoCaoKPIId || '') === String(selectedKyBaoCaoKPIId)) || null
+  }
+
+  return [...items].sort((left, right) => {
+    const kyDiff = compareKySort(left.kySort, right.kySort)
+    if (kyDiff !== 0) return kyDiff
+
+    const leftDate = parseDate(left.ngayCapNhat)
+    const rightDate = parseDate(right.ngayCapNhat)
+    return (leftDate?.getTime() || 0) - (rightDate?.getTime() || 0)
+  }).at(-1) || null
+}
+
+function resolveSubmittedTrackingItems(items, selectedTracking, selectedKyBaoCaoKPIId) {
+  if (!Array.isArray(items) || items.length === 0) return []
+
+  if (selectedKyBaoCaoKPIId) {
+    const selectedSort = selectedTracking?.kySort
+    if (!selectedSort) return selectedTracking ? [selectedTracking] : []
+    return items.filter(item => compareKySort(item.kySort, selectedSort) <= 0)
+  }
+
+  return items
+}
+
 function compareEvaluationOrder(left, right) {
   const leftKy = extractKySortInfo(left)
   const rightKy = extractKySortInfo(right)
@@ -314,6 +428,14 @@ function getLoaiKyOrder(loaiKy) {
   }
 }
 
+function compareKySort(left, right) {
+  const leftValue = left || { nam: 0, loaiKyOrder: 99, soKy: 0 }
+  const rightValue = right || { nam: 0, loaiKyOrder: 99, soKy: 0 }
+  if (leftValue.nam !== rightValue.nam) return leftValue.nam - rightValue.nam
+  if (leftValue.loaiKyOrder !== rightValue.loaiKyOrder) return leftValue.loaiKyOrder - rightValue.loaiKyOrder
+  return leftValue.soKy - rightValue.soKy
+}
+
 function sortKyBaoCaoOptions(items) {
   return [...items].sort((left, right) => compareEvaluationOrder(left, right))
 }
@@ -328,4 +450,42 @@ function getNumberOrNull(value) {
   if (value === null || value === undefined || value === '') return null
   const number = Number(value)
   return Number.isFinite(number) ? number : null
+}
+
+function calculateSimpleProgress(target, actual, assignment) {
+  if (normalizeText(assignment?.tieuChiDanhGia).toUpperCase() === 'DINH_LUONG_SO_SANH') return null
+  const targetValue = getNumberOrNull(target)
+  const actualValue = getNumberOrNull(actual)
+  if (targetValue === null || targetValue <= 0 || actualValue === null) return null
+  return Math.round((actualValue / targetValue) * 10000) / 100
+}
+
+function calculateMonthlyAverage(value, submittedPeriods, tanSuatBaoCao) {
+  const luyKe = getNumberOrNull(value)
+  const soKy = Number(submittedPeriods || 0)
+  const soThang = soKy * getMonthsPerReportPeriod(tanSuatBaoCao)
+  if (luyKe === null || soThang <= 0) return null
+  return Math.round((luyKe / soThang) * 100) / 100
+}
+
+function getMonthsPerReportPeriod(tanSuatBaoCao) {
+  const code = normalizeText(tanSuatBaoCao).toUpperCase()
+  if (code.includes('QUY')) return 3
+  if (code.includes('6') || code.includes('SAU_THANG')) return 6
+  if (code.includes('NAM')) return 12
+  return 1
+}
+
+function calculateRemainingTarget(target, actual) {
+  const targetValue = getNumberOrNull(target)
+  const actualValue = getNumberOrNull(actual)
+  if (targetValue === null || actualValue === null) return null
+  return Math.round((targetValue - actualValue) * 100) / 100
+}
+
+function pick(source, ...keys) {
+  for (const key of keys) {
+    if (source?.[key] !== undefined && source?.[key] !== null) return source[key]
+  }
+  return undefined
 }

@@ -69,12 +69,12 @@
                             <strong>{{ formatPercent(averageCompletion) }}</strong>
                         </div>
                         <div class="summary-card">
-                            <span class="label">Hoàn thành vượt mức</span>
-                            <strong>{{ thongKe.HOAN_THANH_VUOT_MUC }}</strong>
+                            <span class="label">Hoàn thành</span>
+                            <strong>{{ (thongKe.HOAN_THANH || 0) + (thongKe.HOAN_THANH_VUOT_MUC || 0) }}</strong>
                         </div>
                         <div class="summary-card">
-                            <span class="label">Hoàn thành</span>
-                            <strong>{{ thongKe.HOAN_THANH }}</strong>
+                            <span class="label">Vượt chỉ tiêu</span>
+                            <strong>{{ thongKe.HOAN_THANH_VUOT_MUC }}</strong>
                         </div>
                         <div class="summary-card">
                             <span class="label">Chưa hoàn thành</span>
@@ -90,8 +90,11 @@
                         <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                         <div v-else class="table-wrapper">
-                            <ColumnVisibilityTools table-id="BaoCaoTongHopPage-table" />
-                            <table id="BaoCaoTongHopPage-table" class="managed-table">
+                            <ColumnVisibilityTools
+                                table-id="BaoCaoTongHopPage-table-v2"
+                                :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 13]"
+                            />
+                            <table id="BaoCaoTongHopPage-table-v2" class="managed-table">
                                 <colgroup>
                                     <col class="col-stt" />
                                     <col class="col-danh-muc" />
@@ -99,6 +102,8 @@
                                     <col class="col-don-vi" />
                                     <col class="col-dot-giao" />
                                     <col class="col-ky" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
                                     <col class="col-number" />
                                     <col class="col-number" />
                                     <col class="col-number" />
@@ -111,20 +116,22 @@
                                         <th>STT</th>
                                         <th>Danh mục chỉ tiêu</th>
                                         <th>Chỉ tiêu giao</th>
-                                        <th>Đơn vị</th>
+                                        <th>Đơn vị nhận</th>
                                         <th>Đợt giao chỉ tiêu</th>
                                         <th>Kỳ gần nhất</th>
                                         <th>Giá trị mục tiêu</th>
+                                        <th>Giá trị đầu kỳ</th>
                                         <th>Cuối kỳ gần nhất</th>
-                                        <th>Lũy kế hiện tại</th>
+                                        <th>Số liệu lũy kế</th>
+                                        <th>Số liệu trung bình tháng</th>
                                         <th>Số dư mục tiêu</th>
-                                        <th>% hoàn thành</th>
+                                        <th>Kết quả thực tế</th>
                                         <th>Đánh giá</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="12" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="14" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
 
                                     <template v-for="(row, index) in filteredRows" :key="row.groupKey">
@@ -138,10 +145,15 @@
                                             <td class="text-right">{{ row.isComparisonTarget ?
                                                 formatPercent(row.giaTriMucTieu) : formatNumber(row.giaTriMucTieu,
                                                 row.donViTinh) }}</td>
+                                            <td class="text-right">{{ row.isComparisonTarget ?
+                                                formatPercent(row.giaTriDauKyGanNhat) : formatNumber(row.giaTriDauKyGanNhat,
+                                                row.donViTinh) }}</td>
                                             <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat,
                                                 row.donViTinh) }}</td>
                                             <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai,
-                                                row.donViTinh) }}</td>
+                                                row.donViTinhLuyKe || row.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatNumber(row.soLieuTrungBinhThang,
+                                                row.donViTinhLuyKe || row.donViTinh) }}</td>
                                             <td class="text-right">{{ row.isComparisonTarget ?
                                                 formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu,
                                                 row.donViTinh) }}</td>
@@ -169,10 +181,15 @@
                                             <td class="text-right">{{ child.isComparisonTarget ?
                                                 formatPercent(child.giaTriMucTieu) : formatNumber(child.giaTriMucTieu,
                                                 child.donViTinh) }}</td>
+                                            <td class="text-right">{{ child.isComparisonTarget ?
+                                                formatPercent(child.giaTriDauKyGanNhat) : formatNumber(child.giaTriDauKyGanNhat,
+                                                child.donViTinh) }}</td>
                                             <td class="text-right">{{ formatNumber(child.giaTriCuoiKyGanNhat,
                                                 child.donViTinh) }}</td>
                                             <td class="text-right">{{ formatNumber(child.giaTriLuyKeHienTai,
-                                                child.donViTinh) }}</td>
+                                                child.donViTinhLuyKe || child.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatNumber(child.soLieuTrungBinhThang,
+                                                child.donViTinhLuyKe || child.donViTinh) }}</td>
                                             <td class="text-right">{{ child.isComparisonTarget ?
                                                 formatPercent(child.soDuMucTieu) : formatNumber(child.soDuMucTieu,
                                                 child.donViTinh) }}</td>
@@ -402,8 +419,8 @@
     }
 
     .table-wrapper :deep(table.managed-table) {
-        width: 1760px !important;
-        min-width: 1760px !important;
+        width: 2000px !important;
+        min-width: 2000px !important;
         table-layout: fixed !important;
     }
 

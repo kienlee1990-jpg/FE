@@ -94,6 +94,7 @@ export function useBaoCaoTongHopPage() {
           giaTriCuoiKy: getNumberOrNull(pick(rawItem, 'giaTriCuoiKy', 'GiaTriCuoiKy')),
           giaTriLuyKe: getNumberOrNull(pick(rawItem, 'giaTriLuyKe', 'GiaTriLuyKe')),
           giaTriPhatSinhLuyKe: getNumberOrNull(pick(rawItem, 'giaTriPhatSinhLuyKe', 'GiaTriPhatSinhLuyKe')),
+          donViTinh: pick(rawItem, 'donViTinh', 'DonViTinh') || '',
           nhanXet: String(pick(rawItem, 'nhanXet', 'NhanXet') || '').trim()
         }
       })
@@ -279,6 +280,11 @@ export function useBaoCaoTongHopPage() {
       latestTheoDoi?.giaTriCuoiKy ??
       latestDanhGia?.giaTriCuoiKy ??
       (giaTriThucHienCongDon !== 0 ? giaTriThucHienCongDon : null)
+    const soLieuTrungBinhThang = calculateMonthlyAverage(
+      giaTriLuyKeHienTai,
+      theoDoiItems.length,
+      assignment.tanSuatBaoCao || latestKy?.loaiKy
+    )
 
     const metricSnapshot = calculateTargetProgress(
       { ...assignment, giaTriMucTieu },
@@ -325,8 +331,10 @@ export function useBaoCaoTongHopPage() {
       ngayBatDauDotGiao: assignment.ngayBatDauDotGiao || '',
       ngayKetThucDotGiao: assignment.ngayKetThucDotGiao || '',
       trangThaiDotGiao: assignment.trangThaiDotGiao || '',
+      tanSuatBaoCao: assignment.tanSuatBaoCao || '',
       tieuChiDanhGia: assignment.tieuChiDanhGia || '',
       donViTinh: assignment.donViTinh || '',
+      donViTinhLuyKe: latestTheoDoi?.donViTinh || assignment.donViTinh || '',
       giaTriMucTieu,
       isComparisonTarget: metricSnapshot.isComparisonTarget,
       giaTriDauKyGanNhat,
@@ -338,6 +346,7 @@ export function useBaoCaoTongHopPage() {
       chenhLechSoVoiCungKyNamTruoc,
       tyLeTangTruongSoVoiCungKyNamTruoc,
       giaTriLuyKeHienTai,
+      soLieuTrungBinhThang,
       tyLeHoanThanh,
       soDuMucTieu: metricSnapshot.soDuMucTieu,
       maKyGanNhat: latestKy?.maKy || '-',
@@ -574,6 +583,22 @@ export function useBaoCaoTongHopPage() {
       : nguongDat - tyLeThucTe
   }
 
+  function calculateMonthlyAverage(giaTriLuyKe, soKyDaNop, tanSuatBaoCao) {
+    const luyKe = getNumberOrNull(giaTriLuyKe)
+    const soKy = Number(soKyDaNop || 0)
+    const soThang = soKy * getMonthsPerReportPeriod(tanSuatBaoCao)
+    if (luyKe === null || soThang <= 0) return null
+    return roundNumber(luyKe / soThang)
+  }
+
+  function getMonthsPerReportPeriod(tanSuatBaoCao) {
+    const code = normalizeCode(tanSuatBaoCao)
+    if (code.includes('QUY')) return 3
+    if (code.includes('6') || code.includes('SAU_THANG')) return 6
+    if (code.includes('NAM')) return 12
+    return 1
+  }
+
   function isComparisonCriterion(assignment) {
     return normalizeCode(assignment?.tieuChiDanhGia || assignment?.loaiChiTieu) === 'DINH_LUONG_SO_SANH'
   }
@@ -714,6 +739,11 @@ export function useBaoCaoTongHopPage() {
         '-',
       loaiChiTieu:
         normalizeCode(pick(rawItem, 'loaiChiTieu', 'LoaiChiTieu') || pick(danhMuc, 'loaiChiTieu', 'LoaiChiTieu')) || '',
+      tanSuatBaoCao:
+        pick(rawItem, 'tanSuatBaoCao', 'TanSuatBaoCao') ||
+        pick(danhMuc, 'tanSuatBaoCao', 'TanSuatBaoCao') ||
+        parentAssignment?.tanSuatBaoCao ||
+        '',
       tieuChiDanhGia:
         normalizeCode(pick(rawItem, 'tieuChiDanhGia', 'TieuChiDanhGia') || pick(danhMuc, 'tieuChiDanhGia', 'TieuChiDanhGia')) || '',
       kieuSoSanh: normalizeCode(pick(rawItem, 'kieuSoSanh', 'KieuSoSanh')) || '',
@@ -885,7 +915,7 @@ export function useBaoCaoTongHopPage() {
       'Mã chỉ tiêu',
       'Tên danh mục chỉ tiêu',
       'Chỉ tiêu giao',
-      'Đơn vị',
+      'Đơn vị nhận',
       'Mã đợt giao',
       'Đợt giao chỉ tiêu',
       'Năm áp dụng đợt giao',
@@ -900,11 +930,13 @@ export function useBaoCaoTongHopPage() {
       'Năm',
       'Số kỳ',
       'Giá trị mục tiêu',
+      'Giá trị đầu kỳ',
       'Giá trị thực hiện cộng dồn',
       'Giá trị cuối kỳ gần nhất',
-      'Lũy kế hiện tại',
+      'Số liệu lũy kế',
+      'Số liệu trung bình tháng',
       'Số dư mục tiêu',
-      '% hoàn thành',
+      'Kết quả thực tế',
       'Đánh giá',
       'Kết quả',
       'Nhận xét đánh giá',
@@ -930,9 +962,11 @@ export function useBaoCaoTongHopPage() {
       item.namGanNhat ?? '',
       item.soKyGanNhat ?? '',
       item.giaTriMucTieu ?? '',
+      item.giaTriDauKyGanNhat ?? '',
       item.giaTriThucHienCongDon ?? '',
       item.giaTriCuoiKyGanNhat ?? '',
       item.giaTriLuyKeHienTai ?? '',
+      item.soLieuTrungBinhThang ?? '',
       item.soDuMucTieu ?? '',
       item.tyLeHoanThanh ?? '',
       getDanhGiaLabel(item.xepLoai) || '',

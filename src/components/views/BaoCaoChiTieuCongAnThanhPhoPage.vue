@@ -52,12 +52,12 @@
                         <strong>{{ filteredRows.length }}</strong>
                     </div>
                     <div class="summary-card">
-                        <span class="label">Hoàn thành vượt mức</span>
-                        <strong>{{ thongKe.HOAN_THANH_VUOT_MUC }}</strong>
+                        <span class="label">Hoàn thành</span>
+                        <strong>{{ (thongKe.HOAN_THANH || 0) + (thongKe.HOAN_THANH_VUOT_MUC || 0) }}</strong>
                     </div>
                     <div class="summary-card">
-                        <span class="label">Hoàn thành</span>
-                        <strong>{{ thongKe.HOAN_THANH }}</strong>
+                        <span class="label">Vượt chỉ tiêu</span>
+                        <strong>{{ thongKe.HOAN_THANH_VUOT_MUC }}</strong>
                     </div>
                     <div class="summary-card">
                         <span class="label">Chưa hoàn thành</span>
@@ -81,8 +81,11 @@
                     <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                     <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                     <div v-else class="table-wrapper">
-                        <ColumnVisibilityTools table-id="BaoCaoChiTieuCongAnThanhPhoPage-table" />
-                        <table id="BaoCaoChiTieuCongAnThanhPhoPage-table" class="managed-table">
+                        <ColumnVisibilityTools
+                            table-id="BaoCaoChiTieuCongAnThanhPhoPage-table-v2"
+                            :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 14]"
+                        />
+                        <table id="BaoCaoChiTieuCongAnThanhPhoPage-table-v2" class="managed-table">
                             <colgroup>
                                 <col class="col-stt" />
                                 <col class="col-danh-muc" />
@@ -91,6 +94,12 @@
                                 <col class="col-dot-giao" />
                                 <col class="col-tan-suat" />
                                 <col class="col-target" />
+                                <col class="col-number" />
+                                <col class="col-number" />
+                                <col class="col-number" />
+                                <col class="col-number" />
+                                <col class="col-number" />
+                                <col class="col-percent" />
                                 <col class="col-ky" />
                                 <col class="col-status" />
                                 <col class="col-nhan-xet" />
@@ -102,16 +111,22 @@
                                     <th>Chỉ tiêu giao</th>
                                     <th>Đơn vị nhận</th>
                                     <th>Đợt giao chỉ tiêu</th>
-                                    <th>Kỳ báo cáo</th>
+                                    <th>Tần suất báo cáo</th>
                                     <th>Giá trị mục tiêu</th>
-                                    <th>Kỳ đánh giá</th>
-                                    <th>Kết quả đánh giá</th>
+                                    <th>Giá trị đầu kỳ</th>
+                                    <th>Cuối kỳ gần nhất</th>
+                                    <th>Số liệu lũy kế</th>
+                                    <th>Số liệu trung bình tháng</th>
+                                    <th>Số dư mục tiêu</th>
+                                    <th>Kết quả thực tế</th>
+                                    <th>Kỳ gần nhất</th>
+                                    <th>Đánh giá</th>
                                     <th>Nhận xét</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-if="filteredRows.length === 0">
-                                    <td colspan="10" class="empty-cell">Không có dữ liệu</td>
+                                    <td colspan="16" class="empty-cell">Không có dữ liệu</td>
                                 </tr>
 
                                 <template v-for="(row, index) in filteredRows" :key="row.id">
@@ -123,6 +138,14 @@
                                         <td>{{ row.tenDotGiaoChiTieu || row.maDotGiao || '-' }}</td>
                                         <td>{{ formatKyBaoCao(row.tanSuatBaoCao) }}</td>
                                         <td class="text-right">{{ formatTarget(row) }}</td>
+                                        <td class="text-right">{{ formatMetricValue(row, row.giaTriDauKy) }}</td>
+                                        <td class="text-right">{{ formatMetricValue(row, row.giaTriCuoiKy) }}</td>
+                                        <td class="text-right">{{ formatNumberValue(row.giaTriLuyKe,
+                                            row.donViTinhLuyKe || row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumberValue(row.soLieuTrungBinhThang,
+                                            row.donViTinhLuyKe || row.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatMetricValue(row, row.soDuMucTieu) }}</td>
+                                        <td class="text-right">{{ formatPercentValue(row.tyLeHoanThanh) }}</td>
                                         <td>{{ row.tenKy || row.maKy || 'Chưa có kỳ đánh giá' }}</td>
                                         <td>
                                             <span class="badge" :class="badgeClass(row.xepLoai)">
@@ -146,6 +169,14 @@
                                         <td>{{ child.tenDotGiaoChiTieu || child.maDotGiao || '-' }}</td>
                                         <td>{{ formatKyBaoCao(child.tanSuatBaoCao) }}</td>
                                         <td class="text-right">{{ formatTarget(child) }}</td>
+                                        <td class="text-right">{{ formatMetricValue(child, child.giaTriDauKy) }}</td>
+                                        <td class="text-right">{{ formatMetricValue(child, child.giaTriCuoiKy) }}</td>
+                                        <td class="text-right">{{ formatNumberValue(child.giaTriLuyKe,
+                                            child.donViTinhLuyKe || child.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatNumberValue(child.soLieuTrungBinhThang,
+                                            child.donViTinhLuyKe || child.donViTinh) }}</td>
+                                        <td class="text-right">{{ formatMetricValue(child, child.soDuMucTieu) }}</td>
+                                        <td class="text-right">{{ formatPercentValue(child.tyLeHoanThanh) }}</td>
                                         <td>{{ child.tenKy || child.maKy || 'Chưa có kỳ đánh giá' }}</td>
                                         <td>
                                             <span class="badge child-badge" :class="badgeClass(child.xepLoai)">
@@ -265,14 +296,50 @@
         return map[value] || value || '-'
     }
 
+    function formatMetricValue(row, value) {
+        if (isComparisonTarget(row)) {
+            return formatPercentValue(value)
+        }
+
+        return formatNumberValue(value, row?.donViTinh)
+    }
+
+    function formatNumberValue(value, donViTinh = '') {
+        if (value === null || value === undefined || value === '') return '-'
+        const formatted = Number(value).toLocaleString('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        })
+        const unit = String(donViTinh || '').trim()
+        return unit ? `${formatted} ${unit}` : formatted
+    }
+
+    function formatPercentValue(value) {
+        if (value === null || value === undefined || value === '') return '-'
+        return `${Number(value).toLocaleString('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        })}%`
+    }
+
+    function isComparisonTarget(row) {
+        return normalizeText(row?.tieuChiDanhGia).toUpperCase() === 'DINH_LUONG_SO_SANH'
+    }
+
     function exportCsv() {
         const headers = [
             'Mã chỉ tiêu',
             'Tên chỉ tiêu',
             'Đơn vị nhận',
             'Đợt giao chỉ tiêu',
-            'Kỳ báo cáo',
+            'Tần suất báo cáo',
             'Giá trị mục tiêu',
+            'Giá trị đầu kỳ',
+            'Cuối kỳ gần nhất',
+            'Số liệu lũy kế',
+            'Số liệu trung bình tháng',
+            'Số dư mục tiêu',
+            'Kết quả thực tế',
             'Mã kỳ',
             'Tên kỳ',
             'Xếp loại',
@@ -287,6 +354,12 @@
             item.tenDotGiaoChiTieu || item.maDotGiao || '',
             formatKyBaoCao(item.tanSuatBaoCao),
             formatTarget(item),
+            item.giaTriDauKy ?? '',
+            item.giaTriCuoiKy ?? '',
+            item.giaTriLuyKe ?? '',
+            item.soLieuTrungBinhThang ?? '',
+            item.soDuMucTieu ?? '',
+            item.tyLeHoanThanh ?? '',
             item.maKy || '',
             item.tenKy || '',
             getDanhGiaLabel(item.xepLoai) || '',
@@ -480,7 +553,7 @@
     }
 
     table {
-        width: 1400px;
+        width: 2040px;
         min-width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
@@ -488,8 +561,8 @@
     }
 
     .table-wrapper :deep(table.managed-table) {
-        width: 1500px !important;
-        min-width: 1500px !important;
+        width: 2140px !important;
+        min-width: 2140px !important;
         table-layout: fixed !important;
     }
 
@@ -530,6 +603,14 @@
 
     .col-target {
         width: 125px;
+    }
+
+    .col-number {
+        width: 120px;
+    }
+
+    .col-percent {
+        width: 115px;
     }
 
     .col-ky {

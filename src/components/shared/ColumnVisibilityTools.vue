@@ -29,12 +29,17 @@ const props = defineProps({
   tableId: {
     type: String,
     required: true
+  },
+  defaultVisibleColumns: {
+    type: Array,
+    default: () => []
   }
 })
 
 const open = ref(false)
 const columns = ref([])
 const visibleColumns = ref([])
+const initialized = ref(false)
 
 const hiddenSet = computed(() => new Set(columns.value.map(column => column.index).filter(index => !visibleColumns.value.includes(index))))
 
@@ -50,10 +55,16 @@ const collectColumns = () => {
     label: headerCell.textContent?.trim() || `Cột ${index + 1}`
   }))
 
-  if (!visibleColumns.value.length || visibleColumns.value.length > columns.value.length) {
-    visibleColumns.value = columns.value.map(column => column.index)
-  } else {
-    const existing = new Set(columns.value.map(column => column.index))
+  const allColumnIndexes = columns.value.map(column => column.index)
+  const existing = new Set(allColumnIndexes)
+
+  if (!initialized.value) {
+    const defaultColumns = props.defaultVisibleColumns
+      .map(index => Number(index))
+      .filter(index => existing.has(index))
+    visibleColumns.value = defaultColumns.length ? defaultColumns : allColumnIndexes
+    initialized.value = true
+  } else if (visibleColumns.value.length > columns.value.length) {
     visibleColumns.value = visibleColumns.value.filter(index => existing.has(index))
   }
 
@@ -65,6 +76,12 @@ const applyVisibility = () => {
   if (!table) return
 
   const rows = Array.from(table.querySelectorAll('tr'))
+  const cols = Array.from(table.querySelectorAll('colgroup col'))
+
+  cols.forEach((col, index) => {
+    col.style.display = hiddenSet.value.has(index) ? 'none' : ''
+  })
+
   rows.forEach(row => {
     const cells = Array.from(row.children)
     cells.forEach((cell, index) => {
