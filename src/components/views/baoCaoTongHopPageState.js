@@ -296,6 +296,13 @@ export function useBaoCaoTongHopPage() {
     const tyLeHoanThanh =
       latestDanhGia?.tyLeHoanThanh ??
       metricSnapshot.tyLeHoanThanh
+    const ketQuaThucTeSnapshot = calculateActualResultSnapshot(
+      assignment,
+      latestTheoDoi,
+      theoDoiItems,
+      giaTriLuyKeHienTai,
+      latestDanhGia
+    )
 
     const xepLoai = latestDanhGia?.xepLoai || 'CHUA_DANH_GIA'
     const ketQuaDanhGia = latestDanhGia?.ketQua || getDanhGiaLabel(xepLoai) || ''
@@ -347,6 +354,8 @@ export function useBaoCaoTongHopPage() {
       tyLeTangTruongSoVoiCungKyNamTruoc,
       giaTriLuyKeHienTai,
       soLieuTrungBinhThang,
+      ketQuaThucTe: ketQuaThucTeSnapshot.value,
+      ketQuaThucTeLoai: ketQuaThucTeSnapshot.type,
       tyLeHoanThanh,
       soDuMucTieu: metricSnapshot.soDuMucTieu,
       maKyGanNhat: latestKy?.maKy || '-',
@@ -581,6 +590,50 @@ export function useBaoCaoTongHopPage() {
     return normalizeCode(assignment?.chieuSoSanh) === 'GIAM'
       ? tyLeThucTe - nguongDat
       : nguongDat - tyLeThucTe
+  }
+
+  function calculateActualResultSnapshot(assignment, latestTheoDoi, theoDoiItems, giaTriLuyKeHienTai, latestDanhGia) {
+    if (isComparisonCriterion(assignment)) {
+      if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') {
+        return {
+          value: calculateComparisonActualPercent(assignment, latestTheoDoi, theoDoiItems),
+          type: 'PERCENT_RATIO'
+        }
+      }
+
+      const giaTriMoc = resolveComparisonBenchmark(assignment, latestTheoDoi, theoDoiItems)
+      const giaTriLuyKe = getNumberOrNull(latestTheoDoi?.giaTriLuyKe)
+      if (giaTriMoc !== null && giaTriMoc !== 0 && giaTriLuyKe !== null) {
+        return {
+          value: roundNumber(((giaTriLuyKe - giaTriMoc) / giaTriMoc) * 100),
+          type: 'PERCENT_CHANGE'
+        }
+      }
+
+      return {
+        value: resolveEvaluationComparisonRate(assignment, latestDanhGia),
+        type: 'PERCENT_CHANGE'
+      }
+    }
+
+    return {
+      value: getNumberOrNull(giaTriLuyKeHienTai),
+      type: 'NUMBER'
+    }
+  }
+
+  function resolveEvaluationComparisonRate(assignment, latestDanhGia) {
+    if (!latestDanhGia) return null
+
+    const loaiMoc = normalizeCode(assignment?.loaiMocSoSanh)
+    if (loaiMoc === 'DAU_KY') {
+      return getNumberOrNull(latestDanhGia.tyLeTangTruongSoVoiDauKy)
+    }
+    if (loaiMoc === 'CUNG_KY') {
+      return getNumberOrNull(latestDanhGia.tyLeTangTruongSoVoiCungKyNamTruoc)
+    }
+
+    return null
   }
 
   function calculateMonthlyAverage(giaTriLuyKe, soKyDaNop, tanSuatBaoCao) {
@@ -869,6 +922,22 @@ export function useBaoCaoTongHopPage() {
     return `${parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`
   }
 
+  function formatActualResult(item) {
+    if (!item) return '-'
+    if (item.ketQuaThucTeLoai === 'PERCENT_CHANGE') return formatChangePercent(item.ketQuaThucTe)
+    if (item.ketQuaThucTeLoai === 'PERCENT_RATIO') return formatPercent(item.ketQuaThucTe)
+    return formatNumber(item.ketQuaThucTe, item.donViTinhLuyKe || item.donViTinh)
+  }
+
+  function formatChangePercent(value) {
+    if (value === null || value === undefined || value === '') return '-'
+    const parsed = parseNumber(value)
+    if (!Number.isFinite(parsed)) return '-'
+    if (parsed > 0) return `Tăng ${formatPercent(Math.abs(parsed))}`
+    if (parsed < 0) return `Giảm ${formatPercent(Math.abs(parsed))}`
+    return 'Không đổi 0%'
+  }
+
   function badgeClass(xepLoai) {
     return getDanhGiaBadgeClass(xepLoai)
   }
@@ -937,6 +1006,7 @@ export function useBaoCaoTongHopPage() {
       'Số liệu trung bình tháng',
       'Số dư mục tiêu',
       'Kết quả thực tế',
+      '% hoàn thành',
       'Đánh giá',
       'Kết quả',
       'Nhận xét đánh giá',
@@ -968,6 +1038,7 @@ export function useBaoCaoTongHopPage() {
       item.giaTriLuyKeHienTai ?? '',
       item.soLieuTrungBinhThang ?? '',
       item.soDuMucTieu ?? '',
+      formatActualResult(item),
       item.tyLeHoanThanh ?? '',
       getDanhGiaLabel(item.xepLoai) || '',
       item.ketQuaDanhGia || '',
@@ -1012,6 +1083,7 @@ export function useBaoCaoTongHopPage() {
     formatDate,
     formatNumber,
     formatPercent,
+    formatActualResult,
     badgeClass,
     getDanhGiaLabel,
     exportCsv

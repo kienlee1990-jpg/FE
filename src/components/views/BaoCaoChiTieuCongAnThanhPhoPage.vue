@@ -83,7 +83,7 @@
                     <div v-else class="table-wrapper">
                         <ColumnVisibilityTools
                             table-id="BaoCaoChiTieuCongAnThanhPhoPage-table-v2"
-                            :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 14]"
+                            :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 15]"
                         />
                         <table id="BaoCaoChiTieuCongAnThanhPhoPage-table-v2" class="managed-table">
                             <colgroup>
@@ -99,6 +99,7 @@
                                 <col class="col-number" />
                                 <col class="col-number" />
                                 <col class="col-number" />
+                                <col class="col-actual" />
                                 <col class="col-percent" />
                                 <col class="col-ky" />
                                 <col class="col-status" />
@@ -119,6 +120,7 @@
                                     <th>Số liệu trung bình tháng</th>
                                     <th>Số dư mục tiêu</th>
                                     <th>Kết quả thực tế</th>
+                                    <th>% hoàn thành</th>
                                     <th>Kỳ gần nhất</th>
                                     <th>Đánh giá</th>
                                     <th>Nhận xét</th>
@@ -126,7 +128,7 @@
                             </thead>
                             <tbody>
                                 <tr v-if="filteredRows.length === 0">
-                                    <td colspan="16" class="empty-cell">Không có dữ liệu</td>
+                                    <td colspan="17" class="empty-cell">Không có dữ liệu</td>
                                 </tr>
 
                                 <template v-for="(row, index) in filteredRows" :key="row.id">
@@ -145,6 +147,7 @@
                                         <td class="text-right">{{ formatNumberValue(row.soLieuTrungBinhThang,
                                             row.donViTinhLuyKe || row.donViTinh) }}</td>
                                         <td class="text-right">{{ formatMetricValue(row, row.soDuMucTieu) }}</td>
+                                        <td class="text-right">{{ formatActualResult(row) }}</td>
                                         <td class="text-right">{{ formatPercentValue(row.tyLeHoanThanh) }}</td>
                                         <td>{{ row.tenKy || row.maKy || 'Chưa có kỳ đánh giá' }}</td>
                                         <td>
@@ -176,6 +179,7 @@
                                         <td class="text-right">{{ formatNumberValue(child.soLieuTrungBinhThang,
                                             child.donViTinhLuyKe || child.donViTinh) }}</td>
                                         <td class="text-right">{{ formatMetricValue(child, child.soDuMucTieu) }}</td>
+                                        <td class="text-right">{{ formatActualResult(child) }}</td>
                                         <td class="text-right">{{ formatPercentValue(child.tyLeHoanThanh) }}</td>
                                         <td>{{ child.tenKy || child.maKy || 'Chưa có kỳ đánh giá' }}</td>
                                         <td>
@@ -275,6 +279,7 @@
             item.maKy,
             item.tenKy,
             item.ketQua,
+            formatActualResult(item),
             item.nhanXetDanhGia
         ]
             .filter(Boolean)
@@ -322,6 +327,22 @@
         })}%`
     }
 
+    function formatActualResult(row) {
+        if (!row) return '-'
+        if (row.ketQuaThucTeLoai === 'PERCENT_CHANGE') return formatChangePercent(row.ketQuaThucTe)
+        if (row.ketQuaThucTeLoai === 'PERCENT_RATIO') return formatPercentValue(row.ketQuaThucTe)
+        return formatNumberValue(row.ketQuaThucTe, row.donViTinhLuyKe || row.donViTinh)
+    }
+
+    function formatChangePercent(value) {
+        if (value === null || value === undefined || value === '') return '-'
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed)) return '-'
+        if (parsed > 0) return `Tăng ${formatPercentValue(Math.abs(parsed))}`
+        if (parsed < 0) return `Giảm ${formatPercentValue(Math.abs(parsed))}`
+        return 'Không đổi 0%'
+    }
+
     function isComparisonTarget(row) {
         return normalizeText(row?.tieuChiDanhGia).toUpperCase() === 'DINH_LUONG_SO_SANH'
     }
@@ -340,6 +361,7 @@
             'Số liệu trung bình tháng',
             'Số dư mục tiêu',
             'Kết quả thực tế',
+            '% hoàn thành',
             'Mã kỳ',
             'Tên kỳ',
             'Xếp loại',
@@ -359,6 +381,7 @@
             item.giaTriLuyKe ?? '',
             item.soLieuTrungBinhThang ?? '',
             item.soDuMucTieu ?? '',
+            formatActualResult(item),
             item.tyLeHoanThanh ?? '',
             item.maKy || '',
             item.tenKy || '',
@@ -614,6 +637,10 @@
 
     .col-number {
         width: 120px;
+    }
+
+    .col-actual {
+        width: 145px;
     }
 
     .col-percent {

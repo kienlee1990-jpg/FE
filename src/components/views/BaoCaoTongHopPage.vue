@@ -92,7 +92,7 @@
                         <div v-else class="table-wrapper">
                             <ColumnVisibilityTools
                                 table-id="BaoCaoTongHopPage-table-v2"
-                                :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 13]"
+                                :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 14]"
                             />
                             <table id="BaoCaoTongHopPage-table-v2" class="managed-table">
                                 <colgroup>
@@ -108,6 +108,7 @@
                                     <col class="col-number" />
                                     <col class="col-number" />
                                     <col class="col-number" />
+                                    <col class="col-actual" />
                                     <col class="col-percent" />
                                     <col class="col-status" />
                                 </colgroup>
@@ -126,12 +127,13 @@
                                         <th>Số liệu trung bình tháng</th>
                                         <th>Số dư mục tiêu</th>
                                         <th>Kết quả thực tế</th>
+                                        <th>% hoàn thành</th>
                                         <th>Đánh giá</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-if="filteredRows.length === 0">
-                                        <td colspan="14" class="empty-cell">Không có dữ liệu</td>
+                                        <td colspan="15" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
 
                                     <template v-for="(row, index) in filteredRows" :key="row.groupKey">
@@ -157,6 +159,7 @@
                                             <td class="text-right">{{ row.isComparisonTarget ?
                                                 formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu,
                                                 row.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatActualResult(row) }}</td>
                                             <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                             <td>
                                                 <span class="badge" :class="badgeClass(row.xepLoai)">
@@ -193,6 +196,7 @@
                                             <td class="text-right">{{ child.isComparisonTarget ?
                                                 formatPercent(child.soDuMucTieu) : formatNumber(child.soDuMucTieu,
                                                 child.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatActualResult(child) }}</td>
                                             <td class="text-right">{{ formatPercent(child.tyLeHoanThanh) }}</td>
                                             <td>
                                                 <span class="badge child-badge" :class="badgeClass(child.xepLoai)">
@@ -236,6 +240,7 @@
         formatDate,
         formatNumber,
         formatPercent,
+        formatActualResult,
         badgeClass,
         getDanhGiaLabel,
         exportCsv
@@ -461,6 +466,10 @@
 
     .table-wrapper .col-number {
         width: 115px;
+    }
+
+    .table-wrapper .col-actual {
+        width: 145px;
     }
 
     .table-wrapper .col-percent {

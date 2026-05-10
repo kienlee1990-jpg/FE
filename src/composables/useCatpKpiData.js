@@ -233,6 +233,10 @@ function flattenAssignments(items, parent = null) {
       tenDonViThucHienChinh: item.tenDonViThucHienChinh || item.TenDonViThucHienChinh || parent?.tenDonViThucHienChinh || '',
       tanSuatBaoCao: item.tanSuatBaoCao || item.TanSuatBaoCao || parent?.tanSuatBaoCao || '',
       tieuChiDanhGia: item.tieuChiDanhGia || item.TieuChiDanhGia || item.loaiChiTieu || item.LoaiChiTieu || '',
+      kieuSoSanh: item.kieuSoSanh || item.KieuSoSanh || parent?.kieuSoSanh || '',
+      loaiMocSoSanh: item.loaiMocSoSanh || item.LoaiMocSoSanh || parent?.loaiMocSoSanh || '',
+      chieuSoSanh: item.chieuSoSanh || item.ChieuSoSanh || parent?.chieuSoSanh || '',
+      quyTacDanhGia: item.quyTacDanhGia || item.QuyTacDanhGia || parent?.quyTacDanhGia || '',
       giaTriMucTieu: getNumberOrNull(item.giaTriMucTieu ?? item.GiaTriMucTieu),
       giaTriDauKyCoDinh: getNumberOrNull(item.giaTriDauKyCoDinh ?? item.GiaTriDauKyCoDinh ?? item.giaTriDauKy ?? item.GiaTriDauKy),
       giaTriMucTieuText: item.giaTriMucTieuText || item.GiaTriMucTieuText || ''
@@ -281,6 +285,13 @@ function buildReportRow(item, evaluationMap, trackingMap, selectedKyBaoCaoKPIId)
     submittedTrackingItems.length,
     item.tanSuatBaoCao || selectedTracking?.loaiKy
   )
+  const ketQuaThucTeSnapshot = calculateActualResultSnapshot(
+    item,
+    selectedTracking,
+    submittedTrackingItems,
+    giaTriLuyKe,
+    selectedEvaluation
+  )
 
   return {
     id: item.id,
@@ -300,11 +311,17 @@ function buildReportRow(item, evaluationMap, trackingMap, selectedKyBaoCaoKPIId)
     tenDonViThucHienChinh: item.tenDonViThucHienChinh,
     tanSuatBaoCao: item.tanSuatBaoCao,
     tieuChiDanhGia: item.tieuChiDanhGia,
+    kieuSoSanh: item.kieuSoSanh,
+    loaiMocSoSanh: item.loaiMocSoSanh,
+    chieuSoSanh: item.chieuSoSanh,
+    quyTacDanhGia: item.quyTacDanhGia,
     giaTriMucTieu,
     giaTriDauKy,
     giaTriCuoiKy,
     giaTriLuyKe,
     soLieuTrungBinhThang,
+    ketQuaThucTe: ketQuaThucTeSnapshot.value,
+    ketQuaThucTeLoai: ketQuaThucTeSnapshot.type,
     soDuMucTieu,
     soKyDaTongHop: submittedTrackingItems.length,
     giaTriMucTieuText: item.giaTriMucTieuText,
@@ -462,11 +479,103 @@ function getNumberOrNull(value) {
 }
 
 function calculateSimpleProgress(target, actual, assignment) {
-  if (normalizeText(assignment?.tieuChiDanhGia).toUpperCase() === 'DINH_LUONG_SO_SANH') return null
+  if (isComparisonCriterion(assignment)) return null
   const targetValue = getNumberOrNull(target)
   const actualValue = getNumberOrNull(actual)
   if (targetValue === null || targetValue <= 0 || actualValue === null) return null
   return Math.round((actualValue / targetValue) * 10000) / 100
+}
+
+function calculateActualResultSnapshot(assignment, latestTracking, trackingItems, giaTriLuyKe, selectedEvaluation) {
+  if (isComparisonCriterion(assignment)) {
+    if (normalizeCode(assignment?.kieuSoSanh) === 'TY_LE') {
+      return {
+        value: calculateRatioActualPercent(latestTracking),
+        type: 'PERCENT_RATIO'
+      }
+    }
+
+    const benchmark = resolveComparisonBenchmark(assignment, latestTracking, trackingItems)
+    const actualValue = getNumberOrNull(latestTracking?.giaTriLuyKe)
+    if (benchmark !== null && benchmark !== 0 && actualValue !== null) {
+      return {
+        value: Math.round(((actualValue - benchmark) / benchmark) * 10000) / 100,
+        type: 'PERCENT_CHANGE'
+      }
+    }
+
+    return {
+      value: resolveEvaluationComparisonRate(assignment, selectedEvaluation),
+      type: 'PERCENT_CHANGE'
+    }
+  }
+
+  return {
+    value: getNumberOrNull(giaTriLuyKe),
+    type: 'NUMBER'
+  }
+}
+
+function calculateRatioActualPercent(latestTracking) {
+  const denominator = getNumberOrNull(latestTracking?.giaTriPhatSinhLuyKe)
+  const numerator = getNumberOrNull(latestTracking?.giaTriLuyKe)
+  if (denominator === null || denominator <= 0 || numerator === null) return null
+  return Math.round((numerator / denominator) * 10000) / 100
+}
+
+function resolveComparisonBenchmark(assignment, latestTracking, trackingItems) {
+  if (!latestTracking) return null
+
+  const comparisonBase = normalizeCode(assignment?.loaiMocSoSanh)
+  if (comparisonBase === 'DAU_KY') {
+    return getNumberOrNull(latestTracking.giaTriDauKy)
+  }
+
+  const latestSort = latestTracking.kySort
+  if (!latestSort) return null
+
+  if (comparisonBase === 'CUNG_KY') {
+    const match = trackingItems.find(item =>
+      item.kySort?.nam === latestSort.nam - 1 &&
+      normalizeCode(item.loaiKy) === normalizeCode(latestTracking.loaiKy) &&
+      Number(item.kySort?.soKy || 0) === Number(latestSort.soKy || 0)
+    )
+    return getNumberOrNull(match?.giaTriCuoiKy ?? match?.giaTriLuyKe)
+  }
+
+  if (comparisonBase === 'KY_TRUOC') {
+    const previous = [...trackingItems]
+      .filter(item => compareKySort(item.kySort, latestSort) < 0)
+      .sort((left, right) => compareKySort(right.kySort, left.kySort))[0]
+    return getNumberOrNull(previous?.giaTriCuoiKy ?? previous?.giaTriLuyKe)
+  }
+
+  if (comparisonBase === 'TONG_NAM_TRUOC') {
+    const previousYear = [...trackingItems]
+      .filter(item => Number(item.kySort?.nam || 0) === Number(latestSort.nam || 0) - 1)
+      .sort((left, right) => compareKySort(right.kySort, left.kySort))[0]
+    return getNumberOrNull(previousYear?.giaTriCuoiKy ?? previousYear?.giaTriLuyKe)
+  }
+
+  return null
+}
+
+function resolveEvaluationComparisonRate(assignment, selectedEvaluation) {
+  if (!selectedEvaluation) return null
+
+  const comparisonBase = normalizeCode(assignment?.loaiMocSoSanh)
+  if (comparisonBase === 'DAU_KY') {
+    return getNumberOrNull(selectedEvaluation.tyLeTangTruongSoVoiDauKy ?? selectedEvaluation.TyLeTangTruongSoVoiDauKy)
+  }
+  if (comparisonBase === 'CUNG_KY') {
+    return getNumberOrNull(selectedEvaluation.tyLeTangTruongSoVoiCungKyNamTruoc ?? selectedEvaluation.TyLeTangTruongSoVoiCungKyNamTruoc)
+  }
+
+  return null
+}
+
+function isComparisonCriterion(assignment) {
+  return normalizeCode(assignment?.tieuChiDanhGia || assignment?.loaiChiTieu) === 'DINH_LUONG_SO_SANH'
 }
 
 function calculateMonthlyAverage(value, submittedPeriods, tanSuatBaoCao) {
@@ -490,6 +599,12 @@ function calculateRemainingTarget(target, actual) {
   const actualValue = getNumberOrNull(actual)
   if (targetValue === null || actualValue === null) return null
   return Math.round((targetValue - actualValue) * 100) / 100
+}
+
+function normalizeCode(value) {
+  return normalizeText(value)
+    .toUpperCase()
+    .replace(/\s+/g, '_')
 }
 
 function pick(source, ...keys) {

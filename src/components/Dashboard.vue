@@ -70,16 +70,16 @@
                 <span class="stat-note">Chỉ tính chỉ tiêu chính sau khi lọc</span>
               </div>
 
-              <div class="stat-card success">
-                <span class="stat-label">Hoàn thành vượt mức</span>
-                <strong class="stat-value">{{ xepLoaiStats.HOAN_THANH_VUOT_MUC }}</strong>
-                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.HOAN_THANH_VUOT_MUC) }}</span>
-              </div>
-
               <div class="stat-card info">
                 <span class="stat-label">Hoàn thành</span>
-                <strong class="stat-value">{{ xepLoaiStats.HOAN_THANH }}</strong>
-                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.HOAN_THANH) }}</span>
+                <strong class="stat-value">{{ hoanThanhCount }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(hoanThanhCount) }}</span>
+              </div>
+
+              <div class="stat-card success">
+                <span class="stat-label">Vượt chỉ tiêu</span>
+                <strong class="stat-value">{{ xepLoaiStats.HOAN_THANH_VUOT_MUC }}</strong>
+                <span class="stat-note">{{ xepLoaiRate(xepLoaiStats.HOAN_THANH_VUOT_MUC) }}</span>
               </div>
 
               <div class="stat-card warning">
@@ -252,6 +252,9 @@
   })
 
   const xepLoaiStats = computed(() => countTrackedStatuses(filteredRows.value))
+  const hoanThanhCount = computed(() =>
+    (xepLoaiStats.value.HOAN_THANH || 0) + (xepLoaiStats.value.HOAN_THANH_VUOT_MUC || 0)
+  )
 
   const averageCompletion = computed(() => averageOf(filteredRows.value, 'tyLeHoanThanh'))
   const dauKySummary = computed(() => buildTrendSummary(filteredRows.value, 'tyLeTangTruongSoVoiDauKy'))
