@@ -28,7 +28,7 @@
                     class="nav-item" active-class="active">
                     <span class="nav-left">
                         <i class="bi bi-clipboard2-data"></i>
-                        <span v-if="!isCollapsed">Báo cáo chỉ tiêu CATP</span>
+                        <span v-if="!isCollapsed">Báo cáo</span>
                     </span>
                 </RouterLink>
             </nav>
@@ -99,7 +99,7 @@
                 </div>
             </nav>
 
-            <nav v-if="hasAnyPermission(['SubmitPeriodicReports', 'ViewExecutionProgress', 'ViewUnitsPendingUpdate'])"
+            <nav v-if="hasAnyPermission(['SubmitPeriodicReports', 'ViewReturnedReports', 'ReviewPendingReports', 'ViewExecutionProgress', 'ViewUnitsPendingUpdate']) || canViewReturnedReports"
                 class="nav-section">
                 <p v-if="!isCollapsed" class="section-label">Theo dõi thực hiện</p>
                 <div class="nav-group">
@@ -112,9 +112,24 @@
                             :class="['bi', menus.theoDoiThucHien ? 'bi-chevron-down' : 'bi-chevron-right']"></i>
                     </button>
                     <div v-show="menus.theoDoiThucHien && !isCollapsed" class="sub-menu">
+                        <RouterLink v-if="hasPermission('SubmitPeriodicReports')" to="/gui-bao-cao-dinh-ky"
+                            class="sub-item" active-class="active">
+                            Gửi báo cáo định kỳ
+                        </RouterLink>
                         <RouterLink v-if="hasPermission('SubmitPeriodicReports')" to="/nhap-ket-qua" class="sub-item"
                             active-class="active">
-                            Nhập kết quả báo cáo
+                            Danh sách báo cáo
+                        </RouterLink>
+                        <RouterLink v-if="canViewReturnedReports" to="/bao-cao-can-dieu-chinh"
+                            class="sub-item sub-item-with-badge" active-class="active">
+                            <span>Báo cáo cần điều chỉnh</span>
+                            <span v-if="returnedReportsCount > 0" class="notification-badge">
+                                {{ returnedReportsCount > 99 ? '99+' : returnedReportsCount }}
+                            </span>
+                        </RouterLink>
+                        <RouterLink v-if="hasPermission('ReviewPendingReports')" to="/bao-cao-cho-xet-duyet"
+                            class="sub-item" active-class="active">
+                            Báo cáo chờ xét duyệt
                         </RouterLink>
                         <RouterLink v-if="hasPermission('ViewExecutionProgress')" to="/tien-do-thuc-hien"
                             class="sub-item" active-class="active">
@@ -287,7 +302,8 @@
     import { computed, inject, onMounted, onUnmounted, provide, ref, reactive, watch } from 'vue'
     import { RouterLink, useRouter } from 'vue-router'
     import { useAuth } from '../composables/useAuth'
-    import { canAccessAnyPermission, canAccessPermission, hasRole, resolveEffectivePermissions } from '../utils/accessControl'
+    import httpClient from '../services/httpClient'
+    import { canAccessAnyPermission, canAccessPermission, hasRole, isCatpProfile, isPrivilegedProfile, resolveEffectivePermissions } from '../utils/accessControl'
 
     const router = useRouter()
     const { getMe, logout: authLogout, user } = useAuth()
@@ -304,6 +320,7 @@
     const savedCollapsed = localStorage.getItem(sidebarCollapsedStorageKey)
     const isCollapsed = ref(savedCollapsed === null ? true : savedCollapsed === 'true')
     const now = ref(new Date())
+    const returnedReportsCount = ref(0)
     let timer = null
 
     const defaultMenus = {
@@ -356,6 +373,9 @@
     const hasPermission = (permission) => canAccessPermission(userPermissions.value, permission, user.value)
     const hasAnyPermission = (permissions) => canAccessAnyPermission(userPermissions.value, permissions, user.value)
     const hasAdminRole = computed(() => hasRole(user.value, 'Admin'))
+    const canViewReturnedReports = computed(() =>
+        hasPermission('ViewReturnedReports') || isPrivilegedProfile(user.value) || isCatpProfile(user.value)
+    )
 
     const currentDateTime = computed(() => {
         return now.value.toLocaleString('vi-VN', {
@@ -375,6 +395,34 @@
 
     const toggleMenu = (menu) => {
         menus[menu] = !menus[menu]
+    }
+
+    const fetchReturnedReportsCount = async () => {
+        if (!user.value || !canViewReturnedReports.value) {
+            returnedReportsCount.value = 0
+            return
+        }
+
+        try {
+            const response = await httpClient.get('/TheoDoiThucHienKPI')
+            const data = Array.isArray(response?.data)
+                ? response.data
+                : Array.isArray(response?.data?.items)
+                    ? response.data.items
+                    : Array.isArray(response?.data?.data)
+                        ? response.data.data
+                        : []
+            const currentDonViId = Number(user.value?.donViId || 0)
+            const canViewAll = isPrivilegedProfile(user.value) || isCatpProfile(user.value)
+            returnedReportsCount.value = data.filter((item) => {
+                const status = String(item.TrangThai ?? item.trangThai ?? '').trim().toUpperCase()
+                const donViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
+                return status === 'TRA_LAI_NHAP_LAI' && (canViewAll || (currentDonViId > 0 && donViNhanId === currentDonViId))
+            }).length
+        } catch (error) {
+            console.error('fetchReturnedReportsCount error:', error?.response?.status, error?.config?.url, error)
+            returnedReportsCount.value = 0
+        }
     }
 
     function readStoredMenus() {
@@ -413,12 +461,15 @@
             await getMe()
             if (!user.value) {
                 router.push('/login')
+            } else {
+                await fetchReturnedReportsCount()
             }
         } catch (err) {
             router.push('/login')
         }
 
         document.addEventListener('click', handleClickOutside)
+        window.addEventListener('returned-reports-updated', fetchReturnedReportsCount)
     })
 
     onUnmounted(() => {
@@ -426,6 +477,7 @@
 
         if (timer) clearInterval(timer)
         document.removeEventListener('click', handleClickOutside)
+        window.removeEventListener('returned-reports-updated', fetchReturnedReportsCount)
     })
 </script>
 
@@ -599,6 +651,27 @@
 
     .sub-item.active::before {
         background: #f7d88c;
+    }
+
+    .sub-item-with-badge {
+        justify-content: flex-start;
+        gap: 0;
+    }
+
+    .notification-badge {
+        min-width: 24px;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 999px;
+        background: #dc2626;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: auto;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
     }
 
     .content-shell {

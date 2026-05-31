@@ -13,6 +13,14 @@
                             </p>
                         </div>
                     </div>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary" type="button" @click="reloadData">Tải dữ liệu</button>
+                        <button class="btn btn-secondary" type="button" @click="resetFilters">Đặt lại</button>
+                        <button class="btn btn-success" type="button" @click="exportCsv"
+                            :disabled="rankedRows.length === 0">
+                            Xuất CSV
+                        </button>
+                    </div>
                 </div>
 
                 <div class="filter-card">
@@ -51,15 +59,6 @@
                             <input v-model.trim="filters.keyword" type="text"
                                 placeholder="Nhập tên đơn vị, mã hoặc tên chỉ tiêu" />
                         </div>
-
-                        <div class="form-group actions">
-                            <button class="btn btn-primary" type="button" @click="reloadData">Tải dữ liệu</button>
-                            <button class="btn btn-secondary" type="button" @click="resetFilters">Đặt lại</button>
-                            <button class="btn btn-success" type="button" @click="exportCsv"
-                                :disabled="rankedRows.length === 0">
-                                Xuất CSV
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -71,11 +70,19 @@
                     </div>
                     <div class="summary-card">
                         <span class="label">Số đơn vị trong nhóm</span>
+                        <strong>{{ selectedGroup?.donVis?.length || 0 }}</strong>
+                    </div>
+                    <div class="summary-card">
+                        <span class="label">Số đơn vị có dữ liệu</span>
                         <strong>{{ rankedRows.length }}</strong>
                     </div>
                     <div class="summary-card">
                         <span class="label">Số chỉ tiêu chi tiết áp dụng</span>
                         <strong>{{ selectedGroup?.chiTieus?.length || 0 }}</strong>
+                    </div>
+                    <div class="summary-card">
+                        <span class="label">Dòng dữ liệu nền khớp</span>
+                        <strong>{{ filteredGroupRows.length }}</strong>
                     </div>
                     <div class="summary-card">
                         <span class="label">Tổng KPI được tính</span>
@@ -89,71 +96,53 @@
 
                 <div class="table-card">
                     <div class="table-head">
-                        <div class="table-note">
-                            Bảng này chỉ tổng hợp các dòng KPI có <strong>đơn vị thuộc nhóm</strong> và
-                            <strong>chỉ tiêu chi tiết nằm trong cấu hình nhóm</strong>.
-                        </div>
-
-                        <div class="table-tools">
-                            <button class="icon-btn" type="button" @click="showColumnMenu = !showColumnMenu"
-                                title="Tùy chọn cột hiển thị">
-                                <i class="bi bi-layout-three-columns"></i>
-                            </button>
-
-                            <div v-if="showColumnMenu" class="column-menu">
-                                <div class="column-menu-title">Cột hiển thị</div>
-                                <label v-for="column in columnOptions" :key="column.key" class="column-option"
-                                    :class="{ locked: column.locked }">
-                                    <input v-model="visibleColumns[column.key]" type="checkbox"
-                                        :disabled="column.locked" />
-                                    <span>{{ column.label }}</span>
-                                </label>
-                            </div>
+                        <div class="table-title">
+                            <h2>Bảng xếp hạng đơn vị</h2>
+                            <span>{{ rankedRows.length }} đơn vị có dữ liệu · {{ totalKpi }} KPI được tính</span>
                         </div>
                     </div>
 
                     <div v-if="combinedLoading" class="state loading">Đang tải dữ liệu...</div>
                     <div v-else-if="combinedError" class="state error">{{ combinedError }}</div>
                     <div v-else-if="!selectedGroup" class="state empty">Chưa có nhóm thi đua để hiển thị</div>
-                    <div v-else-if="rankedRows.length === 0" class="state empty">Không có dữ liệu phù hợp cho nhóm đang
-                        chọn</div>
+                    <div v-else-if="rankedRows.length === 0" class="state empty">{{ emptyStateMessage }}</div>
                     <div v-else class="table-wrapper">
                         <ColumnVisibilityTools table-id="NhomThiDuaPage-table" />
                         <table id="NhomThiDuaPage-table" class="managed-table">
                             <thead>
                                 <tr>
-                                    <th v-if="visibleColumns.ranking">Hạng</th>
-                                    <th v-if="visibleColumns.unit">Đơn vị</th>
-                                    <th v-if="visibleColumns.soKpi">Số KPI</th>
-                                    <th v-if="visibleColumns.hoanThanh">Hoàn thành / Vượt</th>
-                                    <th v-if="visibleColumns.chuaHoanThanh">Chưa / Không hoàn thành</th>
-                                    <th v-if="visibleColumns.tongMucTieu">Tổng mục tiêu</th>
-                                    <th v-if="visibleColumns.tongLuyKe">Tổng lũy kế</th>
-                                    <th v-if="visibleColumns.avgCompletion">% hoàn thành TB</th>
-                                    <th v-if="visibleColumns.dotGiaoGanNhat">Đợt giao gần nhất</th>
+                                    <th>Hạng</th>
+                                    <th>Đơn vị</th>
+                                    <th>Số KPI</th>
+                                    <th>Hoàn thành / Vượt</th>
+                                    <th>Chưa / Không hoàn thành</th>
+                                    <th>Tổng mục tiêu</th>
+                                    <th>Tổng lũy kế</th>
+                                    <th>% hoàn thành TB</th>
+                                    <th>Đợt giao gần nhất</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="item in rankedRows" :key="item.uniqueKey">
-                                    <td v-if="visibleColumns.ranking" class="text-center">
+                                    <td class="text-center">
                                         <span class="rank-badge">{{ item.ranking }}</span>
                                     </td>
-                                    <td v-if="visibleColumns.unit">
+                                    <td>
                                         <div class="fw-semibold">{{ item.tenDonVi }}</div>
                                         <div class="sub-label">{{ item.soKpi }} KPI được tính trong nhóm</div>
                                     </td>
-                                    <td v-if="visibleColumns.soKpi" class="text-center">{{ item.soKpi }}</td>
-                                    <td v-if="visibleColumns.hoanThanh" class="text-center">{{ item.hoanThanhDatChuan }}
+                                    <td class="text-center">{{ item.soKpi }}</td>
+                                    <td class="text-center">{{ item.hoanThanhDatChuan }}
                                     </td>
-                                    <td v-if="visibleColumns.chuaHoanThanh" class="text-center">{{
+                                    <td class="text-center">{{
                                         item.chuaHoanThanhTong }}</td>
-                                    <td v-if="visibleColumns.tongMucTieu" class="text-right">{{
+                                    <td class="text-right">{{
                                         formatNumber(item.tongMucTieu) }}</td>
-                                    <td v-if="visibleColumns.tongLuyKe" class="text-right">{{
+                                    <td class="text-right">{{
                                         formatNumber(item.tongLuyKe) }}</td>
-                                    <td v-if="visibleColumns.avgCompletion" class="text-right">{{
+                                    <td class="text-right">{{
                                         formatPercent(item.tyLeHoanThanhTrungBinh) }}</td>
-                                    <td v-if="visibleColumns.dotGiaoGanNhat">{{ item.dotGiaoGanNhat || '-' }}</td>
+                                    <td>{{ item.dotGiaoGanNhat || '-' }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -183,12 +172,11 @@
         getKyLabel,
         formatNumber,
         formatPercent
-    } = useBaoCaoTongHopPage()
+    } = useBaoCaoTongHopPage({ applyDefaultUnitFilter: false })
 
     const groups = ref([])
     const groupLoading = ref(false)
     const groupError = ref('')
-    const showColumnMenu = ref(false)
 
     const filters = reactive({
         groupId: '',
@@ -196,34 +184,16 @@
         keyword: ''
     })
 
-    const columnOptions = [
-        { key: 'ranking', label: 'Hạng', locked: true },
-        { key: 'unit', label: 'Đơn vị', locked: true },
-        { key: 'soKpi', label: 'Số KPI' },
-        { key: 'hoanThanh', label: 'Hoàn thành / Vượt' },
-        { key: 'chuaHoanThanh', label: 'Chưa / Không hoàn thành' },
-        { key: 'tongMucTieu', label: 'Tổng mục tiêu' },
-        { key: 'tongLuyKe', label: 'Tổng lũy kế' },
-        { key: 'avgCompletion', label: '% hoàn thành TB' },
-        { key: 'dotGiaoGanNhat', label: 'Đợt giao gần nhất' }
-    ]
-
-    const visibleColumns = reactive({
-        ranking: true,
-        unit: true,
-        soKpi: true,
-        hoanThanh: true,
-        chuaHoanThanh: true,
-        tongMucTieu: true,
-        tongLuyKe: true,
-        avgCompletion: true,
-        dotGiaoGanNhat: true
+    const selectedGroup = computed(() => groups.value.find(item => String(item.id) === String(filters.groupId)) || null)
+    const competitionRows = computed(() => {
+        return groupedRows.value.flatMap(row => [
+            row,
+            ...(Array.isArray(row.children) ? row.children : [])
+        ])
     })
 
-    const selectedGroup = computed(() => groups.value.find(item => String(item.id) === String(filters.groupId)) || null)
-
     const dotGiaoOptions = computed(() => {
-        return [...new Set(groupedRows.value.map(item => item.tenDotGiaoChiTieu).filter(Boolean))].sort((a, b) =>
+        return [...new Set(competitionRows.value.map(item => item.tenDotGiaoChiTieu).filter(Boolean))].sort((a, b) =>
             a.localeCompare(b, 'vi')
         )
     })
@@ -237,7 +207,7 @@
         const criteriaIds = new Set((selectedGroup.value.chiTieus || []).map(item => Number(item.danhMucChiTieuId || item.id || 0)))
         const keyword = normalizeText(filters.keyword)
 
-        return groupedRows.value.filter(item => {
+        return competitionRows.value.filter(item => {
             if (!unitIds.has(Number(item.donViNhanId || 0))) {
                 return false
             }
@@ -267,6 +237,27 @@
 
             return true
         })
+    })
+
+    const emptyStateMessage = computed(() => {
+        if (!selectedGroup.value) return 'Chưa có nhóm thi đua để hiển thị.'
+
+        const unitCount = (selectedGroup.value.donVis || []).length
+        const criteriaCount = (selectedGroup.value.chiTieus || []).length
+
+        if (unitCount === 0) {
+            return 'Nhóm thi đua này chưa được cấu hình đơn vị.'
+        }
+
+        if (criteriaCount === 0) {
+            return 'Nhóm thi đua này chưa được cấu hình chỉ tiêu chi tiết.'
+        }
+
+        if (competitionRows.value.length === 0) {
+            return 'Chưa có dữ liệu báo cáo tổng hợp làm cơ sở xếp hạng.'
+        }
+
+        return 'Chưa có dòng báo cáo nào khớp đồng thời đơn vị trong nhóm và chỉ tiêu chi tiết đã cấu hình.'
     })
 
     const rankedRows = computed(() => {
@@ -464,6 +455,10 @@
     }
 
     .hero-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
         padding: 24px;
         margin-bottom: 24px;
     }
@@ -507,6 +502,15 @@
         color: #475569;
     }
 
+    .hero-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+    }
+
     .filter-card,
     .table-card {
         padding: 24px;
@@ -515,7 +519,7 @@
 
     .filter-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 16px;
         align-items: end;
     }
@@ -572,7 +576,7 @@
 
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 16px;
         margin-bottom: 24px;
     }
@@ -585,6 +589,7 @@
     }
 
     .summary-highlight {
+        grid-column: span 2;
         background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
         border-color: #bfdbfe;
     }
@@ -607,106 +612,24 @@
         display: flex;
         justify-content: space-between;
         gap: 16px;
-        align-items: flex-start;
-        margin-bottom: 16px;
-    }
-
-    .table-note {
-        flex: 1;
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: #eff6ff;
-        color: #1e3a8a;
-    }
-
-    .table-tools {
-        position: relative;
-    }
-
-    .icon-btn {
-        width: 46px;
-        height: 46px;
-        display: grid;
-        place-items: center;
-        border-radius: 14px;
-        border: 1px solid #cbd5e1;
-        background: #fff;
-        color: #0f172a;
-        cursor: pointer;
-    }
-
-    .column-menu {
-        position: absolute;
-        right: 0;
-        top: calc(100% + 10px);
-        width: 260px;
-        padding: 14px;
-        border-radius: 18px;
-        border: 1px solid #dbeafe;
-        background: #fff;
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-        z-index: 20;
-    }
-
-    .column-menu-title {
-        margin-bottom: 10px;
-        font-weight: 800;
-        color: #0f172a;
-    }
-
-    .column-option {
-        display: flex;
         align-items: center;
-        gap: 10px;
-        min-height: 42px;
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: #fff;
-        border: 1px solid #dbeafe;
+        margin-bottom: 18px;
+    }
+
+    .table-title {
+        min-width: 0;
+    }
+
+    .table-title h2 {
+        margin: 0 0 4px;
         color: #0f172a;
-        font-weight: 600;
-        cursor: pointer;
-        margin-bottom: 8px;
+        font-size: 1.25rem;
+        font-weight: 800;
     }
 
-    .column-option:last-child {
-        margin-bottom: 0;
-    }
-
-    .column-option.locked {
-        background: #eff6ff;
-        border-color: #bfdbfe;
-    }
-
-    .table-wrapper {
-        overflow-x: auto;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 960px;
-    }
-
-    th,
-    td {
-        padding: 14px 16px;
-        border-bottom: 1px solid #e2e8f0;
-        vertical-align: middle;
-    }
-
-    th {
-        position: sticky;
-        top: 0;
-        background: #f8fafc;
-        color: #334155;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    tbody tr:hover {
-        background: #f8fbff;
+    .table-title span {
+        color: #64748b;
+        font-size: 0.92rem;
     }
 
     .rank-badge {
@@ -763,22 +686,49 @@
             padding: 18px;
         }
 
+        .hero-card {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
         .hero-head {
             align-items: flex-start;
         }
 
-        .actions {
+        .hero-actions {
             display: grid;
             grid-template-columns: 1fr;
         }
 
         .btn,
-        .icon-btn {
+        .hero-actions .btn {
             width: 100%;
         }
 
         .table-head {
             flex-direction: column;
+            align-items: stretch;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        .filter-grid,
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-highlight {
+            grid-column: auto;
         }
     }
 </style>

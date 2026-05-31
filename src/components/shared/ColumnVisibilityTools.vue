@@ -1,5 +1,5 @@
 ﻿<template>
-  <div :id="`tools-${tableId}`" class="table-tools">
+  <div :id="`tools-${tableId}`" class="table-tools" :class="{ 'table-tools-open': open }">
     <button type="button" class="table-tools-trigger" @click="toggleMenu">
       <i class="bi bi-layout-three-columns"></i>
       <span>Tùy chọn cột</span>
@@ -40,14 +40,60 @@ const open = ref(false)
 const columns = ref([])
 const visibleColumns = ref([])
 const initialized = ref(false)
+let tableObserver = null
+let pendingCollect = false
+let scrollContainer = null
 
 const hiddenSet = computed(() => new Set(columns.value.map(column => column.index).filter(index => !visibleColumns.value.includes(index))))
 
 const getTable = () => document.getElementById(props.tableId)
 
+const setupScrollContainer = (table) => {
+  const container = table?.parentElement
+  if (!container || scrollContainer === container) return
+
+  if (scrollContainer) {
+    scrollContainer.classList.remove('managed-table-scroll')
+  }
+
+  scrollContainer = container
+  scrollContainer.classList.add('managed-table-scroll')
+}
+
+const scheduleCollectColumns = () => {
+  if (pendingCollect) return
+  pendingCollect = true
+  nextTick(() => {
+    pendingCollect = false
+    collectColumns()
+  })
+}
+
+const disconnectTableObserver = () => {
+  if (!tableObserver) return
+  tableObserver.disconnect()
+  tableObserver = null
+}
+
+const observeTableChanges = (table) => {
+  if (!table || tableObserver) return
+
+  tableObserver = new MutationObserver(() => {
+    scheduleCollectColumns()
+  })
+
+  tableObserver.observe(table, {
+    childList: true,
+    subtree: true
+  })
+}
+
 const collectColumns = () => {
   const table = getTable()
   if (!table) return
+
+  setupScrollContainer(table)
+  observeTableChanges(table)
 
   const headerCells = Array.from(table.querySelectorAll('thead th'))
   columns.value = headerCells.map((headerCell, index) => ({
@@ -124,6 +170,15 @@ watch(visibleColumns, () => {
   applyVisibility()
 }, { deep: true })
 
+watch(() => props.tableId, async () => {
+  initialized.value = false
+  columns.value = []
+  visibleColumns.value = []
+  disconnectTableObserver()
+  await nextTick()
+  collectColumns()
+})
+
 onMounted(async () => {
   await nextTick()
   collectColumns()
@@ -132,22 +187,29 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
+  if (scrollContainer) {
+    scrollContainer.classList.remove('managed-table-scroll')
+    scrollContainer = null
+  }
+  disconnectTableObserver()
 })
 </script>
 
 <style>
-.table-tools{position:sticky;left:0;display:flex;justify-content:flex-end;align-items:center;width:100%;margin-bottom:14px;padding-left:12px;z-index:5}
+.table-tools{position:sticky;left:0;display:flex;justify-content:flex-end;align-items:center;width:100%;margin-bottom:14px;padding-left:12px;z-index:60}
+.table-tools.table-tools-open{z-index:160 !important}
 .table-tools-trigger{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border:1px solid #d7deea;border-radius:999px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);color:#0f172a;font-size:13px;font-weight:700;box-shadow:0 10px 22px rgba(15,23,42,.06);transition:all .18s ease}
 .table-tools-trigger:hover{background:#eef6ff;border-color:#bfdbfe;transform:translateY(-1px)}
-.table-tools-menu{position:absolute;right:0;top:calc(100% + 8px);width:300px;max-height:360px;overflow:auto;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 18px 40px rgba(15,23,42,.16);z-index:40}
+.table-tools-menu{position:absolute;right:0;top:calc(100% + 8px);width:300px;max-height:360px;overflow:auto;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 18px 40px rgba(15,23,42,.16);z-index:170 !important}
 .table-tools-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .table-tools-actions{display:flex;gap:10px}
 .table-tools-actions button{border:none;background:transparent;color:#2563eb;font-size:12px;font-weight:700}
 .table-tools-option{display:flex;align-items:center;gap:10px;padding:9px 6px;font-size:14px;color:#0f172a;border-radius:10px}
 .table-tools-option:hover{background:#f8fafc}
-.table-wrapper,.table-responsive{width:100% !important;overflow-x:auto !important;padding-bottom:4px}
-table.managed-table{width:100% !important;border-collapse:separate !important;border-spacing:0 !important;background:#fff !important;border:1px solid #e2e8f0 !important;border-radius:18px !important;overflow:hidden !important}
-table.managed-table thead th{position:sticky !important;top:0 !important;background:linear-gradient(180deg,#1d4ed8 0%,#2563eb 52%,#3b82f6 100%) !important;color:#fff !important;font-size:12px !important;font-weight:800 !important;text-transform:uppercase !important;letter-spacing:.04em !important;padding:15px 16px !important;border-bottom:1px solid rgba(191,219,254,.45) !important;white-space:nowrap !important;z-index:2 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(15,23,42,.12) !important}
+.table-wrapper,.table-responsive,.managed-table-scroll{width:100% !important;max-height:min(62vh,640px) !important;overflow:auto !important;position:relative !important;padding-bottom:4px;overscroll-behavior:contain;scrollbar-gutter:stable}
+table.managed-table{width:100% !important;border-collapse:separate !important;border-spacing:0 !important;background:#fff !important;border:1px solid #e2e8f0 !important;border-radius:18px !important;overflow:visible !important}
+table.managed-table thead{position:sticky !important;top:0 !important;z-index:12 !important}
+table.managed-table thead th{position:sticky !important;top:0 !important;background:linear-gradient(180deg,#1d4ed8 0%,#2563eb 52%,#3b82f6 100%) !important;background-clip:padding-box;color:#fff !important;font-size:12px !important;font-weight:800 !important;text-transform:uppercase !important;letter-spacing:.04em !important;padding:15px 16px !important;border-bottom:1px solid rgba(191,219,254,.45) !important;white-space:nowrap !important;z-index:12 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(15,23,42,.12) !important}
 table.managed-table thead th:first-child{border-top-left-radius:18px !important}
 table.managed-table thead th:last-child{border-top-right-radius:18px !important}
 table.managed-table thead th::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:1px;background:rgba(255,255,255,.24)}

@@ -37,7 +37,7 @@
                             </div>
                             <button class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
                                 <i class="bi bi-download me-1"></i>
-                                Tải mẫu CSV
+                                Tải mẫu Excel
                             </button>
                         </div>
                     </div>
@@ -337,14 +337,41 @@
         Object.assign(form, createDefaultForm())
     }
 
-    const parentOptions = computed(() => items.value)
+    const isThanhPhoUnit = (item) =>
+        item?.loaiDonVi === 'THANH_PHO' ||
+        String(item?.tenDonVi || '').trim().toLocaleLowerCase('vi').startsWith('công an thành phố')
+
+    const compareUnits = (a, b) => {
+        const priorityA = isThanhPhoUnit(a) ? 0 : 1
+        const priorityB = isThanhPhoUnit(b) ? 0 : 1
+
+        if (priorityA !== priorityB) {
+            return priorityA - priorityB
+        }
+
+        const nameCompare = String(a?.tenDonVi || '').localeCompare(String(b?.tenDonVi || ''), 'vi', {
+            sensitivity: 'base'
+        })
+
+        if (nameCompare !== 0) {
+            return nameCompare
+        }
+
+        return String(a?.maDonVi || '').localeCompare(String(b?.maDonVi || ''), 'vi', {
+            sensitivity: 'base'
+        })
+    }
+
+    const sortUnits = (units) => [...units].sort(compareUnits)
+
+    const parentOptions = computed(() => sortUnits(items.value))
 
     const availableParentOptions = computed(() => {
-        return items.value.filter(item => item.id !== editingId.value)
+        return sortUnits(items.value.filter(item => item.id !== editingId.value))
     })
 
     const filteredItems = computed(() => {
-        return items.value.filter(item => {
+        return sortUnits(items.value.filter(item => {
             const keyword = filters.keyword.trim().toLowerCase()
 
             const matchKeyword =
@@ -360,7 +387,7 @@
                 String(item.donViChaId ?? '') === String(filters.donViChaId)
 
             return matchKeyword && matchLoaiDonVi && matchDonViChaId
-        })
+        }))
     })
 
     const buildPayload = () => ({
@@ -379,11 +406,23 @@
         String(value || '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[đĐ]/g, (char) => char === 'đ' ? 'd' : 'D')
             .replace(/[^A-Za-z0-9]/g, '')
             .trim()
             .toUpperCase()
 
     const normalizeImportValue = (value) => String(value || '').trim().toUpperCase()
+
+    const isFilledImportRow = (row) =>
+        Object.entries(row || {}).some(([key, value]) =>
+            key !== '__rowNum__' &&
+            value !== undefined &&
+            value !== null &&
+            String(value).trim() !== ''
+        )
+
+    const getSheetImportRows = (sheet) =>
+        XLSX.utils.sheet_to_json(sheet, { defval: '' }).filter(isFilledImportRow)
 
     const getImportCell = (source, keys) => {
         for (const key of keys) {
@@ -405,9 +444,9 @@
     const normalizeImportedLoaiDonVi = (value) => {
         const normalized = normalizeImportHeader(value)
         if (!normalized) return ''
-        if (['THANHPHO', 'CAPTHANHPHO', 'THANH_PHO', 'TP'].includes(normalized)) return 'THANH_PHO'
-        if (['PHONG', 'CAPPHONG'].includes(normalized)) return 'PHONG'
-        if (['XA', 'PHUONG', 'XAPHUONG', 'CAPXA', 'CAPPHUONG'].includes(normalized)) return 'XA'
+        if (['THANHPHO', 'CAPTHANHPHO', 'THANH_PHO', 'TP', 'CATP', 'CONGANTHANHPHO'].includes(normalized)) return 'THANH_PHO'
+        if (['PHONG', 'CAPPHONG', 'DONVICAPPHONG'].includes(normalized)) return 'PHONG'
+        if (['XA', 'PHUONG', 'XAPHUONG', 'PHUONGXA', 'CAPXA', 'CAPPHUONG', 'CAPXAPHUONG', 'CONGANXA', 'CONGANPHUONG'].includes(normalized)) return 'XA'
         return ''
     }
 
@@ -443,7 +482,8 @@
         const seenCodes = new Set()
 
         const prepared = rows.map((row, index) => {
-            const mapped = mapImportRow(row, index + 2)
+            const rowNumber = Number.isInteger(row.__rowNum__) ? row.__rowNum__ + 1 : index + 2
+            const mapped = mapImportRow(row, rowNumber)
             const normalizedCode = normalizeImportValue(mapped.maDonVi)
 
             if (normalizedCode) {
@@ -578,7 +618,7 @@
                 return
             }
 
-            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { defval: '' })
+            const rows = getSheetImportRows(workbook.Sheets[firstSheetName])
             if (!rows.length) {
                 alert('File Excel không có dữ liệu để nhập.')
                 return
@@ -646,19 +686,57 @@
             ['CA_HAI_CHAU', 'Công an phường Hải Châu', 'XA', 'CATP', '', '', '', '', '']
         ]
 
-        const csvContent = [headers, ...sampleRows]
-            .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
-            .join('\n')
+        const columnWidths = [
+            { wch: 16 },
+            { wch: 34 },
+            { wch: 16 },
+            { wch: 16 },
+            { wch: 24 },
+            { wch: 16 },
+            { wch: 28 },
+            { wch: 36 },
+            { wch: 28 }
+        ]
 
-        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', 'mau-import-don-vi.csv')
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
+        const applySheetLayout = (sheet) => {
+            sheet['!cols'] = columnWidths
+            sheet['!autofilter'] = {
+                ref: XLSX.utils.encode_range({
+                    s: { r: 0, c: 0 },
+                    e: { r: 0, c: headers.length - 1 }
+                })
+            }
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet([headers])
+        applySheetLayout(worksheet)
+
+        const exampleWorksheet = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
+        applySheetLayout(exampleWorksheet)
+
+        const guideWorksheet = XLSX.utils.aoa_to_sheet([
+            ['Cot', 'Gia tri hop le'],
+            ['LoaiDonVi', 'THANH_PHO, PHONG hoặc XA'],
+            ['MaDonViCha', 'Nhập mã đơn vị cha đã có trong hệ thống hoặc nằm ở dòng phía trên trong file'],
+            ['Email', 'Bỏ trống hoặc nhập đúng định dạng email'],
+            ['Lưu ý', 'Nhập dữ liệu ở sheet MauNhap; sheet ViDu chỉ để tham khảo']
+        ])
+        guideWorksheet['!cols'] = [
+            { wch: 24 },
+            { wch: 95 }
+        ]
+        guideWorksheet['!autofilter'] = {
+            ref: XLSX.utils.encode_range({
+                s: { r: 0, c: 0 },
+                e: { r: 0, c: 1 }
+            })
+        }
+
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'MauNhap')
+        XLSX.utils.book_append_sheet(workbook, exampleWorksheet, 'ViDu')
+        XLSX.utils.book_append_sheet(workbook, guideWorksheet, 'HuongDan')
+        XLSX.writeFile(workbook, 'mau-import-don-vi.xlsx')
     }
 
     const fetchDonVi = async () => {
@@ -909,6 +987,10 @@
         font-weight: 700;
         white-space: nowrap;
         border-bottom: 2px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        box-shadow: 0 1px 0 #dee2e6;
     }
 
     :deep(.table th),

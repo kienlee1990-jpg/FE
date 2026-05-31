@@ -8,9 +8,10 @@ import {
   getDanhGiaLabel
 } from '../../utils/danhGiaStatusClean.js'
 
-export function useBaoCaoTongHopPage() {
+export function useBaoCaoTongHopPage(options = {}) {
   const loading = ref(false)
   const errorMessage = ref('')
+  const applyDefaultUnitFilter = options.applyDefaultUnitFilter !== false
 
   const kyBaoCaoOptions = ref([])
   const theoDoiRows = ref([])
@@ -22,6 +23,8 @@ export function useBaoCaoTongHopPage() {
   const currentProfile = ref(getStoredUserProfile())
 
   const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
+  const DEFAULT_DON_VI_FILTER = 'Công an thành phố Đà Nẵng'
+  const WAITING_SEND_STATUS = 'CHO_GUI'
   const canViewAllUnits = computed(() =>
     isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
   )
@@ -95,10 +98,12 @@ export function useBaoCaoTongHopPage() {
           giaTriLuyKe: getNumberOrNull(pick(rawItem, 'giaTriLuyKe', 'GiaTriLuyKe')),
           giaTriPhatSinhLuyKe: getNumberOrNull(pick(rawItem, 'giaTriPhatSinhLuyKe', 'GiaTriPhatSinhLuyKe')),
           donViTinh: pick(rawItem, 'donViTinh', 'DonViTinh') || '',
-          nhanXet: String(pick(rawItem, 'nhanXet', 'NhanXet') || '').trim()
+          nhanXet: String(pick(rawItem, 'nhanXet', 'NhanXet') || '').trim(),
+          trangThai: String(pick(rawItem, 'trangThai', 'TrangThai') || '').trim().toUpperCase()
         }
       })
       .filter(item => item.chiTietGiaoChiTieuId > 0)
+      .filter(item => item.trangThai !== WAITING_SEND_STATUS)
       .filter(item => !selectedKySort.value || compareKySort(item.kySort, selectedKySort.value) <= 0)
   })
 
@@ -204,6 +209,9 @@ export function useBaoCaoTongHopPage() {
       filters.donVi = currentUnitName.value
     }
     await fetchBaoCaoTongHop()
+    if (applyDefaultUnitFilter) {
+      applyDefaultDonViFilter()
+    }
   })
 
   async function fetchBaoCaoTongHop() {
@@ -255,7 +263,23 @@ export function useBaoCaoTongHopPage() {
     filters.donVi = canViewAllUnits.value ? '' : currentUnitName.value
     filters.xepLoai = ''
     filters.keyword = ''
+    if (applyDefaultUnitFilter) {
+      applyDefaultDonViFilter()
+    }
     fetchBaoCaoTongHop()
+  }
+
+  function applyDefaultDonViFilter() {
+    if (!canViewAllUnits.value) return
+    if (filters.donVi) return
+
+    const defaultOption = donViOptions.value.find(item =>
+      normalizeText(item) === normalizeText(DEFAULT_DON_VI_FILTER)
+    )
+
+    if (defaultOption) {
+      filters.donVi = defaultOption
+    }
   }
 
   function buildSummaryRow(assignment, theoDoiMap, danhGiaMap) {
@@ -324,6 +348,10 @@ export function useBaoCaoTongHopPage() {
     return {
       groupKey: String(assignment.id),
       chiTietGiaoChiTieuId: assignment.id,
+      danhMucChiTieuId: assignment.danhMucChiTieuId,
+      donViNhanId: assignment.donViNhanId,
+      parentId: assignment.parentId,
+      coTieuChiCon: assignment.coTieuChiCon,
       maChiTieu: assignment.maChiTieu || '-',
       tenDanhMucChiTieu: assignment.tenDanhMucChiTieu || assignment.tenChiTieu || '-',
       tenChiTieu: assignment.tenDanhMucChiTieu || assignment.tenChiTieu || '-',
@@ -924,9 +952,26 @@ export function useBaoCaoTongHopPage() {
 
   function formatActualResult(item) {
     if (!item) return '-'
-    if (item.ketQuaThucTeLoai === 'PERCENT_CHANGE') return formatChangePercent(item.ketQuaThucTe)
-    if (item.ketQuaThucTeLoai === 'PERCENT_RATIO') return formatPercent(item.ketQuaThucTe)
-    return formatNumber(item.ketQuaThucTe, item.donViTinhLuyKe || item.donViTinh)
+    const actualValue =
+      getNumberOrNull(item.giaTriLuyKeHienTai) ??
+      (item.ketQuaThucTeLoai === 'NUMBER' ? getNumberOrNull(item.ketQuaThucTe) : null)
+    return formatNumber(actualValue, item.donViTinhLuyKe || item.donViTinh)
+  }
+
+  function isParentIndicatorRow(item) {
+    return Boolean(item?.coTieuChiCon || (Array.isArray(item?.children) && item.children.length > 0))
+  }
+
+  function formatReportNumber(item, value, donViTinh) {
+    return isParentIndicatorRow(item) ? '' : formatNumber(value, donViTinh)
+  }
+
+  function formatReportActualResult(item) {
+    return isParentIndicatorRow(item) ? '' : formatActualResult(item)
+  }
+
+  function exportReportMetricValue(item, value) {
+    return isParentIndicatorRow(item) ? '' : (value ?? '')
   }
 
   function formatChangePercent(value) {
@@ -984,6 +1029,7 @@ export function useBaoCaoTongHopPage() {
       'Mã chỉ tiêu',
       'Tên danh mục chỉ tiêu',
       'Chỉ tiêu giao',
+      'Kết quả thực tế',
       'Đơn vị nhận',
       'Mã đợt giao',
       'Đợt giao chỉ tiêu',
@@ -1005,7 +1051,6 @@ export function useBaoCaoTongHopPage() {
       'Số liệu lũy kế',
       'Số liệu trung bình tháng',
       'Số dư mục tiêu',
-      'Kết quả thực tế',
       '% hoàn thành',
       'Đánh giá',
       'Kết quả',
@@ -1017,6 +1062,7 @@ export function useBaoCaoTongHopPage() {
       item.maChiTieu || '',
       item.tenDanhMucChiTieu || item.tenChiTieu || '',
       item.tenChiTieuGiao || item.tenChiTieuCha || '',
+      formatReportActualResult(item),
       item.tenDonViNhan || '',
       item.maDotGiaoChiTieu || '',
       item.tenDotGiaoChiTieu || '',
@@ -1035,10 +1081,9 @@ export function useBaoCaoTongHopPage() {
       item.giaTriDauKyGanNhat ?? '',
       item.giaTriThucHienCongDon ?? '',
       item.giaTriCuoiKyGanNhat ?? '',
-      item.giaTriLuyKeHienTai ?? '',
-      item.soLieuTrungBinhThang ?? '',
+      exportReportMetricValue(item, item.giaTriLuyKeHienTai),
+      exportReportMetricValue(item, item.soLieuTrungBinhThang),
       item.soDuMucTieu ?? '',
-      formatActualResult(item),
       item.tyLeHoanThanh ?? '',
       getDanhGiaLabel(item.xepLoai) || '',
       item.ketQuaDanhGia || '',
@@ -1083,7 +1128,8 @@ export function useBaoCaoTongHopPage() {
     formatDate,
     formatNumber,
     formatPercent,
-    formatActualResult,
+    formatReportNumber,
+    formatReportActualResult,
     badgeClass,
     getDanhGiaLabel,
     exportCsv

@@ -3,6 +3,7 @@ import { apiRequest } from '../services/api.js'
 import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../utils/accessControl'
 
 export const TARGET_EXECUTION_UNIT = 'Công an thành phố Đà Nẵng'
+const WAITING_SEND_STATUS = 'CHO_GUI'
 
 export function useCatpKpiData() {
   const loading = ref(false)
@@ -118,10 +119,12 @@ export function useCatpKpiData() {
           giaTriPhatSinhLuyKe: getNumberOrNull(pick(item, 'giaTriPhatSinhLuyKe', 'GiaTriPhatSinhLuyKe')),
           donViTinh: pick(item, 'donViTinh', 'DonViTinh') || '',
           nhanXet: String(pick(item, 'nhanXet', 'NhanXet') || '').trim(),
+          trangThai: String(pick(item, 'trangThai', 'TrangThai') || '').trim().toUpperCase(),
           ngayCapNhat: pick(item, 'ngayCapNhat', 'NgayCapNhat', 'updatedAt', 'UpdatedAt', 'createdAt', 'CreatedAt') || ''
         }
       })
       .filter(item => item.chiTietGiaoChiTieuId > 0)
+      .filter(item => item.trangThai !== WAITING_SEND_STATUS)
   })
 
   async function fetchData() {
@@ -297,6 +300,7 @@ function buildReportRow(item, evaluationMap, trackingMap, selectedKyBaoCaoKPIId)
     id: item.id,
     chiTietGiaoChiTieuId: item.id,
     parentId: item.parentId,
+    coTieuChiCon: item.coTieuChiCon,
     dotGiaoChiTieuId: item.dotGiaoChiTieuId,
     maDotGiao: item.maDotGiao,
     tenDotGiaoChiTieu: item.tenDotGiaoChiTieu,

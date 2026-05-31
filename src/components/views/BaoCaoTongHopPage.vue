@@ -54,7 +54,6 @@
                             <div class="form-group actions">
                                 <button class="btn btn-primary" @click="fetchBaoCaoTongHop">Tải dữ liệu</button>
                                 <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
-                                <button class="btn btn-success" @click="exportCsv">Xuất CSV</button>
                             </div>
                         </div>
                     </div>
@@ -89,16 +88,22 @@
                     <div class="table-card">
                         <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
-                        <div v-else class="table-wrapper">
-                            <ColumnVisibilityTools
-                                table-id="BaoCaoTongHopPage-table-v2"
-                                :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 14]"
-                            />
-                            <table id="BaoCaoTongHopPage-table-v2" class="managed-table">
+                        <template v-else>
+                            <div class="table-toolbar report-table-toolbar">
+                                <button class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
+                                <ColumnVisibilityTools
+                                    table-id="BaoCaoTongHopPage-table-v3"
+                                    :default-visible-columns="[0, 1, 2, 3, 4, 10, 11, 14]"
+                                />
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table id="BaoCaoTongHopPage-table-v3" class="managed-table">
                                 <colgroup>
                                     <col class="col-stt" />
                                     <col class="col-danh-muc" />
                                     <col class="col-chi-tieu" />
+                                    <col class="col-actual" />
                                     <col class="col-don-vi" />
                                     <col class="col-dot-giao" />
                                     <col class="col-ky" />
@@ -108,7 +113,6 @@
                                     <col class="col-number" />
                                     <col class="col-number" />
                                     <col class="col-number" />
-                                    <col class="col-actual" />
                                     <col class="col-percent" />
                                     <col class="col-status" />
                                 </colgroup>
@@ -117,6 +121,7 @@
                                         <th>STT</th>
                                         <th>Danh mục chỉ tiêu</th>
                                         <th>Chỉ tiêu giao</th>
+                                        <th>Kết quả thực tế</th>
                                         <th>Đơn vị nhận</th>
                                         <th>Đợt giao chỉ tiêu</th>
                                         <th>Kỳ gần nhất</th>
@@ -126,7 +131,6 @@
                                         <th>Số liệu lũy kế</th>
                                         <th>Số liệu trung bình tháng</th>
                                         <th>Số dư mục tiêu</th>
-                                        <th>Kết quả thực tế</th>
                                         <th>% hoàn thành</th>
                                         <th>Đánh giá</th>
                                     </tr>
@@ -141,6 +145,7 @@
                                             <td>{{ index + 1 }}</td>
                                             <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
                                             <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
+                                            <td class="text-right">{{ formatReportActualResult(row) }}</td>
                                             <td>{{ row.tenDonViNhan || '-' }}</td>
                                             <td>{{ row.tenDotGiaoChiTieu || '-' }}</td>
                                             <td>{{ row.maKyGanNhat || '-' }} - {{ row.tenKyGanNhat || '-' }}</td>
@@ -152,14 +157,13 @@
                                                 row.donViTinh) }}</td>
                                             <td class="text-right">{{ formatNumber(row.giaTriCuoiKyGanNhat,
                                                 row.donViTinh) }}</td>
-                                            <td class="text-right">{{ formatNumber(row.giaTriLuyKeHienTai,
+                                            <td class="text-right">{{ formatReportNumber(row, row.giaTriLuyKeHienTai,
                                                 row.donViTinhLuyKe || row.donViTinh) }}</td>
-                                            <td class="text-right">{{ formatNumber(row.soLieuTrungBinhThang,
+                                            <td class="text-right">{{ formatReportNumber(row, row.soLieuTrungBinhThang,
                                                 row.donViTinhLuyKe || row.donViTinh) }}</td>
                                             <td class="text-right">{{ row.isComparisonTarget ?
                                                 formatPercent(row.soDuMucTieu) : formatNumber(row.soDuMucTieu,
                                                 row.donViTinh) }}</td>
-                                            <td class="text-right">{{ formatActualResult(row) }}</td>
                                             <td class="text-right">{{ formatPercent(row.tyLeHoanThanh) }}</td>
                                             <td>
                                                 <span class="badge" :class="badgeClass(row.xepLoai)">
@@ -178,6 +182,7 @@
                                                 </div>
                                             </td>
                                             <td>{{ child.tenChiTieuGiao || child.tenChiTieuCha || '-' }}</td>
+                                            <td class="text-right">{{ formatReportActualResult(child) }}</td>
                                             <td>{{ child.tenDonViNhan || '-' }}</td>
                                             <td>{{ child.tenDotGiaoChiTieu || '-' }}</td>
                                             <td>{{ child.maKyGanNhat || '-' }} - {{ child.tenKyGanNhat || '-' }}</td>
@@ -189,14 +194,13 @@
                                                 child.donViTinh) }}</td>
                                             <td class="text-right">{{ formatNumber(child.giaTriCuoiKyGanNhat,
                                                 child.donViTinh) }}</td>
-                                            <td class="text-right">{{ formatNumber(child.giaTriLuyKeHienTai,
+                                            <td class="text-right">{{ formatReportNumber(child, child.giaTriLuyKeHienTai,
                                                 child.donViTinhLuyKe || child.donViTinh) }}</td>
-                                            <td class="text-right">{{ formatNumber(child.soLieuTrungBinhThang,
+                                            <td class="text-right">{{ formatReportNumber(child, child.soLieuTrungBinhThang,
                                                 child.donViTinhLuyKe || child.donViTinh) }}</td>
                                             <td class="text-right">{{ child.isComparisonTarget ?
                                                 formatPercent(child.soDuMucTieu) : formatNumber(child.soDuMucTieu,
                                                 child.donViTinh) }}</td>
-                                            <td class="text-right">{{ formatActualResult(child) }}</td>
                                             <td class="text-right">{{ formatPercent(child.tyLeHoanThanh) }}</td>
                                             <td>
                                                 <span class="badge child-badge" :class="badgeClass(child.xepLoai)">
@@ -206,8 +210,9 @@
                                         </tr>
                                     </template>
                                 </tbody>
-                            </table>
-                        </div>
+                                </table>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -240,7 +245,8 @@
         formatDate,
         formatNumber,
         formatPercent,
-        formatActualResult,
+        formatReportNumber,
+        formatReportActualResult,
         badgeClass,
         getDanhGiaLabel,
         exportCsv
@@ -469,7 +475,7 @@
     }
 
     .table-wrapper .col-actual {
-        width: 145px;
+        width: 125px;
     }
 
     .table-wrapper .col-percent {
@@ -477,7 +483,7 @@
     }
 
     .table-wrapper .col-status {
-        width: 130px;
+        width: 115px;
     }
 
     .table-wrapper th,
@@ -517,8 +523,10 @@
 
     .table-wrapper th:nth-child(1),
     .table-wrapper td:nth-child(1),
-    .table-wrapper th:nth-child(n + 7),
-    .table-wrapper td:nth-child(n + 7) {
+    .table-wrapper th:nth-child(4),
+    .table-wrapper td:nth-child(4),
+    .table-wrapper th:nth-child(n + 8),
+    .table-wrapper td:nth-child(n + 8) {
         vertical-align: middle;
     }
 

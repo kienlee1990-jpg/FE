@@ -40,9 +40,9 @@
                 </div>
 
                 <div class="login-heading">
-                    <div class="heading-kicker">CATPDN</div>
-                    <h1>Hệ thống</h1>
-                    <p>Theo dõi, đánh giá kết quả thực hiện chỉ tiêu công tác</p>
+                    <div class="heading-kicker">CÔNG AN THÀNH PHỐ ĐÀ NẴNG</div>
+                    <h1>HỆ THỐNG</h1>
+                    <p>THEO DÕI, ĐÁNH GIÁ KẾT QUẢ THỰC HIỆN CHỈ TIÊU CÔNG TÁC</p>
                 </div>
 
                 <form class="login-form" @submit.prevent="handleLogin">
@@ -95,6 +95,7 @@
     import { ref, onMounted, computed } from "vue"
     import { useRouter } from "vue-router"
     import { useAuth } from "../composables/useAuth"
+    import { clearAuthSession, hasValidAuthToken } from "../utils/authSession"
 
     const router = useRouter()
     const { login, loading, error } = useAuth()
@@ -113,8 +114,11 @@
     }
 
     onMounted(() => {
-        const token = localStorage.getItem("token")
-        if (token) router.push("/dashboard")
+        if (hasValidAuthToken()) {
+            router.push("/dashboard")
+        } else {
+            clearAuthSession()
+        }
     })
 
     const x = ref(0)

@@ -292,11 +292,13 @@
 
     const reportedKeys = computed(() => {
         return new Set(
-            theoDoiItems.value.map((item) => {
-                const chiTietId = Number(item?.ChiTietGiaoChiTieuId ?? item?.chiTietGiaoChiTieuId ?? 0)
-                const kyId = Number(item?.KyBaoCaoKPIId ?? item?.kyBaoCaoKPIId ?? 0)
-                return `${chiTietId}_${kyId}`
-            })
+            theoDoiItems.value
+                .filter((item) => String(item?.TrangThai ?? item?.trangThai ?? '').trim().toUpperCase() !== 'CHO_GUI')
+                .map((item) => {
+                    const chiTietId = Number(item?.ChiTietGiaoChiTieuId ?? item?.chiTietGiaoChiTieuId ?? 0)
+                    const kyId = Number(item?.KyBaoCaoKPIId ?? item?.kyBaoCaoKPIId ?? 0)
+                    return `${chiTietId}_${kyId}`
+                })
         )
     })
 

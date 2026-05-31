@@ -20,6 +20,9 @@ import GiaoChoCatpPage from "../components/views/GiaoChoCatpPage.vue"
 import GiaoChoPhongPage from "../components/views/GiaoChoPhongPage.vue"
 import GiaoChoCadpPhuongXaPage from "../components/views/GiaoChoCadpPhuongXaPage.vue"
 import KyBaoCaoPage from "../components/views/KyBaoCaoPage.vue"
+import BaoCaoChoXetDuyetPage from "../components/views/BaoCaoChoXetDuyetPage.vue"
+import BaoCaoCanDieuChinhPage from "../components/views/BaoCaoCanDieuChinhPage.vue"
+import GuiBaoCaoDinhKyPage from "../components/views/GuiBaoCaoDinhKyPage.vue"
 import NhapKetQuaPage from "../components/views/NhapKetQuaPage.vue"
 import NhomThiDuaPage from "../components/views/NhomThiDuaPage.vue"
 import ThietLapNhomThiDuaPage from "../components/views/ThietLapNhomThiDuaPage.vue"
@@ -38,6 +41,7 @@ import {
     isCatpProfile,
     isPrivilegedProfile
 } from "../utils/accessControl"
+import { clearAuthSession, isTokenExpired } from "../utils/authSession"
 
 const routes = [
     {
@@ -130,9 +134,27 @@ const routes = [
     // Theo dõi và giám sát
     {
         path: "/nhap-ket-qua",
-        name: "NhapKetQua",
+        name: "DanhSachBaoCao",
         component: NhapKetQuaPage,
         meta: { requiresAuth: true, permission: "SubmitPeriodicReports" }
+    },
+    {
+        path: "/gui-bao-cao-dinh-ky",
+        name: "GuiBaoCaoDinhKy",
+        component: GuiBaoCaoDinhKyPage,
+        meta: { requiresAuth: true, permission: "SubmitPeriodicReports" }
+    },
+    {
+        path: "/bao-cao-cho-xet-duyet",
+        name: "BaoCaoChoXetDuyet",
+        component: BaoCaoChoXetDuyetPage,
+        meta: { requiresAuth: true, permission: "ReviewPendingReports" }
+    },
+    {
+        path: "/bao-cao-can-dieu-chinh",
+        name: "BaoCaoCanDieuChinh",
+        component: BaoCaoCanDieuChinhPage,
+        meta: { requiresAuth: true, permission: "ViewReturnedReports" }
     },
     {
         path: "/tien-do-thuc-hien",
@@ -252,6 +274,14 @@ const shouldLandOnDonVi = (profile) => {
     return !isPrivilegedProfile(profile) && !isCatpProfile(profile)
 }
 
+const canAccessRoutePermission = (permissions, requiredPermission, profile) => {
+    if (requiredPermission === "ViewReturnedReports" && (isPrivilegedProfile(profile) || isCatpProfile(profile))) {
+        return true
+    }
+
+    return canAccessPermission(permissions, requiredPermission, profile)
+}
+
 const getFirstAuthorizedPath = (permissions, profile) => {
     if (shouldLandOnDonVi(profile)) {
         return "/don-vi"
@@ -260,7 +290,7 @@ const getFirstAuthorizedPath = (permissions, profile) => {
     const firstRoute = routes.find(route => {
         if (!route?.path || route.path === "/login" || route.path === "/") return false
         if (!route?.meta?.requiresAuth) return false
-        return canAccessPermission(permissions, route.meta.permission, profile)
+        return canAccessRoutePermission(permissions, route.meta.permission, profile)
     })
 
     return firstRoute?.path || "/login"
@@ -268,11 +298,20 @@ const getFirstAuthorizedPath = (permissions, profile) => {
 
 router.beforeEach((to) => {
     const token = localStorage.getItem("token")
+
+    if (token && isTokenExpired(token)) {
+        clearAuthSession()
+        if (to.path !== "/login") {
+            return { path: "/login", replace: true }
+        }
+        return true
+    }
+
     const permissions = getStoredUserPermissions()
     const profile = getStoredUserProfile()
 
     if (to.meta.requiresAuth && !token) {
-        return { path: "/login" }
+        return { path: "/login", replace: true }
     }
 
     if (token && to.meta?.adminOnly && !hasRole(profile, "Admin")) {
@@ -284,20 +323,23 @@ router.beforeEach((to) => {
     }
 
     if (to.path === "/login" && token) {
-        return { path: getFirstAuthorizedPath(permissions, profile) }
+        const fallbackPath = getFirstAuthorizedPath(permissions, profile)
+        if (fallbackPath === "/login") {
+            clearAuthSession()
+            return true
+        }
+        return { path: fallbackPath }
     }
 
     if (token && to.path === "/don-vi" && shouldLandOnDonVi(profile)) {
         return true
     }
 
-    if (token && to.meta.requiresAuth && !canAccessPermission(permissions, to.meta.permission, profile)) {
+    if (token && to.meta.requiresAuth && !canAccessRoutePermission(permissions, to.meta.permission, profile)) {
         const fallbackPath = getFirstAuthorizedPath(permissions, profile)
         if (fallbackPath === "/login") {
-            localStorage.removeItem("token")
-            localStorage.removeItem("refreshToken")
-            localStorage.removeItem("user")
-            return { path: "/login" }
+            clearAuthSession()
+            return { path: "/login", replace: true }
         }
 
         if (fallbackPath !== to.path) {

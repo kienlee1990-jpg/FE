@@ -1,6 +1,7 @@
 ﻿import { ref } from "vue"
 import { useRouter } from "vue-router"
 import { getMe as getMeApi, loginApi, logoutApi } from "../services/authService"
+import { clearAuthSession, hasValidAuthToken } from "../utils/authSession"
 
 export function useAuth() {
     const router = useRouter()
@@ -31,12 +32,7 @@ export function useAuth() {
     }
 
     const clearSession = () => {
-        localStorage.removeItem("token")
-        localStorage.removeItem("refreshToken")
-        localStorage.removeItem("user")
-        localStorage.removeItem("userId")
-        localStorage.removeItem("fullName")
-        localStorage.removeItem("email")
+        clearAuthSession()
         user.value = null
     }
 
@@ -87,7 +83,7 @@ export function useAuth() {
         }
     }
 
-    const isAuthenticated = () => !!localStorage.getItem("token")
+    const isAuthenticated = () => hasValidAuthToken()
 
     const getMe = async () => {
         try {

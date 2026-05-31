@@ -867,6 +867,8 @@
     }
 
     const CATP_TEN_DON_VI = 'Công an thành phố Đà Nẵng'
+    const PHONG_DEFAULT_MA_DON_VI = 'PV01'
+    const CADP_DEFAULT_TEN_DON_VI = 'Công an phường Hải Châu'
 
     const SCOPE_CONFIGS = {
         CATP: {
@@ -889,9 +891,9 @@
         },
         CADP_PHUONG_XA: {
             icon: 'bi bi-diagram-3-fill',
-            pageTitle: 'GIAO CHỈ TIÊU CHO CADP PHƯỜNG/XÃ',
+            pageTitle: 'GIAO CHỈ TIÊU CHO CÔNG AN PHƯỜNG/XÃ',
             filterHint: 'Tra cứu các bản giao chỉ tiêu cho Công an cấp xã, phường',
-            listTitle: 'Danh sách giao chỉ tiêu cho CADP phường/xã',
+            listTitle: 'Danh sách giao chỉ tiêu cho Công an phường/xã',
             listHint: 'Hỗ trợ giao chỉ tiêu đơn và chỉ tiêu phân rã cho Công an cấp xã, phường',
             modalHint: 'Chọn đợt giao, chỉ tiêu, đơn vị nhận và khai báo mục tiêu, đầu kỳ cố định.',
             receiverLabel: 'Đơn vị nhận'
@@ -911,6 +913,7 @@
     const isEdit = ref(false)
     const editingId = ref(null)
     const syncingForm = ref(false)
+    const hasAppliedInitialFilterDefaults = ref(false)
 
     const items = ref([])
     const dotOptions = ref([])
@@ -1163,7 +1166,7 @@
         const map = {
             CATP: 'Công an thành phố',
             PHONG: 'Khối phòng',
-            CADP_PHUONG_XA: 'CADP phường/xã',
+            CADP_PHUONG_XA: 'Công an phường/xã',
             KHAC: 'Đơn vị khác'
         }
 
@@ -1371,6 +1374,22 @@
         return scopedDonViOptions.value[0] || null
     })
 
+    const defaultPhongDonVi = computed(() => {
+        if (props.scope !== 'PHONG') return null
+        const defaultCode = normalizeSearch(PHONG_DEFAULT_MA_DON_VI)
+        return scopedDonViOptions.value.find(item =>
+            normalizeSearch(item.maDonVi) === defaultCode ||
+            normalizeSearch(item.tenDonVi).includes(defaultCode)
+        ) || null
+    })
+
+    const defaultCadpDonVi = computed(() => {
+        if (props.scope !== 'CADP_PHUONG_XA') return null
+        return scopedDonViOptions.value.find(item =>
+            normalizeSearch(item.tenDonVi) === normalizeSearch(CADP_DEFAULT_TEN_DON_VI)
+        ) || null
+    })
+
     const groupedDonViOptions = computed(() => {
         const groups = new Map()
 
@@ -1541,6 +1560,9 @@
         form.phuongThucChonDonVi = mode
         if (mode === 'DON_VI') {
             form.nhomThiDuaId = null
+            if (props.scope === 'CADP_PHUONG_XA' && defaultCadpDonVi.value && !form.donViIds.length) {
+                form.donViIds = [Number(defaultCadpDonVi.value.id)]
+            }
         } else {
             form.donViIds = []
         }
@@ -1652,6 +1674,36 @@
         if (props.scope === 'CATP' && defaultScopedDonVi.value) {
             form.donViId = Number(defaultScopedDonVi.value.id)
             form.donViIds = [Number(defaultScopedDonVi.value.id)]
+            return
+        }
+
+        if (props.scope === 'PHONG' && defaultPhongDonVi.value && !isEdit.value) {
+            form.phuongThucChonDonVi = 'DON_VI'
+            form.donViId = null
+            form.donViIds = [Number(defaultPhongDonVi.value.id)]
+            return
+        }
+
+        if (props.scope === 'CADP_PHUONG_XA' && defaultCadpDonVi.value && !isEdit.value) {
+            form.phuongThucChonDonVi = 'DON_VI'
+            form.donViId = null
+            form.donViIds = [Number(defaultCadpDonVi.value.id)]
+        }
+    }
+
+    const applyScopeDefaultFilters = () => {
+        if (props.scope === 'CATP' && defaultScopedDonVi.value) {
+            filters.donViId = Number(defaultScopedDonVi.value.id)
+            return
+        }
+
+        if (props.scope === 'PHONG' && defaultPhongDonVi.value) {
+            filters.donViId = Number(defaultPhongDonVi.value.id)
+            return
+        }
+
+        if (props.scope === 'CADP_PHUONG_XA' && defaultCadpDonVi.value) {
+            filters.donViId = Number(defaultCadpDonVi.value.id)
         }
     }
 
@@ -1839,6 +1891,10 @@
             donViOptions.value = normalizeList(donViData).map(normalizeDonVi)
             nhomThiDuaOptions.value = normalizeList(nhomThiDuaData).map(normalizeNhomThiDua)
             applyScopeDefaultDonVi()
+            if (!hasAppliedInitialFilterDefaults.value) {
+                applyScopeDefaultFilters()
+                hasAppliedInitialFilterDefaults.value = true
+            }
         } catch (error) {
             console.error(error)
             alert(error.message || 'Không tải được dữ liệu giao chỉ tiêu.')
@@ -1964,14 +2020,13 @@
         filters.donViId = null
         filters.keyword = ''
 
-        if (props.scope === 'CATP' && defaultScopedDonVi.value) {
-            filters.donViId = Number(defaultScopedDonVi.value.id)
-        }
+        applyScopeDefaultFilters()
     }
 
     watch(
         () => props.scope,
         () => {
+            hasAppliedInitialFilterDefaults.value = false
             resetForm()
             resetFilters()
             applyScopeDefaultDonVi()
@@ -1985,6 +2040,16 @@
             if (props.scope === 'CATP' && defaultScopedDonVi.value) {
                 form.donViId = Number(defaultScopedDonVi.value.id)
                 form.donViIds = [Number(defaultScopedDonVi.value.id)]
+                return
+            }
+
+            if (props.scope === 'PHONG' && defaultPhongDonVi.value && !isEdit.value && !form.donViIds.length) {
+                form.donViIds = [Number(defaultPhongDonVi.value.id)]
+                return
+            }
+
+            if (props.scope === 'CADP_PHUONG_XA' && defaultCadpDonVi.value && !isEdit.value && !form.donViIds.length) {
+                form.donViIds = [Number(defaultCadpDonVi.value.id)]
             }
         },
         { immediate: true }

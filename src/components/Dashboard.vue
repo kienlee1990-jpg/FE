@@ -26,7 +26,7 @@
                 <select v-model="filters.kyBaoCaoKPIId" @change="fetchDashboardData">
                   <option value="">-- Tất cả kỳ báo cáo --</option>
                   <option v-for="item in kyBaoCaoOptions" :key="item.id" :value="item.id">
-                    {{ buildKyLabel(item) }}
+                    {{ getKyLabel(item) }}
                   </option>
                 </select>
               </div>
@@ -169,7 +169,7 @@
 
               <section class="panel-card">
                 <div class="panel-header">
-                  <h3>05 chỉ tiêu có kết quả kém nhất</h3>
+                  <h3>05 chỉ tiêu có kết quả thấp nhất</h3>
                   <span>% hoàn thành thấp nhất</span>
                 </div>
 
@@ -189,7 +189,7 @@
 </template>
 
 <script setup>
-  import { computed, onMounted } from 'vue'
+  import { computed } from 'vue'
   import BaseLayout from './BaseLayout.vue'
   import VueApexCharts from 'vue3-apexcharts'
   import {
@@ -198,58 +198,23 @@
     getDanhGiaStatusCode,
     isKhongHoanThanhStatus
   } from '../utils/danhGiaStatusClean.js'
-  import { buildKyLabel, normalizeText, useCatpKpiData } from '../composables/useCatpKpiData.js'
+  import { useBaoCaoTongHopPage } from './views/baoCaoTongHopPageState.js'
 
   const apexchart = VueApexCharts
   const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
   const {
     donViOptions,
     errorMessage,
-    fetchData: fetchDashboardData,
+    fetchBaoCaoTongHop: fetchDashboardData,
     filters,
-    hierarchicalReportRows,
+    filteredRows: dashboardRows,
+    getKyLabel,
     kyBaoCaoOptions,
     loading,
     resetFilters
-  } = useCatpKpiData()
+  } = useBaoCaoTongHopPage({ applyDefaultUnitFilter: false })
 
-  const groupedRows = computed(() => hierarchicalReportRows.value)
-
-  const filteredRows = computed(() => {
-    let data = [...groupedRows.value]
-
-    if (filters.donVi) {
-      data = data.filter(item => item.tenDonViNhan === filters.donVi)
-    }
-
-    if (filters.xepLoai) {
-      data = data.filter(item => getDanhGiaStatusCode(item.xepLoai) === filters.xepLoai)
-    }
-
-    if (filters.keyword) {
-      const keyword = normalizeText(filters.keyword)
-      data = data.filter(item => {
-        return [
-          item.maChiTieu,
-          item.tenChiTieu,
-          item.tenDonViNhan,
-          item.maKy,
-          item.tenKy,
-          item.loaiKy,
-          item.xepLoai,
-          item.ketQua,
-          item.nguoiDanhGia,
-          item.nhanXetDanhGia,
-          item.tenDotGiaoChiTieu,
-          item.maDotGiao
-        ]
-          .filter(Boolean)
-          .some(value => normalizeText(String(value)).includes(keyword))
-      })
-    }
-
-    return data
-  })
+  const filteredRows = computed(() => dashboardRows.value)
 
   const xepLoaiStats = computed(() => countTrackedStatuses(filteredRows.value))
   const hoanThanhCount = computed(() =>
@@ -407,8 +372,6 @@
     },
     colors: ['#f97316']
   }))
-
-  onMounted(fetchDashboardData)
 
   function groupBy(items, getKey) {
     return items.reduce((acc, item) => {

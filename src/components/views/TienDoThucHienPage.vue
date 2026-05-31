@@ -241,7 +241,7 @@
                             </div>
 
                             <div class="d-flex flex-wrap gap-2 mb-3">
-                                <button class="btn btn-sm btn-primary" @click="goToDetail(item.chiTietGiaoChiTieuId)">
+                                <button class="btn btn-sm btn-primary" @click="goToDetail(item)">
                                     <i class="bi bi-box-arrow-up-right me-1"></i>
                                     Xem chi tiết
                                 </button>
@@ -304,6 +304,7 @@
 
 <script setup>
     import { computed, onMounted, reactive, ref } from 'vue'
+    import { useRouter } from 'vue-router'
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
@@ -318,8 +319,7 @@
         donVi: '/DonVi'
     }
 
-    const DETAIL_PAGE_PATH = '/TheoDoiThucHienKPI'
-
+    const router = useRouter()
     const loading = ref(false)
     const expandedKeys = ref(new Set())
     const currentProfile = ref(getStoredUserProfile())
@@ -344,6 +344,7 @@
     const canManageAllUnits = computed(() =>
         isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
     )
+    const ACCEPTED_REPORT_STATUSES = new Set(['MOI_TAO', 'DA_DUYET', 'DA_GHI_NHAN'])
 
     const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
 
@@ -612,6 +613,7 @@
                 trangThai: item.TrangThai || item.trangThai || 'MOI_TAO'
             }
         })
+            .filter((item) => ACCEPTED_REPORT_STATUSES.has(normalizeCode(item.trangThai)))
     })
 
     const enrichedDanhGiaItems = computed(() => {
@@ -966,17 +968,39 @@
         expandedKeys.value = next
     }
 
-    const goToDetail = (chiTietGiaoChiTieuId) => {
-        const url = `${DETAIL_PAGE_PATH}?chiTietGiaoChiTieuId=${chiTietGiaoChiTieuId}`
-        window.location.href = url
+    const buildReportListQuery = (item) => {
+        const query = {
+            returnTo: 'tien-do-thuc-hien'
+        }
+
+        if (item?.chiTietGiaoChiTieuId) {
+            query.chiTietGiaoChiTieuId = String(item.chiTietGiaoChiTieuId)
+        }
+
+        if (item?.donViId) {
+            query.donViNhanId = String(item.donViId)
+        }
+
+        return query
+    }
+
+    const goToDetail = (item) => {
+        router.push({
+            path: '/nhap-ket-qua',
+            query: buildReportListQuery(item)
+        })
     }
 
     const goToDetailWithLatestKy = (item) => {
-        let url = `${DETAIL_PAGE_PATH}?chiTietGiaoChiTieuId=${item.chiTietGiaoChiTieuId}`
+        const query = buildReportListQuery(item)
         if (item.kyBaoCaoKPIIdGanNhat) {
-            url += `&kyBaoCaoKPIId=${item.kyBaoCaoKPIIdGanNhat}`
+            query.kyBaoCaoKPIId = String(item.kyBaoCaoKPIIdGanNhat)
         }
-        window.location.href = url
+
+        router.push({
+            path: '/nhap-ket-qua',
+            query
+        })
     }
 
     const getTienDoText = (giaTriLuyKe, giaTriMucTieu, tyLeHoanThanh, xepLoai) => {
@@ -1004,9 +1028,13 @@
 
     const mapTrangThai = (value) => {
         const map = {
-            MOI_TAO: 'Mới tạo',
+            MOI_TAO: 'Đã chấp nhận',
             CHO_DUYET: 'Chờ duyệt',
+            CHO_XET_DUYET: 'Chờ xét duyệt',
+            CHO_GUI: 'Chờ gửi',
             DA_DUYET: 'Đã duyệt',
+            DA_GHI_NHAN: 'Đã ghi nhận',
+            TRA_LAI_NHAP_LAI: 'Cần điều chỉnh',
             TU_CHOI: 'Từ chối'
         }
         return map[value] || value || '-'
@@ -1014,9 +1042,13 @@
 
     const getTrangThaiClass = (value) => {
         const map = {
-            MOI_TAO: 'text-bg-secondary',
+            MOI_TAO: 'text-bg-success',
             CHO_DUYET: 'text-bg-warning',
+            CHO_XET_DUYET: 'text-bg-warning',
+            CHO_GUI: 'text-bg-secondary',
             DA_DUYET: 'text-bg-success',
+            DA_GHI_NHAN: 'text-bg-success',
+            TRA_LAI_NHAP_LAI: 'text-bg-danger',
             TU_CHOI: 'text-bg-danger'
         }
         return map[value] || 'text-bg-light'

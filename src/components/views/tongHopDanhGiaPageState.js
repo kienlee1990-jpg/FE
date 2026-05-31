@@ -28,6 +28,7 @@ export function useTongHopDanhGiaPage() {
   const canViewAllUnits = computed(() =>
     isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
   )
+  const WAITING_SEND_STATUS = 'CHO_GUI'
   const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
   const kyBaoCaoById = computed(() => buildMapById(kyBaoCaoOptions.value))
@@ -156,6 +157,7 @@ export function useTongHopDanhGiaPage() {
           giaTriLuyKe: getNumberOrNull(pick(rawItem, 'giaTriLuyKe', 'GiaTriLuyKe')),
           giaTriPhatSinhLuyKe: getNumberOrNull(pick(rawItem, 'giaTriPhatSinhLuyKe', 'GiaTriPhatSinhLuyKe')),
           nhanXet: String(pick(rawItem, 'nhanXet', 'NhanXet') || '').trim(),
+          trangThai: String(pick(rawItem, 'trangThai', 'TrangThai') || '').trim().toUpperCase(),
           maKy: pick(rawItem, 'maKy', 'MaKy') || pick(kyBaoCao, 'maKy', 'MaKy') || '',
           tenKy: pick(rawItem, 'tenKy', 'TenKy') || pick(kyBaoCao, 'tenKy', 'TenKy') || '',
           loaiKy: pick(kyBaoCao, 'loaiKy', 'LoaiKy', 'loaiKyBaoCao', 'LoaiKyBaoCao') || '',
@@ -166,6 +168,7 @@ export function useTongHopDanhGiaPage() {
         }
       })
       .filter(item => item.laChiTiet)
+      .filter(item => item.trangThai !== WAITING_SEND_STATUS)
       .filter(item => !selectedKySort || compareKySort(item.kySort, selectedKySort) <= 0)
   })
 

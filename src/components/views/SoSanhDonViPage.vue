@@ -107,8 +107,15 @@
                         <div class="dashboard-grid two-columns">
                             <section class="panel-card">
                                 <div class="panel-header">
-                                    <h3>Xếp hạng đơn vị</h3>
-                                    <span>{{ unitSummaries.length }} đơn vị</span>
+                                    <div class="panel-title">
+                                        <h3>Xếp hạng đơn vị</h3>
+                                        <span>Top {{ topUnitSummaries.length }}/{{ unitSummaries.length }} đơn vị</span>
+                                    </div>
+                                    <button v-if="hasMoreUnits" type="button" class="btn btn-light view-more-btn"
+                                        @click="openFullChartModal('ranking')">
+                                        <i class="bi bi-arrows-fullscreen"></i>
+                                        <span>Xem thêm</span>
+                                    </button>
                                 </div>
 
                                 <div v-if="unitSummaries.length === 0" class="empty-panel">Không có dữ liệu</div>
@@ -120,8 +127,15 @@
 
                             <section class="panel-card">
                                 <div class="panel-header">
-                                    <h3>Tỷ trọng xếp loại theo đơn vị</h3>
-                                    <span>So sánh chất lượng chỉ tiêu</span>
+                                    <div class="panel-title">
+                                        <h3>Tỷ trọng xếp loại theo đơn vị</h3>
+                                        <span>Top {{ topUnitSummaries.length }}/{{ unitSummaries.length }} đơn vị</span>
+                                    </div>
+                                    <button v-if="hasMoreUnits" type="button" class="btn btn-light view-more-btn"
+                                        @click="openFullChartModal('status')">
+                                        <i class="bi bi-arrows-fullscreen"></i>
+                                        <span>Xem thêm</span>
+                                    </button>
                                 </div>
 
                                 <div v-if="stackedUnitSeries.length === 0" class="empty-panel">Không có dữ liệu</div>
@@ -250,6 +264,86 @@
                                 </table>
                             </div>
                         </section>
+
+                        <div v-if="chartModalMode" class="compare-modal-backdrop" @click.self="closeFullChartModal">
+                            <div class="compare-modal">
+                                <div class="compare-modal-header">
+                                    <div class="modal-title-wrap">
+                                        <div class="modal-title-icon">
+                                            <i :class="chartModalIcon"></i>
+                                        </div>
+                                        <div>
+                                            <h3>{{ chartModalTitle }}</h3>
+                                            <span>{{ unitSummaries.length }} đơn vị trong phạm vi lọc</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="modal-close-btn" aria-label="Đóng"
+                                        @click="closeFullChartModal">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+
+                                <div class="modal-summary-strip">
+                                    <div class="modal-summary-item">
+                                        <span>Tổng đơn vị</span>
+                                        <strong>{{ unitSummaries.length }}</strong>
+                                    </div>
+                                    <div class="modal-summary-item">
+                                        <span>Tổng chỉ tiêu</span>
+                                        <strong>{{ filteredRows.length }}</strong>
+                                    </div>
+                                    <div class="modal-summary-item">
+                                        <span>Đơn vị tốt nhất</span>
+                                        <strong>{{ bestUnit?.tenDonVi || '-' }}</strong>
+                                    </div>
+                                    <div class="modal-summary-item">
+                                        <span>Hoàn thành TB tốt nhất</span>
+                                        <strong>{{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}</strong>
+                                    </div>
+                                </div>
+
+                                <div class="modal-chart-wrapper">
+                                    <apexchart v-if="chartModalMode === 'ranking'" type="bar" :height="fullChartHeight"
+                                        :options="fullUnitCompareChartOptions" :series="fullUnitCompareChartSeries" />
+                                    <apexchart v-else type="bar" :height="fullChartHeight"
+                                        :options="fullStackedUnitChartOptions" :series="fullStackedUnitSeries" />
+                                </div>
+
+                                <div class="modal-table-wrapper">
+                                    <table class="modal-summary-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Đơn vị</th>
+                                                <th>Số chỉ tiêu</th>
+                                                <th>% hoàn thành TB</th>
+                                                <th>Vượt mức</th>
+                                                <th>Hoàn thành</th>
+                                                <th>Chưa hoàn thành</th>
+                                                <th>Không hoàn thành</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(item, index) in unitSummaries" :key="`modal-${item.tenDonVi}`"
+                                                :class="getModalRankClass(index)">
+                                                <td>
+                                                    <span class="modal-rank-badge">{{ index + 1 }}</span>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ item.tenDonVi }}</strong>
+                                                </td>
+                                                <td>{{ item.total }}</td>
+                                                <td>{{ formatPercent(item.avgCompletion) }}</td>
+                                                <td>{{ item.HOAN_THANH_VUOT_MUC }}</td>
+                                                <td>{{ item.HOAN_THANH }}</td>
+                                                <td>{{ item.CHUA_HOAN_THANH }}</td>
+                                                <td>{{ item.KHONG_HOAN_THANH }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -258,7 +352,7 @@
 </template>
 
 <script setup>
-    import { computed, reactive } from 'vue'
+    import { computed, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import VueApexCharts from 'vue3-apexcharts'
@@ -270,14 +364,20 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         loading,
         errorMessage,
         kyBaoCaoOptions,
-        donViOptions,
+        donViOptions: reportDonViOptions,
         filteredRows: reportRows,
         filters: reportFilters,
         canViewAllUnits,
         currentUnitName,
         fetchBaoCaoTongHop
-    } = useBaoCaoTongHopPage()
+    } = useBaoCaoTongHopPage({ applyDefaultUnitFilter: false })
+    const CITY_POLICE_UNIT_NAME = 'Công an thành phố Đà Nẵng'
+    const TOP_UNITS_LIMIT = 10
     const rows = computed(() => reportRows.value)
+    const donViOptions = computed(() =>
+        reportDonViOptions.value.filter(item => !isCityPoliceUnitName(item))
+    )
+    const chartModalMode = ref('')
 
     const filters = reactive({
         kyBaoCaoKPIId: '',
@@ -287,7 +387,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         keyword: ''
     })
     const filteredRows = computed(() => {
-        let data = [...rows.value]
+        let data = rows.value.filter(item => !isCityPoliceUnitName(item.tenDonViNhan))
 
         if (!canViewAllUnits.value && currentUnitName.value) {
             data = data.filter(item => String(item.tenDonViNhan || '').trim() === currentUnitName.value)
@@ -336,6 +436,9 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         return result.sort((a, b) => compareUnits(a, b, filters.sortBy))
     })
 
+    const topUnitSummaries = computed(() => unitSummaries.value.slice(0, TOP_UNITS_LIMIT))
+    const hasMoreUnits = computed(() => unitSummaries.value.length > TOP_UNITS_LIMIT)
+
     const bestUnit = computed(() => unitSummaries.value[0] || null)
 
     const worstUnit = computed(() => {
@@ -373,88 +476,29 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         }
     })
 
-    const unitCompareChartSeries = computed(() => [
-        {
-            name: '% hoàn thành TB',
-            data: unitSummaries.value.map(item => roundNumber(item.avgCompletion))
-        }
-    ])
+    const unitCompareChartSeries = computed(() => buildCompletionSeries(topUnitSummaries.value))
+    const fullUnitCompareChartSeries = computed(() => buildCompletionSeries(unitSummaries.value))
+    const unitCompareChartOptions = computed(() => buildCompletionChartOptions(topUnitSummaries.value))
+    const fullUnitCompareChartOptions = computed(() => buildCompletionChartOptions(unitSummaries.value))
 
-    const unitCompareChartOptions = computed(() => ({
-        chart: {
-            type: 'bar',
-            toolbar: { show: false }
-        },
-        plotOptions: {
-            bar: {
-                horizontal: true,
-                borderRadius: 4
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: value => `${value}%`
-        },
-        xaxis: {
-            categories: unitSummaries.value.map(item => item.tenDonVi),
-            labels: {
-                formatter: value => `${value}%`
-            }
-        },
-        tooltip: {
-            y: {
-                formatter: value => `${value}%`
-            }
-        },
-        colors: ['#2563eb']
-    }))
+    const stackedUnitSeries = computed(() => buildStackedUnitSeries(topUnitSummaries.value))
+    const fullStackedUnitSeries = computed(() => buildStackedUnitSeries(unitSummaries.value))
+    const stackedUnitChartOptions = computed(() => buildStackedUnitChartOptions(topUnitSummaries.value))
+    const fullStackedUnitChartOptions = computed(() =>
+        buildStackedUnitChartOptions(unitSummaries.value, { horizontal: true, labelLength: 34 })
+    )
 
-    const stackedUnitSeries = computed(() => {
-        if (unitSummaries.value.length === 0) return []
-
-        return [
-            {
-                name: 'Hoàn thành vượt mức',
-                data: unitSummaries.value.map(item => item.HOAN_THANH_VUOT_MUC)
-            },
-            {
-                name: 'Hoàn thành',
-                data: unitSummaries.value.map(item => item.HOAN_THANH)
-            },
-            {
-                name: 'Chưa hoàn thành',
-                data: unitSummaries.value.map(item => item.CHUA_HOAN_THANH)
-            },
-            {
-                name: 'Không hoàn thành',
-                data: unitSummaries.value.map(item => item.KHONG_HOAN_THANH)
-            }
-        ]
-    })
-
-    const stackedUnitChartOptions = computed(() => ({
-        chart: {
-            type: 'bar',
-            stacked: true,
-            toolbar: { show: false }
-        },
-        plotOptions: {
-            bar: {
-                horizontal: false,
-                borderRadius: 4
-            }
-        },
-        xaxis: {
-            categories: unitSummaries.value.map(item => truncateText(item.tenDonVi, 18))
-        },
-        legend: {
-            position: 'bottom'
-        },
-        dataLabels: {
-            enabled: false
-        },
-        colors: ['#16a34a', '#2563eb', '#f59e0b', '#dc2626']
-    }))
+    const chartModalTitle = computed(() =>
+        chartModalMode.value === 'status'
+            ? 'Tỷ trọng xếp loại theo đơn vị'
+            : 'Xếp hạng đầy đủ các đơn vị'
+    )
+    const chartModalIcon = computed(() =>
+        chartModalMode.value === 'status'
+            ? 'bi bi-bar-chart-steps'
+            : 'bi bi-trophy-fill'
+    )
+    const fullChartHeight = computed(() => Math.max(420, unitSummaries.value.length * 34))
 
     const duoCompareSeries = computed(() => {
         if (selectedUnits.value.length < 2) return []
@@ -501,6 +545,21 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         reportFilters.xepLoai = ''
         reportFilters.keyword = ''
         await fetchBaoCaoTongHop()
+    }
+
+    function openFullChartModal(mode) {
+        chartModalMode.value = mode
+    }
+
+    function closeFullChartModal() {
+        chartModalMode.value = ''
+    }
+
+    function getModalRankClass(index) {
+        if (index === 0) return 'rank-first'
+        if (index === 1) return 'rank-second'
+        if (index === 2) return 'rank-third'
+        return ''
     }
 
     function resetFilters() {
@@ -553,12 +612,110 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         )
     }
 
+    function buildCompletionSeries(items) {
+        return [
+            {
+                name: '% hoàn thành TB',
+                data: items.map(item => roundNumber(item.avgCompletion))
+            }
+        ]
+    }
+
+    function buildCompletionChartOptions(items) {
+        return {
+            chart: {
+                type: 'bar',
+                toolbar: { show: false }
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    borderRadius: 4
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: value => `${value}%`
+            },
+            xaxis: {
+                categories: items.map(item => item.tenDonVi),
+                labels: {
+                    formatter: value => `${value}%`
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: value => `${value}%`
+                }
+            },
+            colors: ['#2563eb']
+        }
+    }
+
+    function buildStackedUnitSeries(items) {
+        if (items.length === 0) return []
+
+        return [
+            {
+                name: 'Hoàn thành vượt mức',
+                data: items.map(item => item.HOAN_THANH_VUOT_MUC)
+            },
+            {
+                name: 'Hoàn thành',
+                data: items.map(item => item.HOAN_THANH)
+            },
+            {
+                name: 'Chưa hoàn thành',
+                data: items.map(item => item.CHUA_HOAN_THANH)
+            },
+            {
+                name: 'Không hoàn thành',
+                data: items.map(item => item.KHONG_HOAN_THANH)
+            }
+        ]
+    }
+
+    function buildStackedUnitChartOptions(items, options = {}) {
+        const horizontal = options.horizontal === true
+        const labelLength = options.labelLength || 18
+
+        return {
+            chart: {
+                type: 'bar',
+                stacked: true,
+                toolbar: { show: false }
+            },
+            plotOptions: {
+                bar: {
+                    horizontal,
+                    borderRadius: 4
+                }
+            },
+            xaxis: {
+                categories: items.map(item => truncateText(item.tenDonVi, labelLength))
+            },
+            legend: {
+                position: 'bottom'
+            },
+            dataLabels: {
+                enabled: false
+            },
+            colors: ['#16a34a', '#2563eb', '#f59e0b', '#dc2626']
+        }
+    }
+
     function normalizeText(value) {
         return String(value || '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
             .toLowerCase()
             .trim()
+    }
+
+    function isCityPoliceUnitName(value) {
+        return normalizeText(value) === normalizeText(CITY_POLICE_UNIT_NAME)
     }
 
     function roundNumber(value) {
@@ -806,6 +963,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         gap: 12px;
     }
 
+    .panel-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
     .panel-header h3 {
         margin: 0;
         font-size: 18px;
@@ -815,6 +979,23 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     .panel-header span {
         color: #64748b;
         font-size: 14px;
+    }
+
+    .view-more-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        border: 1px solid #dbe3ef;
+        background: #f8fafc;
+        color: #1e40af;
+        box-shadow: none;
+        white-space: nowrap;
+    }
+
+    .view-more-btn:hover {
+        background: #eef6ff;
+        color: #1d4ed8;
     }
 
     .chart-wrapper {
@@ -936,6 +1117,218 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         background: #f8fafc;
     }
 
+    .compare-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1060;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background:
+            linear-gradient(180deg, rgba(15, 23, 42, 0.62), rgba(15, 23, 42, 0.46));
+        backdrop-filter: blur(6px);
+    }
+
+    .compare-modal {
+        width: min(1180px, 96vw);
+        max-height: 92vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid rgba(226, 232, 240, 0.92);
+        border-radius: 20px;
+        background: #f8fafc;
+        box-shadow: 0 28px 80px rgba(15, 23, 42, 0.32);
+    }
+
+    .compare-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 22px;
+        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(135deg, #0f2f61 0%, #1d4f99 58%, #d8ad52 140%);
+        color: #fff;
+    }
+
+    .modal-title-wrap {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 14px;
+    }
+
+    .modal-title-icon {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.13);
+        color: #f8d27a;
+        font-size: 20px;
+    }
+
+    .compare-modal-header h3 {
+        margin: 0 0 4px;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .compare-modal-header span {
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 14px;
+    }
+
+    .modal-close-btn {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+    .modal-close-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    .modal-summary-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 16px 20px 0;
+        background: #f8fafc;
+    }
+
+    .modal-summary-item {
+        min-width: 0;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .modal-summary-item span {
+        display: block;
+        margin-bottom: 5px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .modal-summary-item strong {
+        display: block;
+        color: #0f172a;
+        font-size: 17px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .modal-chart-wrapper {
+        margin: 16px 20px 12px;
+        padding: 16px 14px 8px;
+        overflow: auto;
+        min-height: 280px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #fff;
+    }
+
+    .modal-table-wrapper {
+        margin: 0 20px 20px;
+        max-height: 38vh;
+        overflow: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #fff;
+    }
+
+    .modal-summary-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .modal-summary-table th,
+    .modal-summary-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        white-space: nowrap;
+        text-align: left;
+    }
+
+    .modal-summary-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #eef4fb;
+        color: #334155;
+        font-weight: 700;
+        box-shadow: inset 0 -1px 0 #dbe4ef;
+    }
+
+    .modal-summary-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .modal-summary-table tbody tr:hover {
+        background: #f8fbff;
+    }
+
+    .modal-summary-table tbody tr.rank-first {
+        background: #fffaf0;
+    }
+
+    .modal-summary-table tbody tr.rank-second {
+        background: #f8fafc;
+    }
+
+    .modal-summary-table tbody tr.rank-third {
+        background: #fff7ed;
+    }
+
+    .modal-rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: #e8eef7;
+        color: #0f2f61;
+        font-weight: 800;
+    }
+
+    .rank-first .modal-rank-badge {
+        background: linear-gradient(180deg, #f8d27a, #c89b3c);
+        color: #3f2b06;
+    }
+
+    .rank-second .modal-rank-badge {
+        background: linear-gradient(180deg, #e5e7eb, #cbd5e1);
+        color: #334155;
+    }
+
+    .rank-third .modal-rank-badge {
+        background: linear-gradient(180deg, #fed7aa, #f59e0b);
+        color: #422006;
+    }
+
     @media (max-width: 1200px) {
         .filter-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -960,6 +1353,40 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
         .page-header h2 {
             font-size: 24px;
+        }
+
+        .panel-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .compare-modal-backdrop {
+            padding: 12px;
+        }
+
+        .compare-modal {
+            width: 100%;
+            max-height: 94vh;
+        }
+
+        .modal-summary-strip {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 560px) {
+        .modal-summary-strip {
+            grid-template-columns: 1fr;
+        }
+
+        .compare-modal-header {
+            padding: 16px;
+        }
+
+        .modal-chart-wrapper,
+        .modal-table-wrapper {
+            margin-left: 12px;
+            margin-right: 12px;
         }
     }
 </style>

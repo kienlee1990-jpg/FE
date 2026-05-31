@@ -129,7 +129,7 @@
 
                             <section class="panel-card">
                                 <div class="panel-header">
-                                    <h3>Insight nhanh</h3>
+                                    <h3>Điểm nổi bật</h3>
                                     <span>Điểm nhấn cần theo dõi</span>
                                 </div>
 

@@ -407,7 +407,7 @@
     AssignTargetsToPhong: 'Giao chỉ tiêu cho Phòng',
     AssignTargetsToCadp: 'Giao chỉ tiêu cho CADP phường/xã',
     ViewAssignedTargetsList: 'Xem danh sách chỉ tiêu được giao',
-    SubmitPeriodicReports: 'Nhập kết quả báo cáo',
+    SubmitPeriodicReports: 'Nhập và gửi báo cáo',
     ViewExecutionProgress: 'Xem tiến độ thực hiện',
     ViewUnitsPendingUpdate: 'Xem đơn vị chưa nộp báo cáo',
     ConfigureEvaluationThresholds: 'Cấu hình ngưỡng đánh giá',

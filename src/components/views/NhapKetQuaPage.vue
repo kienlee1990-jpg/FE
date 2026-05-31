@@ -7,16 +7,9 @@
                         <i class="bi bi-clipboard-data"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">NHẬP KẾT QUẢ BÁO CÁO</div>
-                        <div class="gov-sub"></div>
+                        <div class="gov-title">DANH SÁCH BÁO CÁO</div>
+                        <div class="gov-sub">Theo dõi các báo cáo định kỳ đã nhập</div>
                     </div>
-                </div>
-
-                <div class="d-flex justify-content-end mb-4">
-                    <button class="btn btn-primary btn-action" @click="openCreateModal">
-                        <i class="bi bi-plus-circle me-2"></i>
-                        Nhập kết quả báo cáo
-                    </button>
                 </div>
 
                 <div class="card custom-card mb-4">
@@ -84,6 +77,17 @@
                         <div>
                             <h5 class="mb-1">Danh sách báo cáo định kỳ</h5>
                             <small class="text-muted">Số liệu thực hiện được cập nhật theo từng kỳ báo cáo</small>
+                            <div v-if="showBackToProgress" class="return-inline mt-3">
+                                <button class="return-progress-btn" type="button" @click="goBackToProgress">
+                                    <span class="return-progress-icon">
+                                        <i class="bi bi-arrow-left"></i>
+                                    </span>
+                                    <span>
+                                        <strong>Quay lại tiến độ thực hiện</strong>
+                                        <small>Trở về màn hình đang theo dõi KPI</small>
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                         <span class="badge text-bg-light border">Tổng: {{ filteredItems.length }}</span>
                     </div>
@@ -427,12 +431,6 @@
                                                 min="0" class="form-control" :placeholder="currentValuePlaceholder" />
                                         </div>
 
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Giá trị cuối kỳ</label>
-                                            <input :value="formatDisplayNumber(giaTriCuoiKyPreview, selectedDonViTinh)" type="text"
-                                                class="form-control" readonly />
-                                        </div>
-
                                         <div v-if="isTyLeSoSanh" class="col-12 col-md-4">
                                             <label class="form-label">Phát sinh lũy kế</label>
                                             <input :value="formatDisplayNumber(giaTriPhatSinhLuyKePreview, selectedDonViTinh)" type="text"
@@ -472,10 +470,15 @@
 
 <script setup>
     import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+    import { useRoute, useRouter } from 'vue-router'
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
     import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+
+    const router = useRouter()
+    const route = useRoute()
+    const WAITING_SEND_STATUS = 'CHO_GUI'
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
@@ -513,6 +516,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const canManageAllUnits = computed(() =>
         isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
     )
+    const showBackToProgress = computed(() => route.query.returnTo === 'tien-do-thuc-hien')
 
     const createDefaultForm = () => ({
         donViNhanId: canManageAllUnits.value ? null : currentDonViId.value || null,
@@ -1249,11 +1253,6 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             })
     })
 
-    const giaTriCuoiKyPreview = computed(() => {
-        const dauKy = Number(fixedGiaTriDauKy.value ?? 0)
-        return dauKy + giaTriLuyKePreview.value
-    })
-
     const priorRecordsForPreview = computed(() => {
         const selectedKyId = Number(form.kyBaoCaoKPIId ?? 0)
         const currentEditId = Number(editingId.value ?? 0)
@@ -1384,6 +1383,11 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const filteredItems = computed(() => {
         return enrichedItems.value.filter((item) => {
+            const trangThaiBaoCao = String(item.TrangThai ?? item.trangThai ?? '').trim().toUpperCase()
+            if (['CHO_XET_DUYET', 'TRA_LAI_NHAP_LAI'].includes(trangThaiBaoCao)) {
+                return false
+            }
+
             const keyword = filters.keyword.trim().toLowerCase()
             const kyId = Number(item.KyBaoCaoKPIId ?? item.kyBaoCaoKPIId ?? 0)
             const donViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
@@ -1563,9 +1567,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         showModal.value = true
     }
 
-    const closeModal = async () => {
+    const closeModal = async (options = {}) => {
         showModal.value = false
         await hydrateFormSafely(createDefaultForm())
+
+        if (options.returnToSource !== false && route.query.returnTo === 'gui-bao-cao-dinh-ky') {
+            await router.push('/gui-bao-cao-dinh-ky')
+        }
     }
 
     const selectChildFromParent = (child) => {
@@ -1663,14 +1671,16 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             saving.value = true
             const payload = buildPayload()
 
-            if (isEdit.value && editingId.value) {
-            await httpClient.put(`${API_PATHS.theoDoiThucHienKPI}/${editingId.value}`, payload)
-        } else {
-            await httpClient.post(API_PATHS.theoDoiThucHienKPI, payload)
-        }
+            const response = isEdit.value && editingId.value
+                ? await httpClient.put(`${API_PATHS.theoDoiThucHienKPI}/${editingId.value}`, payload)
+                : await httpClient.post(API_PATHS.theoDoiThucHienKPI, payload)
+            const savedItem = response?.data ?? response
 
-            closeModal()
+            await closeModal({ returnToSource: false })
             await fetchItems()
+            if (String(savedItem?.TrangThai ?? savedItem?.trangThai ?? '').trim().toUpperCase() === WAITING_SEND_STATUS) {
+                await router.push('/gui-bao-cao-dinh-ky')
+            }
         } catch (error) {
             console.error('handleSubmit error:', error?.response?.status, error?.config?.url, error)
 
@@ -1710,6 +1720,28 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         filters.donViNhanId = canManageAllUnits.value ? null : currentDonViId.value || null
         filters.chiTietGiaoChiTieuId = null
         filters.keyword = ''
+    }
+
+    const applyRouteFilters = () => {
+        const queryDonViNhanId = Number(route.query.donViNhanId || 0)
+        const queryChiTietGiaoChiTieuId = Number(route.query.chiTietGiaoChiTieuId || 0)
+        const queryKyBaoCaoKPIId = Number(route.query.kyBaoCaoKPIId || 0)
+
+        if (queryDonViNhanId > 0 && (canManageAllUnits.value || queryDonViNhanId === currentDonViId.value)) {
+            filters.donViNhanId = queryDonViNhanId
+        }
+
+        if (queryChiTietGiaoChiTieuId > 0) {
+            filters.chiTietGiaoChiTieuId = queryChiTietGiaoChiTieuId
+        }
+
+        if (queryKyBaoCaoKPIId > 0) {
+            filters.kyBaoCaoKPIId = queryKyBaoCaoKPIId
+        }
+    }
+
+    const goBackToProgress = () => {
+        router.push('/tien-do-thuc-hien')
     }
 
     const formatNumber = (value, donViTinh = '') => {
@@ -1839,6 +1871,30 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             filters.donViNhanId = currentDonViId.value
             form.donViNhanId = currentDonViId.value
         }
+
+        applyRouteFilters()
+
+        const editId = Number(route.query.editId || 0)
+        if (editId > 0) {
+            const editItem = items.value.find(item => getId(item) === editId)
+            if (editItem) {
+                await openEditModal(editItem)
+            } else {
+                alert('Không tìm thấy báo cáo cần sửa.')
+            }
+
+            const nextQuery = { ...route.query }
+            delete nextQuery.editId
+            router.replace({ path: route.path, query: nextQuery })
+            return
+        }
+
+        if (String(route.query.openCreate || '') === '1') {
+            await openCreateModal()
+            const nextQuery = { ...route.query }
+            delete nextQuery.openCreate
+            router.replace({ path: route.path, query: nextQuery })
+        }
     })
 </script>
 
@@ -1915,6 +1971,57 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         border-radius: 20px;
         box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         overflow: hidden;
+    }
+
+    .return-inline {
+        display: flex;
+    }
+
+    .return-progress-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 360px;
+        padding: 10px 14px 10px 10px;
+        border: 1px solid #bfdbfe;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+        color: #1e40af;
+        text-align: left;
+        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.10);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .return-progress-btn:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.16);
+        transform: translateY(-1px);
+    }
+
+    .return-progress-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        flex: 0 0 auto;
+        border-radius: 12px;
+        background: #2563eb;
+        color: #fff;
+    }
+
+    .return-progress-btn strong {
+        display: block;
+        color: #1e3a8a;
+        font-size: 0.92rem;
+        line-height: 1.25;
+    }
+
+    .return-progress-btn small {
+        display: block;
+        color: #64748b;
+        font-size: 0.78rem;
+        line-height: 1.3;
+        margin-top: 2px;
     }
 
     .btn-action {

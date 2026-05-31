@@ -158,6 +158,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const kyBaoCaoOptions = ref([])
     const danhGiaRows = ref([])
     const currentProfile = ref(getStoredUserProfile())
+    const CITY_POLICE_UNIT_NAME = 'Công an thành phố Đà Nẵng'
 
     const filters = reactive({
         dotGiaoChiTieuId: '',
@@ -216,8 +217,14 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         return String(value || '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
             .toLowerCase()
             .trim()
+    }
+
+    function isCityPoliceUnitName(value) {
+        return normalizeText(value) === normalizeText(CITY_POLICE_UNIT_NAME)
     }
 
     function formatDotGiaoLabel(item) {
@@ -325,12 +332,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 String(item.danhMucChiTieuId) === String(filters.danhMucChiTieuId)
             const tenDonVi = item.tenDonViNhan || item.tenDonViNhanFromGiao || ''
             const matchKeyword = !keyword || normalizeText(tenDonVi).includes(keyword)
+            const isCityPoliceUnit = isCityPoliceUnitName(tenDonVi)
             const matchCurrentUnit =
                 canViewAllUnits.value ||
                 !currentUnitName.value ||
                 normalizeText(tenDonVi) === normalizeText(currentUnitName.value)
 
-            return matchDot && matchDanhMuc && matchKeyword && matchCurrentUnit
+            return matchDot && matchDanhMuc && matchKeyword && matchCurrentUnit && !isCityPoliceUnit
         })
     })
 

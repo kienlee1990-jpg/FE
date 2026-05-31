@@ -36,7 +36,7 @@
                             </div>
                             <button class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
                                 <i class="bi bi-download me-1"></i>
-                                Tải mẫu CSV
+                                Tải mẫu Excel
                             </button>
                         </div>
                     </div>
@@ -830,11 +830,23 @@
         String(value || '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[đĐ]/g, (char) => char === 'đ' ? 'd' : 'D')
             .replace(/[^A-Za-z0-9]/g, '')
             .trim()
             .toUpperCase()
 
     const normalizeImportValue = (value) => String(value || '').trim().toUpperCase()
+
+    const isFilledImportRow = (row) =>
+        Object.entries(row || {}).some(([key, value]) =>
+            key !== '__rowNum__' &&
+            value !== undefined &&
+            value !== null &&
+            String(value).trim() !== ''
+        )
+
+    const getSheetImportRows = (sheet) =>
+        XLSX.utils.sheet_to_json(sheet, { defval: '' }).filter(isFilledImportRow)
 
     const getImportCell = (source, keys) => {
         for (const key of keys) {
@@ -864,7 +876,7 @@
     const normalizeImportedCheDo = (value) => {
         const normalized = normalizeImportHeader(value)
         if (!normalized) return 'DON'
-        if (['PHANRA', 'PHAN_RA'].includes(normalized)) return 'PHAN_RA'
+        if (normalized.includes('PHANRA')) return 'PHAN_RA'
         return 'DON'
     }
 
@@ -1001,7 +1013,8 @@
         const seenCodes = new Set()
 
         const prepared = rows.map((row, index) => {
-            const mapped = mapImportRow(row, index + 2)
+            const rowNumber = Number.isInteger(row.__rowNum__) ? row.__rowNum__ + 1 : index + 2
+            const mapped = mapImportRow(row, rowNumber)
             const normalizedCode = normalizeImportValue(mapped.maChiTieu)
             if (normalizedCode) {
                 if (seenCodes.has(normalizedCode)) duplicatedCodes.add(normalizedCode)
@@ -1115,7 +1128,7 @@
                 return
             }
 
-            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { defval: '' })
+            const rows = getSheetImportRows(workbook.Sheets[firstSheetName])
             if (!rows.length) {
                 alert('File Excel không có dữ liệu để nhập.')
                 return
@@ -1231,19 +1244,65 @@
             ]
         ]
 
-        const csvContent = [headers, ...sampleRows]
-            .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
-            .join('\n')
+        const columnWidths = [
+            { wch: 14 },
+            { wch: 34 },
+            { wch: 16 },
+            { wch: 16 },
+            { wch: 22 },
+            { wch: 18 },
+            { wch: 22 },
+            { wch: 14 },
+            { wch: 24 },
+            { wch: 28 },
+            { wch: 22 },
+            { wch: 18 },
+            { wch: 16 },
+            { wch: 26 },
+            { wch: 90 }
+        ]
 
-        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', 'mau-import-danh-muc-chi-tieu.csv')
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
+        const applySheetLayout = (sheet) => {
+            sheet['!cols'] = columnWidths
+            sheet['!autofilter'] = {
+                ref: XLSX.utils.encode_range({
+                    s: { r: 0, c: 0 },
+                    e: { r: 0, c: headers.length - 1 }
+                })
+            }
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet([headers])
+        applySheetLayout(worksheet)
+
+        const exampleWorksheet = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
+        applySheetLayout(exampleWorksheet)
+
+        const guideWorksheet = XLSX.utils.aoa_to_sheet([
+            ['Cot', 'Gia tri hop le'],
+            ['NguonChiTieu', 'BO hoặc THANH_PHO'],
+            ['CheDoDanhGia', 'DON hoặc PHAN_RA'],
+            ['LoaiChiTieu', 'DINH_TINH, DINH_LUONG_TICH_LUY, DINH_LUONG_SO_SANH'],
+            ['TrangThaiSuDung', 'DANG_AP_DUNG hoặc NGUNG_AP_DUNG'],
+            ['BatBuocDatTatCaTieuChiCon', 'true/false, co/khong, 1/0'],
+            ['TieuChiDanhGiasJson', 'Chỉ nhập khi CheDoDanhGia = PHAN_RA; xem sheet ViDu để lấy cấu trúc JSON']
+        ])
+        guideWorksheet['!cols'] = [
+            { wch: 30 },
+            { wch: 95 }
+        ]
+        guideWorksheet['!autofilter'] = {
+            ref: XLSX.utils.encode_range({
+                s: { r: 0, c: 0 },
+                e: { r: 0, c: 1 }
+            })
+        }
+
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'MauNhap')
+        XLSX.utils.book_append_sheet(workbook, exampleWorksheet, 'ViDu')
+        XLSX.utils.book_append_sheet(workbook, guideWorksheet, 'HuongDan')
+        XLSX.writeFile(workbook, 'mau-import-danh-muc-chi-tieu.xlsx')
     }
 
     const fetchDanhMucChiTieu = async () => {

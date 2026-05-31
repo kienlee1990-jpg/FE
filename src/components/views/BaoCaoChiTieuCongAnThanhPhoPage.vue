@@ -7,7 +7,7 @@
                         <i class="bi bi-clipboard2-data"></i>
                     </div>
                     <div class="gov-text">
-                        <div class="gov-title">BÁO CÁO CHỈ TIÊU CÔNG AN THÀNH PHỐ</div>
+                        <div class="gov-title">BÁO CÁO KẾT QUẢ</div>
                     </div>
                 </div>
 
@@ -48,7 +48,7 @@
 
                 <div class="summary-grid">
                     <div class="summary-card">
-                        <span class="label">Tổng số chỉ tiêu chính</span>
+                        <span class="label">Tổng số chỉ tiêu </span>
                         <strong>{{ filteredRows.length }}</strong>
                     </div>
                     <div class="summary-card">
@@ -56,7 +56,7 @@
                         <strong>{{ (thongKe.HOAN_THANH || 0) + (thongKe.HOAN_THANH_VUOT_MUC || 0) }}</strong>
                     </div>
                     <div class="summary-card">
-                        <span class="label">Vượt chỉ tiêu</span>
+                        <span class="label">Hoàn thành vượt mức</span>
                         <strong>{{ thongKe.HOAN_THANH_VUOT_MUC }}</strong>
                     </div>
                     <div class="summary-card">
@@ -74,125 +74,127 @@
                 </div>
 
                 <div class="table-card">
-                    <div class="table-toolbar">
-                        <button class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
-                    </div>
-
                     <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                     <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
-                    <div v-else class="table-wrapper">
-                        <ColumnVisibilityTools
-                            table-id="BaoCaoChiTieuCongAnThanhPhoPage-table-v2"
-                            :default-visible-columns="[0, 1, 2, 3, 9, 10, 12, 15]"
-                        />
-                        <table id="BaoCaoChiTieuCongAnThanhPhoPage-table-v2" class="managed-table">
-                            <colgroup>
-                                <col class="col-stt" />
-                                <col class="col-danh-muc" />
-                                <col class="col-chi-tieu" />
-                                <col class="col-don-vi" />
-                                <col class="col-dot-giao" />
-                                <col class="col-tan-suat" />
-                                <col class="col-target" />
-                                <col class="col-number" />
-                                <col class="col-number" />
-                                <col class="col-number" />
-                                <col class="col-number" />
-                                <col class="col-number" />
-                                <col class="col-actual" />
-                                <col class="col-percent" />
-                                <col class="col-ky" />
-                                <col class="col-status" />
-                                <col class="col-nhan-xet" />
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>STT</th>
-                                    <th>Danh mục chỉ tiêu</th>
-                                    <th>Chỉ tiêu giao</th>
-                                    <th>Đơn vị nhận</th>
-                                    <th>Đợt giao chỉ tiêu</th>
-                                    <th>Tần suất báo cáo</th>
-                                    <th>Giá trị mục tiêu</th>
-                                    <th>Giá trị đầu kỳ</th>
-                                    <th>Cuối kỳ gần nhất</th>
-                                    <th>Số liệu lũy kế</th>
-                                    <th>Số liệu trung bình tháng</th>
-                                    <th>Số dư mục tiêu</th>
-                                    <th>Kết quả thực tế</th>
-                                    <th>% hoàn thành</th>
-                                    <th>Kỳ gần nhất</th>
-                                    <th>Đánh giá</th>
-                                    <th>Nhận xét</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-if="filteredRows.length === 0">
-                                    <td colspan="17" class="empty-cell">Không có dữ liệu</td>
-                                </tr>
+                    <template v-else>
+                        <div class="table-toolbar report-table-toolbar">
+                            <button class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
+                            <ColumnVisibilityTools
+                                table-id="BaoCaoChiTieuCongAnThanhPhoPage-table-v3"
+                                :default-visible-columns="[0, 1, 2, 3, 4, 10, 11, 15]"
+                            />
+                        </div>
 
-                                <template v-for="(row, index) in filteredRows" :key="row.id">
-                                    <tr class="parent-row">
-                                        <td>{{ index + 1 }}</td>
-                                        <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
-                                        <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
-                                        <td>{{ row.tenDonViNhan || '-' }}</td>
-                                        <td>{{ row.tenDotGiaoChiTieu || row.maDotGiao || '-' }}</td>
-                                        <td>{{ formatKyBaoCao(row.tanSuatBaoCao) }}</td>
-                                        <td class="text-right">{{ formatTarget(row) }}</td>
-                                        <td class="text-right">{{ formatMetricValue(row, row.giaTriDauKy) }}</td>
-                                        <td class="text-right">{{ formatMetricValue(row, row.giaTriCuoiKy) }}</td>
-                                        <td class="text-right">{{ formatNumberValue(row.giaTriLuyKe,
-                                            row.donViTinhLuyKe || row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumberValue(row.soLieuTrungBinhThang,
-                                            row.donViTinhLuyKe || row.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatMetricValue(row, row.soDuMucTieu) }}</td>
-                                        <td class="text-right">{{ formatActualResult(row) }}</td>
-                                        <td class="text-right">{{ formatPercentValue(row.tyLeHoanThanh) }}</td>
-                                        <td>{{ row.tenKy || row.maKy || 'Chưa có kỳ đánh giá' }}</td>
-                                        <td>
-                                            <span class="badge" :class="badgeClass(row.xepLoai)">
-                                                {{ getDanhGiaLabel(row.xepLoai) || 'Chưa đánh giá' }}
-                                            </span>
-                                        </td>
-                                        <td>{{ row.nhanXetDanhGia || '-' }}</td>
+                        <div class="table-wrapper">
+                            <table id="BaoCaoChiTieuCongAnThanhPhoPage-table-v3" class="managed-table">
+                                <colgroup>
+                                    <col class="col-stt" />
+                                    <col class="col-danh-muc" />
+                                    <col class="col-chi-tieu" />
+                                    <col class="col-actual" />
+                                    <col class="col-don-vi" />
+                                    <col class="col-dot-giao" />
+                                    <col class="col-tan-suat" />
+                                    <col class="col-target" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
+                                    <col class="col-number" />
+                                    <col class="col-percent" />
+                                    <col class="col-ky" />
+                                    <col class="col-status" />
+                                    <col class="col-nhan-xet" />
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Danh mục chỉ tiêu</th>
+                                        <th>Chỉ tiêu giao</th>
+                                        <th>Kết quả thực tế</th>
+                                        <th>Đơn vị nhận</th>
+                                        <th>Đợt giao chỉ tiêu</th>
+                                        <th>Tần suất báo cáo</th>
+                                        <th>Giá trị mục tiêu</th>
+                                        <th>Giá trị đầu kỳ</th>
+                                        <th>Cuối kỳ gần nhất</th>
+                                        <th>Số liệu lũy kế</th>
+                                        <th>Số liệu trung bình tháng</th>
+                                        <th>Số dư mục tiêu</th>
+                                        <th>% hoàn thành</th>
+                                        <th>Kỳ gần nhất</th>
+                                        <th>Đánh giá</th>
+                                        <th>Nhận xét</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-if="filteredRows.length === 0">
+                                        <td colspan="17" class="empty-cell">Không có dữ liệu</td>
                                     </tr>
 
-                                    <tr v-for="child in row.children || []" :key="`${row.id}-${child.id}`"
-                                        class="child-row">
-                                        <td></td>
-                                        <td>
-                                            <div class="child-title"
-                                                :style="{ paddingLeft: `${12 + ((child.treeLevel || 1) - 1) * 18}px` }">
-                                                <span>{{ child.tenDanhMucChiTieu || child.tenChiTieu || '-' }}</span>
-                                            </div>
-                                        </td>
-                                        <td>{{ child.tenChiTieuGiao || child.tenChiTieuCha || '-' }}</td>
-                                        <td>{{ child.tenDonViNhan || '-' }}</td>
-                                        <td>{{ child.tenDotGiaoChiTieu || child.maDotGiao || '-' }}</td>
-                                        <td>{{ formatKyBaoCao(child.tanSuatBaoCao) }}</td>
-                                        <td class="text-right">{{ formatTarget(child) }}</td>
-                                        <td class="text-right">{{ formatMetricValue(child, child.giaTriDauKy) }}</td>
-                                        <td class="text-right">{{ formatMetricValue(child, child.giaTriCuoiKy) }}</td>
-                                        <td class="text-right">{{ formatNumberValue(child.giaTriLuyKe,
-                                            child.donViTinhLuyKe || child.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatNumberValue(child.soLieuTrungBinhThang,
-                                            child.donViTinhLuyKe || child.donViTinh) }}</td>
-                                        <td class="text-right">{{ formatMetricValue(child, child.soDuMucTieu) }}</td>
-                                        <td class="text-right">{{ formatActualResult(child) }}</td>
-                                        <td class="text-right">{{ formatPercentValue(child.tyLeHoanThanh) }}</td>
-                                        <td>{{ child.tenKy || child.maKy || 'Chưa có kỳ đánh giá' }}</td>
-                                        <td>
-                                            <span class="badge child-badge" :class="badgeClass(child.xepLoai)">
-                                                {{ getDanhGiaLabel(child.xepLoai) || 'Chưa đánh giá' }}
-                                            </span>
-                                        </td>
-                                        <td>{{ child.nhanXetDanhGia || '-' }}</td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
+                                    <template v-for="(row, index) in filteredRows" :key="row.id">
+                                        <tr class="parent-row">
+                                            <td>{{ index + 1 }}</td>
+                                            <td>{{ row.tenDanhMucChiTieu || row.tenChiTieu || '-' }}</td>
+                                            <td>{{ row.tenChiTieuGiao || row.tenChiTieuCha || '-' }}</td>
+                                            <td class="text-right">{{ formatReportActualResult(row) }}</td>
+                                            <td>{{ row.tenDonViNhan || '-' }}</td>
+                                            <td>{{ row.tenDotGiaoChiTieu || row.maDotGiao || '-' }}</td>
+                                            <td>{{ formatKyBaoCao(row.tanSuatBaoCao) }}</td>
+                                            <td class="text-right">{{ formatTarget(row) }}</td>
+                                            <td class="text-right">{{ formatMetricValue(row, row.giaTriDauKy) }}</td>
+                                            <td class="text-right">{{ formatMetricValue(row, row.giaTriCuoiKy) }}</td>
+                                            <td class="text-right">{{ formatReportNumberValue(row, row.giaTriLuyKe,
+                                                row.donViTinhLuyKe || row.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatReportNumberValue(row, row.soLieuTrungBinhThang,
+                                                row.donViTinhLuyKe || row.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatMetricValue(row, row.soDuMucTieu) }}</td>
+                                            <td class="text-right">{{ formatPercentValue(row.tyLeHoanThanh) }}</td>
+                                            <td>{{ row.tenKy || row.maKy || 'Chưa có kỳ đánh giá' }}</td>
+                                            <td>
+                                                <span class="badge" :class="badgeClass(row.xepLoai)">
+                                                    {{ getDanhGiaLabel(row.xepLoai) || 'Chưa đánh giá' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ row.nhanXetDanhGia || '-' }}</td>
+                                        </tr>
+
+                                        <tr v-for="child in row.children || []" :key="`${row.id}-${child.id}`"
+                                            class="child-row">
+                                            <td></td>
+                                            <td>
+                                                <div class="child-title"
+                                                    :style="{ paddingLeft: `${12 + ((child.treeLevel || 1) - 1) * 18}px` }">
+                                                    <span>{{ child.tenDanhMucChiTieu || child.tenChiTieu || '-' }}</span>
+                                                </div>
+                                            </td>
+                                            <td>{{ child.tenChiTieuGiao || child.tenChiTieuCha || '-' }}</td>
+                                            <td class="text-right">{{ formatReportActualResult(child) }}</td>
+                                            <td>{{ child.tenDonViNhan || '-' }}</td>
+                                            <td>{{ child.tenDotGiaoChiTieu || child.maDotGiao || '-' }}</td>
+                                            <td>{{ formatKyBaoCao(child.tanSuatBaoCao) }}</td>
+                                            <td class="text-right">{{ formatTarget(child) }}</td>
+                                            <td class="text-right">{{ formatMetricValue(child, child.giaTriDauKy) }}</td>
+                                            <td class="text-right">{{ formatMetricValue(child, child.giaTriCuoiKy) }}</td>
+                                            <td class="text-right">{{ formatReportNumberValue(child, child.giaTriLuyKe,
+                                                child.donViTinhLuyKe || child.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatReportNumberValue(child, child.soLieuTrungBinhThang,
+                                                child.donViTinhLuyKe || child.donViTinh) }}</td>
+                                            <td class="text-right">{{ formatMetricValue(child, child.soDuMucTieu) }}</td>
+                                            <td class="text-right">{{ formatPercentValue(child.tyLeHoanThanh) }}</td>
+                                            <td>{{ child.tenKy || child.maKy || 'Chưa có kỳ đánh giá' }}</td>
+                                            <td>
+                                                <span class="badge child-badge" :class="badgeClass(child.xepLoai)">
+                                                    {{ getDanhGiaLabel(child.xepLoai) || 'Chưa đánh giá' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ child.nhanXetDanhGia || '-' }}</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -279,7 +281,7 @@
             item.maKy,
             item.tenKy,
             item.ketQua,
-            formatActualResult(item),
+            formatReportActualResult(item),
             item.nhanXetDanhGia
         ]
             .filter(Boolean)
@@ -329,9 +331,25 @@
 
     function formatActualResult(row) {
         if (!row) return '-'
-        if (row.ketQuaThucTeLoai === 'PERCENT_CHANGE') return formatChangePercent(row.ketQuaThucTe)
-        if (row.ketQuaThucTeLoai === 'PERCENT_RATIO') return formatPercentValue(row.ketQuaThucTe)
-        return formatNumberValue(row.ketQuaThucTe, row.donViTinhLuyKe || row.donViTinh)
+        const actualValue = row.giaTriLuyKe ??
+            (row.ketQuaThucTeLoai === 'NUMBER' ? row.ketQuaThucTe : null)
+        return formatNumberValue(actualValue, row.donViTinhLuyKe || row.donViTinh)
+    }
+
+    function isParentIndicatorRow(row) {
+        return Boolean(row?.coTieuChiCon || (Array.isArray(row?.children) && row.children.length > 0))
+    }
+
+    function formatReportNumberValue(row, value, unit) {
+        return isParentIndicatorRow(row) ? '' : formatNumberValue(value, unit)
+    }
+
+    function formatReportActualResult(row) {
+        return isParentIndicatorRow(row) ? '' : formatActualResult(row)
+    }
+
+    function exportReportMetricValue(row, value) {
+        return isParentIndicatorRow(row) ? '' : (value ?? '')
     }
 
     function formatChangePercent(value) {
@@ -351,6 +369,7 @@
         const headers = [
             'Mã chỉ tiêu',
             'Tên chỉ tiêu',
+            'Kết quả thực tế',
             'Đơn vị nhận',
             'Đợt giao chỉ tiêu',
             'Tần suất báo cáo',
@@ -360,7 +379,6 @@
             'Số liệu lũy kế',
             'Số liệu trung bình tháng',
             'Số dư mục tiêu',
-            'Kết quả thực tế',
             '% hoàn thành',
             'Mã kỳ',
             'Tên kỳ',
@@ -372,16 +390,16 @@
         const csvRows = flattenRowsForExport(filteredRows.value).map(item => [
             item.maChiTieu || '',
             item.tenChiTieu || '',
+            formatReportActualResult(item),
             item.tenDonViNhan || '',
             item.tenDotGiaoChiTieu || item.maDotGiao || '',
             formatKyBaoCao(item.tanSuatBaoCao),
             formatTarget(item),
             item.giaTriDauKy ?? '',
             item.giaTriCuoiKy ?? '',
-            item.giaTriLuyKe ?? '',
-            item.soLieuTrungBinhThang ?? '',
+            exportReportMetricValue(item, item.giaTriLuyKe),
+            exportReportMetricValue(item, item.soLieuTrungBinhThang),
             item.soDuMucTieu ?? '',
-            formatActualResult(item),
             item.tyLeHoanThanh ?? '',
             item.maKy || '',
             item.tenKy || '',
@@ -573,8 +591,40 @@
 
     .table-toolbar {
         display: flex;
+        align-items: center;
+        gap: 12px;
         justify-content: flex-end;
         margin-bottom: 12px;
+    }
+
+    .report-table-toolbar {
+        padding: 0 0 4px;
+    }
+
+    .report-table-toolbar .btn,
+    .report-table-toolbar :deep(.table-tools-trigger) {
+        min-height: 42px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .report-table-toolbar :deep(.table-tools) {
+        position: relative;
+        width: auto;
+        margin-bottom: 0;
+        padding-left: 0;
+        z-index: 90;
+    }
+
+    .report-table-toolbar :deep(.table-tools.table-tools-open) {
+        z-index: 170 !important;
+    }
+
+    .report-table-toolbar :deep(.table-tools-menu) {
+        right: 0;
+        text-align: left;
     }
 
     .table-wrapper {
@@ -640,7 +690,7 @@
     }
 
     .col-actual {
-        width: 145px;
+        width: 125px;
     }
 
     .col-percent {
@@ -652,7 +702,7 @@
     }
 
     .col-status {
-        width: 140px;
+        width: 120px;
     }
 
     .col-nhan-xet {
@@ -703,8 +753,10 @@
 
     th:nth-child(1),
     td:nth-child(1),
-    th:nth-child(n + 6),
-    td:nth-child(n + 6) {
+    th:nth-child(4),
+    td:nth-child(4),
+    th:nth-child(n + 7),
+    td:nth-child(n + 7) {
         vertical-align: middle;
     }
 

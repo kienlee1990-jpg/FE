@@ -240,7 +240,9 @@
       label: 'Theo dõi thực hiện',
       description: 'Nhập kết quả báo cáo định kỳ và theo dõi tình hình cập nhật kết quả.',
       permissions: [
-        { label: 'Nhập kết quả báo cáo', value: 'SubmitPeriodicReports', description: 'Cho phép nhập và chỉnh sửa kết quả báo cáo định kỳ.' },
+        { label: 'Nhập và gửi kết quả báo cáo', value: 'SubmitPeriodicReports', description: 'Cho phép nhập, chỉnh sửa và gửi kết quả báo cáo định kỳ.' },
+        { label: 'Xem báo cáo cần điều chỉnh', value: 'ViewReturnedReports', description: 'Cho phép mở danh sách báo cáo cần điều chỉnh của đơn vị và gửi lại xét duyệt.' },
+        { label: 'Xét duyệt báo cáo chờ duyệt', value: 'ReviewPendingReports', description: 'Cho phép xem, chấp nhận hoặc gửi trả báo cáo đang chờ xét duyệt.' },
         { label: 'Xem tiến độ thực hiện', value: 'ViewExecutionProgress', description: 'Cho phép xem trang tiến độ thực hiện chỉ tiêu.' },
         { label: 'Xem đơn vị chưa nộp báo cáo', value: 'ViewUnitsPendingUpdate', description: 'Cho phép xem danh sách đơn vị chưa nộp báo cáo.' }
       ]

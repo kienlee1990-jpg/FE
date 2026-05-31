@@ -62,15 +62,16 @@
                     </div>
 
                     <div class="table-card">
-                        <div class="table-toolbar">
-                            <button class="btn btn-success" @click="exportCsv">Xuất CSV</button>
-                        </div>
-
                         <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
-                        <div v-else class="table-wrapper">
-                            <ColumnVisibilityTools table-id="BaoCaoTheoChiTieuPage-table" />
-                            <table id="BaoCaoTheoChiTieuPage-table" class="managed-table">
+                        <template v-else>
+                            <div class="table-toolbar report-table-toolbar">
+                                <button class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
+                                <ColumnVisibilityTools table-id="BaoCaoTheoChiTieuPage-table" />
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table id="BaoCaoTheoChiTieuPage-table" class="managed-table">
                                 <thead>
                                     <tr>
                                         <th>STT</th>
@@ -117,8 +118,9 @@
                                         <td>{{ row.ketQuaTongHop || '-' }}</td>
                                     </tr>
                                 </tbody>
-                            </table>
-                        </div>
+                                </table>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
