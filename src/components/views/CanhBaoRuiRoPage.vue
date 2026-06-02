@@ -290,7 +290,7 @@
 </template>
 
 <script setup>
-    import { computed, reactive } from 'vue'
+    import { computed, reactive, ref, watch } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import VueApexCharts from 'vue3-apexcharts'
@@ -312,6 +312,8 @@
         fetchBaoCaoTongHop
     } = useBaoCaoTongHopPage()
     const rows = computed(() => reportRows.value)
+    const DEFAULT_DON_VI_FILTER = 'Công an thành phố Đà Nẵng'
+    const defaultDonViApplied = ref(false)
 
     const filters = reactive({
         kyBaoCaoKPIId: '',
@@ -320,6 +322,12 @@
         sortBy: 'riskScore',
         keyword: ''
     })
+
+    watch(
+        donViOptions,
+        () => applyDefaultDonViFilter(),
+        { immediate: true }
+    )
 
     const warningKeywords = [
         'chậm',
@@ -566,11 +574,30 @@
 
     function resetFilters() {
         filters.kyBaoCaoKPIId = ''
-        filters.donVi = ''
+        filters.donVi = resolveDefaultDonViFilter()
         filters.mucRuiRo = ''
         filters.sortBy = 'riskScore'
         filters.keyword = ''
         fetchRiskData()
+    }
+
+    function applyDefaultDonViFilter(force = false) {
+        if (!force && defaultDonViApplied.value) return
+
+        const defaultDonVi = resolveDefaultDonViFilter()
+        if (!defaultDonVi) return
+
+        filters.donVi = defaultDonVi
+        defaultDonViApplied.value = true
+    }
+
+    function resolveDefaultDonViFilter() {
+        return donViOptions.value.find(item => {
+            const normalized = normalizeText(item)
+            return normalized === normalizeText(DEFAULT_DON_VI_FILTER) ||
+                normalized.includes('cong an thanh pho da nang') ||
+                normalized.includes('catp')
+        }) || ''
     }
 
     function evaluateRisk(item) {
@@ -677,6 +704,8 @@
         return String(value || '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
             .toLowerCase()
             .trim()
     }

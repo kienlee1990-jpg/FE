@@ -12,7 +12,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mb-4">
-                    <button class="btn btn-primary btn-action" @click="openCreateModal">
+                    <button v-if="canCreateReportingPeriods" class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Tạo kỳ báo cáo
                     </button>
@@ -122,16 +122,23 @@
                                         <td class="text-truncate" style="max-width: 220px">
                                             {{ item.ghiChu || '-' }}
                                         </td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canEditReportingPeriods" class="action-btn action-edit" title="Sửa kỳ báo cáo"
                                                     @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canDeleteReportingPeriods" class="action-btn action-delete" title="Xóa kỳ báo cáo"
                                                     @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canEditReportingPeriods && !canDeleteReportingPeriods" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -264,6 +271,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const API_CONTROLLER = '/KyBaoCaoKPI'
 
@@ -273,6 +281,11 @@
     const isEdit = ref(false)
     const editingId = ref(null)
     const items = ref([])
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canCreateReportingPeriods = canAccessPermission(currentPermissions, 'CreateReportingPeriods', currentProfile)
+    const canEditReportingPeriods = canAccessPermission(currentPermissions, 'EditReportingPeriods', currentProfile)
+    const canDeleteReportingPeriods = canAccessPermission(currentPermissions, 'DeleteReportingPeriods', currentProfile)
 
     const filters = reactive({
         loaiKy: '',
@@ -359,6 +372,7 @@
     }
 
     const openCreateModal = () => {
+        if (!canCreateReportingPeriods) return
         isEdit.value = false
         editingId.value = null
         resetForm()
@@ -366,6 +380,7 @@
     }
 
     const openEditModal = (item) => {
+        if (!canEditReportingPeriods) return
         isEdit.value = true
         editingId.value = item.id
 
@@ -445,6 +460,14 @@
 
     const handleSubmit = async () => {
         if (!validateForm()) return
+        if (!isEdit.value && !canCreateReportingPeriods) {
+            alert('Bạn chưa có quyền tạo kỳ báo cáo.')
+            return
+        }
+        if (isEdit.value && !canEditReportingPeriods) {
+            alert('Bạn chưa có quyền sửa kỳ báo cáo.')
+            return
+        }
 
         try {
             saving.value = true
@@ -467,6 +490,7 @@
     }
 
     const handleDelete = async (item) => {
+        if (!canDeleteReportingPeriods) return
         const ok = window.confirm(`Bạn có chắc muốn xóa kỳ báo cáo "${item.tenKy}" không?`)
         if (!ok) return
 

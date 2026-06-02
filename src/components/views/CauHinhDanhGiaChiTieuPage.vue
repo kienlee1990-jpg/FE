@@ -12,7 +12,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mb-4">
-                    <button class="btn btn-primary btn-action" @click="openCreateModal">
+                    <button v-if="canCreateEvaluationThresholds" class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Tạo cấu hình
                     </button>
@@ -130,16 +130,23 @@
                                         </td>
                                         <td>{{ formatNumber(item.diem) }}</td>
                                         <td>{{ item.ghiChu || '-' }}</td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canEditEvaluationThresholds" class="action-btn action-edit" title="Sửa cấu hình"
                                                     @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canDeleteEvaluationThresholds" class="action-btn action-delete" title="Xóa cấu hình"
                                                     @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canEditEvaluationThresholds && !canDeleteEvaluationThresholds" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -276,6 +283,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
     import {
         DANH_GIA_TRACKED_STATUS_OPTIONS,
         DIEU_KIEN_THOI_HAN_OPTIONS,
@@ -297,6 +305,11 @@
     const editingId = ref(null)
     const items = ref([])
     const syncingForm = ref(false)
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canCreateEvaluationThresholds = canAccessPermission(currentPermissions, 'CreateEvaluationThresholds', currentProfile)
+    const canEditEvaluationThresholds = canAccessPermission(currentPermissions, 'EditEvaluationThresholds', currentProfile)
+    const canDeleteEvaluationThresholds = canAccessPermission(currentPermissions, 'DeleteEvaluationThresholds', currentProfile)
 
     const filters = reactive({
         danhMucChiTieuId: '',
@@ -396,6 +409,7 @@
     }
 
     const openCreateModal = () => {
+        if (!canCreateEvaluationThresholds) return
         isEdit.value = false
         editingId.value = null
         resetForm()
@@ -403,6 +417,7 @@
     }
 
     const openEditModal = (item) => {
+        if (!canEditEvaluationThresholds) return
         isEdit.value = true
         editingId.value = item.id
         syncingForm.value = true
@@ -487,6 +502,14 @@
 
     const handleSubmit = async () => {
         if (!validateForm()) return
+        if (!isEdit.value && !canCreateEvaluationThresholds) {
+            alert('Bạn chưa có quyền tạo cấu hình đánh giá.')
+            return
+        }
+        if (isEdit.value && !canEditEvaluationThresholds) {
+            alert('Bạn chưa có quyền sửa cấu hình đánh giá.')
+            return
+        }
 
         try {
             saving.value = true
@@ -509,6 +532,7 @@
     }
 
     const handleDelete = async (item) => {
+        if (!canDeleteEvaluationThresholds) return
         const ok = window.confirm(`Bạn có chắc muốn xóa cấu hình xếp loại "${getDanhGiaLabel(item.xepLoai)}" không?`)
         if (!ok) return
 

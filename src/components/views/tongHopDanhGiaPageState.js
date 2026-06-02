@@ -1,6 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import httpClient from '../../services/httpClient'
-import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+import { canBypassUnitFilter, getStoredUserProfile } from '../../utils/accessControl'
 import {
   countTrackedStatuses,
   getDanhGiaBadgeClass,
@@ -25,9 +25,7 @@ export function useTongHopDanhGiaPage() {
     kyBaoCaoKPIId: '',
     keyword: ''
   })
-  const canViewAllUnits = computed(() =>
-    isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-  )
+  const canViewAllUnits = computed(() => canBypassUnitFilter(currentProfile.value))
   const WAITING_SEND_STATUS = 'CHO_GUI'
   const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
@@ -822,8 +820,7 @@ export function useTongHopDanhGiaPage() {
 
   function getKyLabel(item) {
     const tenKy = pick(item, 'tenKy', 'TenKy')
-    const maKy = pick(item, 'maKy', 'MaKy')
-    return [maKy, tenKy].filter(Boolean).join(' - ') || tenKy || maKy || '-'
+    return tenKy || '-'
   }
 
   function buildLatestKyMeta(item) {

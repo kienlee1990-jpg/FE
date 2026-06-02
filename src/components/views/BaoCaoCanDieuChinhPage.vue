@@ -65,15 +65,22 @@
                                         <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy) }}</td>
                                         <td>{{ item.NhanXet || item.nhanXet || '-' }}</td>
                                         <td><span class="badge status-badge">Cần điều chỉnh</span></td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary" @click="openViewModal(item)">
-                                                    <i class="bi bi-eye me-1"></i>Xem lại
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button class="action-btn action-view" title="Xem lại báo cáo"
+                                                    @click="openViewModal(item)">
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-eye"></i>
+                                                    </span>
+                                                    <span>Xem lại</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canDeleteReturnedReports" class="action-btn action-delete" title="Xóa báo cáo"
                                                     :disabled="processingId === getId(item)"
                                                     @click="deleteItem(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
                                             </div>
                                         </td>
@@ -152,7 +159,7 @@
 
                             <div class="modal-footer border-0 pt-0">
                                 <button class="btn btn-light" @click="closeViewModal">Đóng</button>
-                                <button class="btn btn-primary" :disabled="processingId === getId(selectedItem)"
+                                <button v-if="canResubmitReturnedReports" class="btn btn-primary" :disabled="processingId === getId(selectedItem)"
                                     @click="saveAndResubmitItem(selectedItem)">
                                     <span v-if="processingId === getId(selectedItem)"
                                         class="spinner-border spinner-border-sm me-2"></span>
@@ -172,7 +179,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
-    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+    import { canAccessPermission, canBypassUnitFilter, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const API_PATH = '/TheoDoiThucHienKPI'
     const RETURNED_STATUS = 'TRA_LAI_NHAP_LAI'
@@ -195,8 +202,11 @@
         { value: 'KHONG_DAT', label: 'Không đạt' }
     ]
     const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
     const currentDonViId = Number(currentProfile?.donViId || 0)
-    const canViewAllReturnedReports = computed(() => isPrivilegedProfile(currentProfile) || isCatpProfile(currentProfile))
+    const canResubmitReturnedReports = canAccessPermission(currentPermissions, 'ResubmitReturnedReports', currentProfile)
+    const canDeleteReturnedReports = canAccessPermission(currentPermissions, 'DeleteReturnedReports', currentProfile)
+    const canViewAllReturnedReports = computed(() => canBypassUnitFilter(currentProfile))
     const returnedReportScopeText = computed(() =>
         canViewAllReturnedReports.value
             ? 'Hiển thị tất cả báo cáo cần điều chỉnh trong hệ thống'
@@ -302,6 +312,7 @@
     })
 
     const saveAndResubmitItem = async (item) => {
+        if (!canResubmitReturnedReports) return
         const id = getId(item)
         if (!id) return
         if (!validateEditForm()) return
@@ -325,6 +336,7 @@
     }
 
     const deleteItem = async (item) => {
+        if (!canDeleteReturnedReports) return
         const id = getId(item)
         if (!id) return
 

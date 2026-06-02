@@ -67,10 +67,6 @@
                         <span class="label">Không hoàn thành</span>
                         <strong>{{ thongKe.KHONG_HOAN_THANH }}</strong>
                     </div>
-                    <div class="summary-card">
-                        <span class="label">Chưa đánh giá</span>
-                        <strong>{{ chuaDanhGiaCount }}</strong>
-                    </div>
                 </div>
 
                 <div class="table-card">
@@ -78,7 +74,7 @@
                     <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                     <template v-else>
                         <div class="table-toolbar report-table-toolbar">
-                            <button class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
+                            <button v-if="canExportReports" class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
                             <ColumnVisibilityTools
                                 table-id="BaoCaoChiTieuCongAnThanhPhoPage-table-v3"
                                 :default-visible-columns="[0, 1, 2, 3, 4, 10, 11, 15]"
@@ -218,6 +214,11 @@
         normalizeText,
         useCatpKpiData
     } from '../../composables/useCatpKpiData.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
+
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canExportReports = canAccessPermission(currentPermissions, 'ExportReports', currentProfile)
 
     const {
         errorMessage,
@@ -263,10 +264,6 @@
     })
 
     const thongKe = computed(() => countTrackedStatuses(filteredRows.value, item => item.xepLoai))
-
-    const chuaDanhGiaCount = computed(() => {
-        return filteredRows.value.filter(item => getDanhGiaStatusCode(item.xepLoai) === 'CHUA_DANH_GIA').length
-    })
 
     function matchesKeyword(item, keyword) {
         return [
@@ -564,7 +561,7 @@
 
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 16px;
         margin-bottom: 16px;
     }

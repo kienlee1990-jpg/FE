@@ -18,6 +18,7 @@ export function useAuth() {
         donViId: data?.donViId ?? null,
         donVi: data?.donVi || "",
         maDonVi: data?.maDonVi || "",
+        loaiDonVi: data?.loaiDonVi || "",
         roles: Array.isArray(data?.roles) ? data.roles : [],
         permissions: Array.isArray(data?.permissions) ? data.permissions : [],
         rolePermissions: Array.isArray(data?.rolePermissions) ? data.rolePermissions : []
@@ -56,6 +57,15 @@ export function useAuth() {
 
             const profile = normalizeUser(await getMeApi())
             syncUserStorage(profile)
+            localStorage.setItem("sidebar_collapsed_v2", "true")
+            localStorage.setItem("sidebar_menus_v2", JSON.stringify({
+                thietLapNen: false,
+                giaoVaPhanBo: false,
+                theoDoiThucHien: false,
+                danhGia: false,
+                baoCao: false,
+                heThong: false
+            }))
 
             router.push("/dashboard")
             return profile

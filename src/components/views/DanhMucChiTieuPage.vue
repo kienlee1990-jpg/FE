@@ -13,12 +13,12 @@
 
                 <div class="d-flex justify-content-end mb-4">
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-outline-primary btn-action" @click="openImportFilePicker"
+                        <button v-if="canImportIndicatorCatalog" class="btn btn-outline-primary btn-action" @click="openImportFilePicker"
                             :disabled="importing">
                             <i class="bi bi-file-earmark-excel me-2"></i>
                             {{ importing ? 'Đang nhập...' : 'Nhập từ Excel' }}
                         </button>
-                        <button class="btn btn-primary btn-action" @click="openCreateModal">
+                        <button v-if="canCreateIndicatorCatalog" class="btn btn-primary btn-action" @click="openCreateModal">
                             <i class="bi bi-plus-circle me-2"></i>
                             Tạo danh mục chỉ tiêu
                         </button>
@@ -34,7 +34,7 @@
                             <div>
                                 <h5 class="mb-1">Hướng dẫn nhập Excel</h5>
                             </div>
-                            <button class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
+                            <button v-if="canImportIndicatorCatalog" class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
                                 <i class="bi bi-download me-1"></i>
                                 Tải mẫu Excel
                             </button>
@@ -161,6 +161,7 @@
                                 <colgroup>
                                     <col class="col-stt" />
                                     <col class="col-name" />
+                                    <col class="col-owner" />
                                     <col class="col-unit" />
                                     <col class="col-type" />
                                     <col class="col-criteria" />
@@ -171,6 +172,7 @@
                                     <tr>
                                         <th class="text-center">STT</th>
                                         <th>Tên danh mục chỉ tiêu</th>
+                                        <th>Đơn vị chủ trì</th>
                                         <th>Đơn vị tính</th>
                                         <th>Loại</th>
                                         <th>Bộ tiêu chí</th>
@@ -194,6 +196,14 @@
                                                 </span>
                                             </div>
                                         </td>
+                                        <td class="owner-cell">
+                                            <div v-if="item.tenDonViChuTri" class="owner-badge">
+                                                <div class="fw-semibold">{{ item.tenDonViChuTri }}</div>
+                                                <div class="small text-muted">{{ item.maDonViChuTri || 'Chưa có mã' }}
+                                                </div>
+                                            </div>
+                                            <span v-else class="empty-owner">Chưa gán</span>
+                                        </td>
                                         <td>
                                             <div class="fw-semibold">{{ item.donViTinh || '-' }}</div>
                                             <div v-if="item.tieuChiDanhGias.length" class="small text-muted mt-1">
@@ -203,14 +213,17 @@
                                                 .join(', ') || 'Theo từng tiêu chí con' }}
                                             </div>
                                         </td>
-                                        <td>{{ mapLoai(item.loaiChiTieu) }}</td>
                                         <td>
-                                            <div class="fw-semibold">
-                                                {{ getCriteriaSummary(item) }} • {{
+                                            <span class="table-chip chip-type">{{ mapLoai(item.loaiChiTieu) }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="criteria-summary">
+                                                <span>{{ getCriteriaSummary(item) }}</span>
+                                                <small>{{
                                                 item.batBuocDatTatCaTieuChiCon && item.tieuChiDanhGias?.length
                                                 ? 'Phải đạt tất cả tiêu chí con'
                                                 : 'Đánh giá theo 1 tiêu chí'
-                                                }}
+                                                }}</small>
                                             </div>
                                         </td>
                                         <td>
@@ -219,16 +232,30 @@
                                                 {{ getTrangThaiLabel(item.trangThaiSuDung) }}
                                             </span>
                                         </td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canAssignIndicatorCatalogOwner" class="action-btn action-owner" title="Gán đơn vị chủ trì"
+                                                    @click="openAssignOwnerModal(item)">
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-person-gear"></i>
+                                                    </span>
+                                                    <span>Gán chủ trì</span>
+                                                </button>
+                                                <button v-if="canEditIndicatorCatalog" class="action-btn action-edit" title="Sửa danh mục chỉ tiêu"
                                                     @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canDeleteIndicatorCatalog" class="action-btn action-delete" title="Xóa danh mục chỉ tiêu"
                                                     @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canAssignIndicatorCatalogOwner && !canEditIndicatorCatalog && !canDeleteIndicatorCatalog" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -541,6 +568,45 @@
                 </div>
 
                 <div v-if="showModal" class="modal-backdrop fade show"></div>
+
+                <div v-if="showAssignOwnerModal" class="modal fade show d-block custom-modal" tabindex="-1"
+                    @click.self="closeAssignOwnerModal">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg rounded-4">
+                            <div class="modal-header border-0 pb-0">
+                                <div>
+                                    <h4 class="modal-title mb-1">Gán đơn vị chủ trì</h4>
+                                    <p class="text-muted mb-0">{{ assigningOwnerItem?.tenChiTieu || '-' }}</p>
+                                </div>
+                                <button type="button" class="btn-close" @click="closeAssignOwnerModal"></button>
+                            </div>
+
+                            <div class="modal-body pt-3">
+                                <label class="form-label">Đơn vị chủ trì</label>
+                                <select v-model.number="assignOwnerForm.donViChuTriId" class="form-select">
+                                    <option :value="null">Chưa gán</option>
+                                    <option v-for="unit in donViChuTriOptions" :key="unit.id" :value="unit.id">
+                                        {{ unit.tenDonVi || '-' }}
+                                    </option>
+                                </select>
+                                <small class="text-muted d-block mt-2">
+                                    Chỉ hiển thị các đơn vị loại Thành phố hoặc Cấp quản lý.
+                                </small>
+                            </div>
+
+                            <div class="modal-footer border-0 pt-0">
+                                <button class="btn btn-light" @click="closeAssignOwnerModal">Hủy</button>
+                                <button class="btn btn-primary" :disabled="assigningOwner"
+                                    @click="handleAssignOwner">
+                                    <span v-if="assigningOwner" class="spinner-border spinner-border-sm me-2"></span>
+                                    {{ assigningOwner ? 'Đang lưu...' : 'Lưu đơn vị chủ trì' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="showAssignOwnerModal" class="modal-backdrop fade show"></div>
             </div>
         </div>
     </BaseLayout>
@@ -552,6 +618,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const DEFAULT_CAP_AP_DUNG = 'THANH_PHO'
     const CUSTOM_OPTION_VALUE = '__custom__'
@@ -560,12 +627,23 @@
     const saving = ref(false)
     const importing = ref(false)
     const showModal = ref(false)
+    const showAssignOwnerModal = ref(false)
     const isEdit = ref(false)
     const editingId = ref(null)
     const items = ref([])
+    const donViOptions = ref([])
     const importFileInput = ref(null)
     const importResult = ref(null)
     const syncingForm = ref(false)
+    const assigningOwner = ref(false)
+    const assigningOwnerItem = ref(null)
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canCreateIndicatorCatalog = canAccessPermission(currentPermissions, 'CreateIndicatorCatalog', currentProfile)
+    const canImportIndicatorCatalog = canAccessPermission(currentPermissions, 'ImportIndicatorCatalog', currentProfile)
+    const canAssignIndicatorCatalogOwner = canAccessPermission(currentPermissions, 'AssignIndicatorCatalogOwner', currentProfile)
+    const canEditIndicatorCatalog = canAccessPermission(currentPermissions, 'EditIndicatorCatalog', currentProfile)
+    const canDeleteIndicatorCatalog = canAccessPermission(currentPermissions, 'DeleteIndicatorCatalog', currentProfile)
 
     const filters = reactive({
         keyword: '',
@@ -610,6 +688,7 @@
         tyLePhanTramMucTieu: null,
         loaiMocSoSanh: '',
         chieuSoSanh: '',
+        donViChuTriId: null,
         batBuocDatTatCaTieuChiCon: true,
         tieuChiDanhGias: [],
         errors: []
@@ -621,6 +700,7 @@
         nguonChiTieu: 'BO',
         linhVucNghiepVu: '',
         donViTinh: '',
+        donViChuTriId: null,
         moTa: '',
         huongDanTinhToan: '',
         trangThaiSuDung: 'DANG_AP_DUNG',
@@ -639,6 +719,9 @@
     })
 
     const form = reactive(createDefaultForm())
+    const assignOwnerForm = reactive({
+        donViChuTriId: null
+    })
     const linhVucNghiepVuMode = ref('existing')
     const donViTinhMode = ref('existing')
 
@@ -658,6 +741,18 @@
             ...item.tieuChiDanhGias.map(child => child.donViTinh)
         ])
     ))
+
+    const donViChuTriOptions = computed(() =>
+        donViOptions.value
+            .filter(item => ['THANH_PHO', 'CAP_QUAN_LY'].includes(String(item.loaiDonVi || '').toUpperCase()))
+            .sort((left, right) =>
+                `${left.maDonVi || ''} ${left.tenDonVi || ''}`.localeCompare(
+                    `${right.maDonVi || ''} ${right.tenDonVi || ''}`,
+                    'vi',
+                    { sensitivity: 'base' }
+                )
+            )
+    )
 
     const linhVucNghiepVuSelector = computed(() => (
         linhVucNghiepVuMode.value === 'custom'
@@ -754,6 +849,9 @@
             capApDung: String(pick(item, 'capApDung', 'CapApDung') || DEFAULT_CAP_AP_DUNG),
             linhVucNghiepVu: String(pick(item, 'linhVucNghiepVu', 'LinhVucNghiepVu') || ''),
             donViTinh: String(pick(item, 'donViTinh', 'DonViTinh') || ''),
+            donViChuTriId: Number(pick(item, 'donViChuTriId', 'DonViChuTriId') || 0) || null,
+            maDonViChuTri: String(pick(item, 'maDonViChuTri', 'MaDonViChuTri') || ''),
+            tenDonViChuTri: String(pick(item, 'tenDonViChuTri', 'TenDonViChuTri') || ''),
             moTa: String(pick(item, 'moTa', 'MoTa') || ''),
             huongDanTinhToan: String(pick(item, 'huongDanTinhToan', 'HuongDanTinhToan') || ''),
             coChoPhepPhanRa: Boolean(pick(item, 'coChoPhepPhanRa', 'CoChoPhepPhanRa')),
@@ -1040,6 +1138,7 @@
         capApDung: DEFAULT_CAP_AP_DUNG,
         linhVucNghiepVu: row.linhVucNghiepVu || null,
         donViTinh: row.donViTinh || null,
+        donViChuTriId: row.donViChuTriId || null,
         moTa: row.moTa || null,
         huongDanTinhToan: row.huongDanTinhToan || null,
         coChoPhepPhanRa: row.cheDoDanhGia === 'PHAN_RA',
@@ -1174,10 +1273,12 @@
     }
 
     const openImportFilePicker = () => {
+        if (!canImportIndicatorCatalog) return
         importFileInput.value?.click()
     }
 
     const handleImportFileChange = async (event) => {
+        if (!canImportIndicatorCatalog) return
         const file = event.target?.files?.[0]
         if (!file) return
 
@@ -1326,7 +1427,23 @@
         }
     }
 
+    const fetchDonViOptions = async () => {
+        try {
+            const data = await apiRequest('/DonVi')
+            donViOptions.value = normalizeList(data).map(item => ({
+                id: Number(pick(item, 'id', 'Id') || 0),
+                maDonVi: String(pick(item, 'maDonVi', 'MaDonVi') || ''),
+                tenDonVi: String(pick(item, 'tenDonVi', 'TenDonVi') || ''),
+                loaiDonVi: String(pick(item, 'loaiDonVi', 'LoaiDonVi') || '')
+            })).filter(item => item.id > 0)
+        } catch (error) {
+            console.error(error)
+            donViOptions.value = []
+        }
+    }
+
     const openCreateModal = () => {
+        if (!canCreateIndicatorCatalog) return
         isEdit.value = false
         editingId.value = null
         resetForm()
@@ -1334,6 +1451,7 @@
     }
 
     const openEditModal = (item) => {
+        if (!canEditIndicatorCatalog) return
         isEdit.value = true
         editingId.value = item.id
         syncingForm.value = true
@@ -1344,6 +1462,7 @@
             nguonChiTieu: item.nguonChiTieu,
             linhVucNghiepVu: item.linhVucNghiepVu,
             donViTinh: item.donViTinh,
+            donViChuTriId: item.donViChuTriId,
             moTa: item.moTa,
             huongDanTinhToan: item.huongDanTinhToan,
             trangThaiSuDung: item.trangThaiSuDung,
@@ -1474,6 +1593,7 @@
             donViTinh: form.donViTinh?.trim() || null,
             moTa: form.moTa?.trim() || null,
             huongDanTinhToan: form.huongDanTinhToan?.trim() || null,
+            donViChuTriId: form.donViChuTriId || null,
             coChoPhepPhanRa: form.cheDoDanhGia === 'PHAN_RA',
             trangThaiSuDung: form.trangThaiSuDung,
             ngayHieuLuc: form.ngayHieuLuc || null,
@@ -1502,6 +1622,14 @@
 
     const handleSubmit = async () => {
         if (!validateForm()) return
+        if (!isEdit.value && !canCreateIndicatorCatalog) {
+            alert('Bạn chưa có quyền tạo danh mục chỉ tiêu.')
+            return
+        }
+        if (isEdit.value && !canEditIndicatorCatalog) {
+            alert('Bạn chưa có quyền sửa danh mục chỉ tiêu.')
+            return
+        }
 
         try {
             saving.value = true
@@ -1523,7 +1651,43 @@
         }
     }
 
+    const openAssignOwnerModal = (item) => {
+        if (!canAssignIndicatorCatalogOwner) return
+        assigningOwnerItem.value = item
+        assignOwnerForm.donViChuTriId = item.donViChuTriId || null
+        showAssignOwnerModal.value = true
+    }
+
+    const closeAssignOwnerModal = () => {
+        showAssignOwnerModal.value = false
+        assigningOwnerItem.value = null
+        assignOwnerForm.donViChuTriId = null
+    }
+
+    const handleAssignOwner = async () => {
+        if (!assigningOwnerItem.value?.id) return
+        if (!canAssignIndicatorCatalogOwner) {
+            alert('Bạn chưa có quyền gán đơn vị chủ trì.')
+            return
+        }
+
+        try {
+            assigningOwner.value = true
+            await apiRequest(`/danh-muc-chi-tieu/${assigningOwnerItem.value.id}/don-vi-chu-tri`, 'PATCH', {
+                donViChuTriId: assignOwnerForm.donViChuTriId || null
+            })
+            closeAssignOwnerModal()
+            await fetchDanhMucChiTieu()
+        } catch (error) {
+            console.error(error)
+            alert(error.message || 'Gán đơn vị chủ trì thất bại.')
+        } finally {
+            assigningOwner.value = false
+        }
+    }
+
     const handleDelete = async (item) => {
+        if (!canDeleteIndicatorCatalog) return
         const ok = window.confirm(`Bạn có chắc muốn xóa chỉ tiêu "${item.tenChiTieu}" không?`)
         if (!ok) return
 
@@ -1546,6 +1710,7 @@
 
     onMounted(() => {
         fetchDanhMucChiTieu()
+        fetchDonViOptions()
     })
 </script>
 
@@ -1635,42 +1800,46 @@
     .danh-muc-table {
         border: 1px solid #dbe3ef;
         border-collapse: collapse;
-        min-width: 1180px;
+        min-width: 1480px;
         table-layout: fixed;
     }
 
     .danh-muc-table .col-stt {
-        width: 72px;
+        width: 64px;
     }
 
     .danh-muc-table .col-name {
-        width: 34%;
+        width: 330px;
+    }
+
+    .danh-muc-table .col-owner {
+        width: 220px;
     }
 
     .danh-muc-table .col-unit {
-        width: 14%;
+        width: 120px;
     }
 
     .danh-muc-table .col-type {
-        width: 14%;
+        width: 165px;
     }
 
     .danh-muc-table .col-criteria {
-        width: 20%;
+        width: 245px;
     }
 
     .danh-muc-table .col-status {
-        width: 130px;
+        width: 136px;
     }
 
     .danh-muc-table .col-actions {
-        width: 180px;
+        width: 200px;
     }
 
     :deep(.danh-muc-table th),
     :deep(.danh-muc-table td) {
         border: 1px solid #dbe3ef;
-        padding: 16px 18px;
+        padding: 14px 14px;
         vertical-align: top;
         white-space: normal;
         word-break: break-word;
@@ -1690,6 +1859,131 @@
     :deep(.danh-muc-table tbody td:first-child),
     :deep(.danh-muc-table tbody td:last-child) {
         vertical-align: middle;
+    }
+
+    .owner-badge {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 2px;
+        max-width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        line-height: 1.25;
+    }
+
+    .empty-owner {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 6px 10px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 999px;
+        color: #64748b;
+        background: #f8fafc;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .table-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 100%;
+        min-height: 32px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 0.84rem;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+
+    .chip-type {
+        color: #3730a3;
+        background: #eef2ff;
+        border-color: #c7d2fe;
+    }
+
+    .criteria-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        color: #1f2937;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .criteria-summary small {
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .table-actions-cell {
+        text-align: center;
+    }
+
+    .row-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+        max-width: 172px;
+        margin: 0 auto;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 36px;
+        padding: 7px 10px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+        filter: saturate(1.05);
+    }
+
+    .action-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.72);
+    }
+
+    .action-owner {
+        grid-column: 1 / -1;
+        color: #075985;
+        background: #e0f2fe;
+        border-color: #bae6fd;
+    }
+
+    .action-edit {
+        color: #14532d;
+        background: #dcfce7;
+        border-color: #bbf7d0;
+    }
+
+    .action-delete {
+        color: #991b1b;
+        background: #fee2e2;
+        border-color: #fecaca;
     }
 
     .criteria-block,

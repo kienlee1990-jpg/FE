@@ -24,7 +24,7 @@
                         <span v-if="!isCollapsed">Bảng điều khiển</span>
                     </span>
                 </RouterLink>
-                <RouterLink v-if="hasPermission('ViewCatpIndicatorReport')" to="/bao-cao-chi-tieu-cong-an-thanh-pho"
+                <RouterLink v-if="hasPermission('ViewCatpIndicatorReport')" to="/bao-cao"
                     class="nav-item" active-class="active">
                     <span class="nav-left">
                         <i class="bi bi-clipboard2-data"></i>
@@ -303,7 +303,7 @@
     import { RouterLink, useRouter } from 'vue-router'
     import { useAuth } from '../composables/useAuth'
     import httpClient from '../services/httpClient'
-    import { canAccessAnyPermission, canAccessPermission, hasRole, isCatpProfile, isPrivilegedProfile, resolveEffectivePermissions } from '../utils/accessControl'
+    import { canAccessAnyPermission, canAccessPermission, canBypassUnitFilter, hasRole, resolveEffectivePermissions } from '../utils/accessControl'
 
     const router = useRouter()
     const { getMe, logout: authLogout, user } = useAuth()
@@ -347,6 +347,9 @@
     )
 
     watch(isCollapsed, (value) => {
+        if (value) {
+            closeAllMenus()
+        }
         localStorage.setItem(sidebarCollapsedStorageKey, String(value))
     })
 
@@ -374,7 +377,7 @@
     const hasAnyPermission = (permissions) => canAccessAnyPermission(userPermissions.value, permissions, user.value)
     const hasAdminRole = computed(() => hasRole(user.value, 'Admin'))
     const canViewReturnedReports = computed(() =>
-        hasPermission('ViewReturnedReports') || isPrivilegedProfile(user.value) || isCatpProfile(user.value)
+        hasPermission('ViewReturnedReports') || canBypassUnitFilter(user.value)
     )
 
     const currentDateTime = computed(() => {
@@ -394,7 +397,14 @@
     }
 
     const toggleMenu = (menu) => {
+        if (isCollapsed.value) return
         menus[menu] = !menus[menu]
+    }
+
+    const closeAllMenus = () => {
+        Object.keys(defaultMenus).forEach((key) => {
+            menus[key] = false
+        })
     }
 
     const fetchReturnedReportsCount = async () => {
@@ -413,7 +423,7 @@
                         ? response.data.data
                         : []
             const currentDonViId = Number(user.value?.donViId || 0)
-            const canViewAll = isPrivilegedProfile(user.value) || isCatpProfile(user.value)
+            const canViewAll = canBypassUnitFilter(user.value)
             returnedReportsCount.value = data.filter((item) => {
                 const status = String(item.TrangThai ?? item.trangThai ?? '').trim().toUpperCase()
                 const donViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)

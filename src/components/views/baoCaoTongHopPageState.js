@@ -1,6 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import httpClient from '../../services/httpClient'
-import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+import { canBypassUnitFilter, getStoredUserProfile, isOwnerScopeProfile } from '../../utils/accessControl'
 import {
   countTrackedStatuses,
   DANH_GIA_TRACKED_STATUS_OPTIONS,
@@ -12,6 +12,7 @@ export function useBaoCaoTongHopPage(options = {}) {
   const loading = ref(false)
   const errorMessage = ref('')
   const applyDefaultUnitFilter = options.applyDefaultUnitFilter !== false
+  const forceViewAllUnits = options.forceViewAllUnits === true
 
   const kyBaoCaoOptions = ref([])
   const theoDoiRows = ref([])
@@ -25,9 +26,8 @@ export function useBaoCaoTongHopPage(options = {}) {
   const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
   const DEFAULT_DON_VI_FILTER = 'Công an thành phố Đà Nẵng'
   const WAITING_SEND_STATUS = 'CHO_GUI'
-  const canViewAllUnits = computed(() =>
-    isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-  )
+  const canViewAllUnits = computed(() => forceViewAllUnits || canBypassUnitFilter(currentProfile.value))
+  const isOwnerScopedAccount = computed(() => isOwnerScopeProfile(currentProfile.value))
   const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
   const filters = reactive({
@@ -271,6 +271,7 @@ export function useBaoCaoTongHopPage(options = {}) {
 
   function applyDefaultDonViFilter() {
     if (!canViewAllUnits.value) return
+    if (isOwnerScopedAccount.value) return
     if (filters.donVi) return
 
     const defaultOption = donViOptions.value.find(item =>
@@ -994,8 +995,7 @@ export function useBaoCaoTongHopPage(options = {}) {
 
   function getKyLabel(item) {
     const tenKy = pick(item, 'tenKy', 'TenKy')
-    const maKy = pick(item, 'maKy', 'MaKy')
-    return [maKy, tenKy].filter(Boolean).join(' - ') || tenKy || maKy || '-'
+    return tenKy || '-'
   }
 
   function buildLatestKyMeta(item) {

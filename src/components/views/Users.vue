@@ -13,8 +13,8 @@
         <div class="header-actions">
           <RouterLink v-if="canManagePermissions" to="/permissions" class="btn btn-outline-primary">Mở màn phân quyền
             chi tiết</RouterLink>
-          <button @click="openRoleManager" class="btn btn-outline-success">Quản lý vai trò</button>
-          <button @click="openAdd" class="btn btn-primary">+ Thêm người dùng</button>
+          <button v-if="canCreateRoles || canEditRoles || canDeleteRoles" @click="openRoleManager" class="btn btn-outline-success">Quản lý vai trò</button>
+          <button v-if="canCreateUsers" @click="openAdd" class="btn btn-primary">+ Thêm người dùng</button>
         </div>
       </div>
 
@@ -77,7 +77,7 @@
 
       <div v-else-if="filteredUsers.length" class="card shadow-sm border-0">
         <div class="card-body p-0">
-          <ColumnVisibilityTools table-id="Users-table" />
+          <ColumnVisibilityTools table-id="Users-table" :default-visible-columns="[0, 1, 2, 3, 5, 6]" />
           <table id="Users-table" class="table table-hover align-middle mb-0 permission-table managed-table">
             <thead>
               <tr>
@@ -116,7 +116,7 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <template v-if="!isProtectedUser(item)">
+                  <template v-if="!isProtectedUser(item) && canEditUsers">
                     <button type="button" class="status-toggle"
                       :class="item.isActive ? 'status-active' : 'status-inactive'" :disabled="item._loading"
                       @click="confirmToggle(item)">
@@ -124,15 +124,27 @@
                       <span v-else>{{ item.isActive ? "Đang hoạt động" : "Ngừng hoạt động" }}</span>
                     </button>
                   </template>
+                  <span v-else-if="!isProtectedUser(item)" class="badge text-bg-light border">
+                    {{ item.isActive ? "Đang hoạt động" : "Ngừng hoạt động" }}
+                  </span>
                   <span v-else class="badge text-bg-warning">Tài khoản hệ thống</span>
                 </td>
-                <td class="text-end">
-                  <div class="action-stack">
-                    <button @click="openEdit(item)" class="btn btn-sm btn-outline-warning">Sửa</button>
-                    <button v-if="!isProtectedUser(item)" @click="openRole(item)" class="btn btn-sm btn-primary">
-                      Gán vai trò
+                <td class="table-actions-cell">
+                  <div class="row-actions">
+                    <button v-if="canEditUsers" class="action-btn action-edit action-wide" title="Sửa người dùng" @click="openEdit(item)">
+                      <span class="action-icon">
+                        <i class="bi bi-pencil-square"></i>
+                      </span>
+                      <span>Sửa</span>
                     </button>
-                    <span v-else class="text-muted small">Không chỉnh vai trò</span>
+                    <button v-if="!isProtectedUser(item) && canManageUserRoles" class="action-btn action-owner action-wide"
+                      title="Gán vai trò" @click="openRole(item)">
+                      <span class="action-icon">
+                        <i class="bi bi-person-gear"></i>
+                      </span>
+                      <span>Gán vai trò</span>
+                    </button>
+                    <span v-if="isProtectedUser(item) || (!canEditUsers && !canManageUserRoles)" class="text-muted small">Chỉ xem</span>
                   </div>
                 </td>
               </tr>
@@ -222,7 +234,7 @@
             </div>
             <div class="modal-footer border-0 px-4 pb-4">
               <button class="btn btn-outline-secondary rounded-pill px-4" @click="closeForm">Hủy</button>
-              <button class="btn btn-primary rounded-pill px-4 shadow-sm" @click="saveUser">Lưu</button>
+              <button v-if="isEdit ? canEditUsers : canCreateUsers" class="btn btn-primary rounded-pill px-4 shadow-sm" @click="saveUser">Lưu</button>
             </div>
           </div>
         </div>
@@ -289,7 +301,7 @@
                 <div class="role-manager-list">
                   <div class="role-manager-list-head">
                     <h6 class="mb-0">Danh sách vai trò</h6>
-                    <button type="button" class="btn btn-sm btn-outline-primary" @click="startAddRole">+ Thêm vai
+                    <button v-if="canCreateRoles" type="button" class="btn btn-sm btn-outline-primary" @click="startAddRole">+ Thêm vai
                       trò</button>
                   </div>
 
@@ -344,13 +356,13 @@
                   </div>
 
                   <div class="role-form-actions">
-                    <button v-if="roleForm.mode === 'EDIT'" type="button" class="btn btn-outline-danger"
+                    <button v-if="roleForm.mode === 'EDIT' && canDeleteRoles" type="button" class="btn btn-outline-danger"
                       :disabled="roleCatalogLoading" @click="deleteManagedRole">
                       Xóa vai trò
                     </button>
                     <div class="ms-auto d-flex gap-2">
                       <button type="button" class="btn btn-outline-secondary" @click="closeRoleManager">Đóng</button>
-                      <button type="button" class="btn btn-primary" :disabled="roleCatalogLoading"
+                      <button v-if="roleForm.mode === 'ADD' ? canCreateRoles : canEditRoles" type="button" class="btn btn-primary" :disabled="roleCatalogLoading"
                         @click="saveManagedRole">
                         {{ roleForm.mode === 'EDIT' ? 'Cập nhật vai trò' : 'Tạo vai trò' }}
                       </button>
@@ -394,33 +406,83 @@
   const roleForm = ref({ mode: 'ADD', originalName: '', roleName: '' })
   const form = ref({ id: null, donViId: null, email: '', password: '', userName: '', fullName: '', phoneNumber: '', address: '', isActive: true })
   const protectedUserId = 'd12c48e3-825f-4799-b6f1-a55857131796'
-  const canManagePermissions = computed(() => canAccessPermission(getStoredUserPermissions(), 'ManagePermissions', getStoredUserProfile()))
+  const currentProfile = getStoredUserProfile()
+  const currentPermissions = getStoredUserPermissions()
+  const canManagePermissions = computed(() => canAccessPermission(currentPermissions, 'ManagePermissions', currentProfile))
+  const canCreateUsers = computed(() => canAccessPermission(currentPermissions, 'CreateUsers', currentProfile))
+  const canEditUsers = computed(() => canAccessPermission(currentPermissions, 'EditUsers', currentProfile))
+  const canManageUserRoles = computed(() => canAccessPermission(currentPermissions, 'ManageUserRoles', currentProfile))
+  const canCreateRoles = computed(() => canAccessPermission(currentPermissions, 'CreateRoles', currentProfile))
+  const canEditRoles = computed(() => canAccessPermission(currentPermissions, 'EditRoles', currentProfile))
+  const canDeleteRoles = computed(() => canAccessPermission(currentPermissions, 'DeleteRoles', currentProfile))
 
   const permissionLabelMap = {
     ViewDashboard: 'Xem bảng điều khiển',
     ViewCatpIndicatorReport: 'Xem báo cáo chỉ tiêu CATP',
     ManageIndicatorCatalog: 'Quản lý danh mục chỉ tiêu',
+    CreateIndicatorCatalog: 'Tạo danh mục chỉ tiêu',
+    ImportIndicatorCatalog: 'Nhập Excel danh mục chỉ tiêu',
+    AssignIndicatorCatalogOwner: 'Gán đơn vị chủ trì chỉ tiêu',
+    EditIndicatorCatalog: 'Sửa danh mục chỉ tiêu',
+    DeleteIndicatorCatalog: 'Xóa danh mục chỉ tiêu',
     ManageUnitCatalog: 'Quản lý danh mục đơn vị',
+    CreateUnitCatalog: 'Tạo danh mục đơn vị',
+    ImportUnitCatalog: 'Nhập Excel danh mục đơn vị',
+    EditUnitCatalog: 'Sửa danh mục đơn vị',
+    DeleteUnitCatalog: 'Xóa danh mục đơn vị',
     ManageReportingPeriods: 'Quản lý kỳ báo cáo',
+    CreateReportingPeriods: 'Tạo kỳ báo cáo',
+    EditReportingPeriods: 'Sửa kỳ báo cáo',
+    DeleteReportingPeriods: 'Xóa kỳ báo cáo',
     ManageAssignmentWaves: 'Quản lý đợt giao chỉ tiêu',
+    CreateAssignmentWaves: 'Tạo đợt giao chỉ tiêu',
+    EditAssignmentWaves: 'Sửa đợt giao chỉ tiêu',
+    DeleteAssignmentWaves: 'Xóa đợt giao chỉ tiêu',
     AssignTargetsToCatp: 'Giao chỉ tiêu cho CATP',
     AssignTargetsToPhong: 'Giao chỉ tiêu cho Phòng',
     AssignTargetsToCadp: 'Giao chỉ tiêu cho CADP phường/xã',
+    CreateAssignedTargets: 'Tạo giao chỉ tiêu',
+    EditAssignedTargets: 'Sửa giao chỉ tiêu',
+    DeleteAssignedTargets: 'Xóa giao chỉ tiêu',
     ViewAssignedTargetsList: 'Xem danh sách chỉ tiêu được giao',
-    SubmitPeriodicReports: 'Nhập và gửi báo cáo',
+    SubmitPeriodicReports: 'Vào chức năng báo cáo định kỳ',
+    CreatePeriodicReports: 'Tạo báo cáo định kỳ',
+    SendPeriodicReports: 'Gửi báo cáo định kỳ',
+    EditPeriodicReports: 'Sửa báo cáo định kỳ',
+    DeletePeriodicReports: 'Xóa báo cáo định kỳ',
+    ViewReturnedReports: 'Xem báo cáo cần điều chỉnh',
+    ResubmitReturnedReports: 'Gửi lại báo cáo cần điều chỉnh',
+    DeleteReturnedReports: 'Xóa báo cáo cần điều chỉnh',
+    ReviewPendingReports: 'Xét duyệt báo cáo chờ duyệt',
+    ViewPendingReportDetails: 'Xem chi tiết báo cáo chờ duyệt',
+    ApprovePendingReports: 'Chấp nhận báo cáo chờ duyệt',
+    ReturnPendingReports: 'Gửi trả báo cáo chờ duyệt',
     ViewExecutionProgress: 'Xem tiến độ thực hiện',
     ViewUnitsPendingUpdate: 'Xem đơn vị chưa nộp báo cáo',
     ConfigureEvaluationThresholds: 'Cấu hình ngưỡng đánh giá',
+    CreateEvaluationThresholds: 'Tạo cấu hình ngưỡng',
+    EditEvaluationThresholds: 'Sửa cấu hình ngưỡng',
+    DeleteEvaluationThresholds: 'Xóa cấu hình ngưỡng',
     ViewAccumulatedEvaluation: 'Xem tổng hợp số liệu cuối kỳ',
     ViewRiskWarnings: 'Xem cảnh báo rủi ro',
     CompareUnits: 'So sánh đơn vị',
     RankUnits: 'Xếp hạng đơn vị',
     ConfigureCompetitionGroups: 'Thiết lập nhóm thi đua',
+    CreateCompetitionGroups: 'Tạo nhóm thi đua',
+    EditCompetitionGroups: 'Sửa nhóm thi đua',
+    DeleteCompetitionGroups: 'Xóa nhóm thi đua',
     ViewCompetitionGroups: 'Xem xếp hạng nhóm thi đua',
     ViewSummaryReports: 'Xem báo cáo tổng hợp',
     ViewReportsByUnit: 'Xem báo cáo theo đơn vị',
     ViewReportsByIndicator: 'Xem báo cáo theo chỉ tiêu',
+    ExportReports: 'Xuất báo cáo',
     ManageUsers: 'Quản trị người dùng',
+    CreateUsers: 'Tạo người dùng',
+    EditUsers: 'Sửa người dùng',
+    ManageUserRoles: 'Gán vai trò người dùng',
+    CreateRoles: 'Tạo vai trò',
+    EditRoles: 'Sửa vai trò',
+    DeleteRoles: 'Xóa vai trò',
     ResetUserPasswords: 'Cấp lại mật khẩu',
     ManagePermissions: 'Quản trị phân quyền',
     ViewSystemLogs: 'Xem nhật ký hệ thống'
@@ -530,12 +592,14 @@
   }
 
   const openAdd = () => {
+    if (!canCreateUsers.value) return
     isEdit.value = false
     form.value = { id: null, donViId: null, email: '', password: '', userName: '', fullName: '', phoneNumber: '', address: '', isActive: true }
     showForm.value = true
   }
 
   const openEdit = (user) => {
+    if (!canEditUsers.value) return
     isEdit.value = true
     form.value = {
       id: user.id,
@@ -549,6 +613,15 @@
   }
 
   const saveUser = async () => {
+    if (isEdit.value && !canEditUsers.value) {
+      alert('Bạn chưa có quyền sửa người dùng.')
+      return
+    }
+    if (!isEdit.value && !canCreateUsers.value) {
+      alert('Bạn chưa có quyền tạo người dùng.')
+      return
+    }
+
     try {
       if (isEdit.value) {
         await httpClient.put(`/admin/users/${form.value.id}`, {
@@ -591,6 +664,7 @@
   }
 
   const confirmToggle = (user) => {
+    if (!canEditUsers.value) return
     const ok = confirm(`Bạn có chắc muốn ${user.isActive ? 'ngừng' : 'kích hoạt'} người dùng này không?`)
     if (!ok) return
     toggleActive(user)
@@ -615,6 +689,7 @@
   }
 
   const openRole = (user) => {
+    if (!canManageUserRoles.value) return
     currentUserId.value = user.id
     currentUserName.value = user.fullName || user.email || user.userName || ''
     selectedRoles.value = [...(user.roles || [])]
@@ -626,6 +701,7 @@
   }
 
   const openRoleManager = async () => {
+    if (!canCreateRoles.value && !canEditRoles.value && !canDeleteRoles.value) return
     showRoleManager.value = true
     resetRoleForm()
     if (!roles.value.length) {
@@ -643,6 +719,7 @@
   }
 
   const startAddRole = () => {
+    if (!canCreateRoles.value) return
     selectedManagedRoleId.value = ''
     resetRoleForm()
   }
@@ -659,6 +736,15 @@
   const getManagedRoleByName = (roleName) => managedRoles.value.find(item => item.roleName === roleName) || null
 
   const saveManagedRole = async () => {
+    if (roleForm.value.mode === 'ADD' && !canCreateRoles.value) {
+      alert('Bạn chưa có quyền tạo vai trò.')
+      return
+    }
+    if (roleForm.value.mode === 'EDIT' && !canEditRoles.value) {
+      alert('Bạn chưa có quyền sửa vai trò.')
+      return
+    }
+
     const nextRoleName = roleForm.value.roleName.trim()
     if (!nextRoleName) {
       alert('Vui lòng nhập tên vai trò.')
@@ -733,6 +819,7 @@
   }
 
   const deleteManagedRole = async () => {
+    if (!canDeleteRoles.value) return
     const role = selectedManagedRole.value
     if (!role?.roleName) return
 
@@ -768,6 +855,11 @@
   }
 
   const saveRole = async () => {
+    if (!canManageUserRoles.value) {
+      alert('Bạn chưa có quyền gán vai trò người dùng.')
+      return
+    }
+
     if (!currentUserId.value) return
     try {
       roleLoading.value = true

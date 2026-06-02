@@ -14,12 +14,12 @@
 
                 <div class="d-flex justify-content-end mb-4">
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-outline-primary btn-action" @click="openImportFilePicker"
+                        <button v-if="canImportUnitCatalog" class="btn btn-outline-primary btn-action" @click="openImportFilePicker"
                             :disabled="importing">
                             <i class="bi bi-file-earmark-excel me-2"></i>
                             {{ importing ? 'Đang nhập...' : 'Nhập từ Excel' }}
                         </button>
-                        <button class="btn btn-primary btn-action" @click="openCreateModal">
+                        <button v-if="canCreateUnitCatalog" class="btn btn-primary btn-action" @click="openCreateModal">
                             <i class="bi bi-plus-circle me-2"></i>
                             Tạo đơn vị
                         </button>
@@ -35,7 +35,7 @@
                             <div>
                                 <h5 class="mb-1">Hướng dẫn nhập Excel</h5>
                             </div>
-                            <button class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
+                            <button v-if="canImportUnitCatalog" class="btn btn-sm btn-outline-secondary" @click="downloadImportTemplate">
                                 <i class="bi bi-download me-1"></i>
                                 Tải mẫu Excel
                             </button>
@@ -104,9 +104,10 @@
                                 <label class="form-label">Loại đơn vị</label>
                                 <select v-model="filters.loaiDonVi" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="THANH_PHO">Thành phố</option>
-                                    <option value="PHONG">Cấp phòng</option>
-                                    <option value="XA">Cấp xã/phường</option>
+                                    <option v-for="option in loaiDonViOptions" :key="option.value"
+                                        :value="option.value">
+                                        {{ option.label }}
+                                    </option>
                                 </select>
                             </div>
                         </div>
@@ -165,16 +166,23 @@
                                         <td>{{ mapLoaiDonVi(item.loaiDonVi) }}</td>
                                         <td>{{ getParentName(item.donViChaId) }}</td>
                                         <td>{{ item.nguoiDaiDien || '-' }}</td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canEditUnitCatalog" class="action-btn action-edit" title="Sửa đơn vị"
                                                     @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canDeleteUnitCatalog" class="action-btn action-delete" title="Xóa đơn vị"
                                                     @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canEditUnitCatalog && !canDeleteUnitCatalog" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -220,9 +228,10 @@
                                             Loại đơn vị <span class="text-danger">*</span>
                                         </label>
                                         <select v-model="form.loaiDonVi" class="form-select">
-                                            <option value="THANH_PHO">Thành phố</option>
-                                            <option value="PHONG">Cấp phòng</option>
-                                            <option value="XA">Cấp xã/phường</option>
+                                            <option v-for="option in loaiDonViOptions" :key="option.value"
+                                                :value="option.value">
+                                                {{ option.label }}
+                                            </option>
                                         </select>
                                     </div>
 
@@ -287,6 +296,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -297,6 +307,20 @@
     const items = ref([])
     const importFileInput = ref(null)
     const importResult = ref(null)
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canCreateUnitCatalog = canAccessPermission(currentPermissions, 'CreateUnitCatalog', currentProfile)
+    const canImportUnitCatalog = canAccessPermission(currentPermissions, 'ImportUnitCatalog', currentProfile)
+    const canEditUnitCatalog = canAccessPermission(currentPermissions, 'EditUnitCatalog', currentProfile)
+    const canDeleteUnitCatalog = canAccessPermission(currentPermissions, 'DeleteUnitCatalog', currentProfile)
+
+    const loaiDonViOptions = [
+        { value: 'THANH_PHO', label: 'Thành phố' },
+        { value: 'PHONG', label: 'Cấp phòng' },
+        { value: 'XA', label: 'Cấp xã/phường' },
+        { value: 'DON_VI_TRUC_THUOC', label: 'Đơn vị trực thuộc' },
+        { value: 'CAP_QUAN_LY', label: 'Cấp quản lý' }
+    ]
 
     const filters = reactive({
         keyword: '',
@@ -447,6 +471,8 @@
         if (['THANHPHO', 'CAPTHANHPHO', 'THANH_PHO', 'TP', 'CATP', 'CONGANTHANHPHO'].includes(normalized)) return 'THANH_PHO'
         if (['PHONG', 'CAPPHONG', 'DONVICAPPHONG'].includes(normalized)) return 'PHONG'
         if (['XA', 'PHUONG', 'XAPHUONG', 'PHUONGXA', 'CAPXA', 'CAPPHUONG', 'CAPXAPHUONG', 'CONGANXA', 'CONGANPHUONG'].includes(normalized)) return 'XA'
+        if (['DONVITRUCTHUOC', 'DON_VI_TRUC_THUOC', 'TRUCTHUOC', 'DONVITHUOCCAP'].includes(normalized)) return 'DON_VI_TRUC_THUOC'
+        if (['CAPQUANLY', 'CAP_QUAN_LY', 'QUANLY', 'DONVIQUANLY', 'DON_VI_QUAN_LY'].includes(normalized)) return 'CAP_QUAN_LY'
         return ''
     }
 
@@ -664,10 +690,12 @@
     }
 
     const openImportFilePicker = () => {
+        if (!canImportUnitCatalog) return
         importFileInput.value?.click()
     }
 
     const handleImportFileChange = async (event) => {
+        if (!canImportUnitCatalog) return
         const file = event.target?.files?.[0]
         if (!file) return
 
@@ -683,7 +711,9 @@
         const sampleRows = [
             ['CATP', 'Công an thành phố Đà Nẵng', 'THANH_PHO', '', '', '', '', '', ''],
             ['P01', 'Phòng An ninh nội địa', 'PHONG', 'CATP', '', '', '', '', ''],
-            ['CA_HAI_CHAU', 'Công an phường Hải Châu', 'XA', 'CATP', '', '', '', '', '']
+            ['CA_HAI_CHAU', 'Công an phường Hải Châu', 'XA', 'CATP', '', '', '', '', ''],
+            ['DVTT01', 'Đơn vị trực thuộc mẫu', 'DON_VI_TRUC_THUOC', 'CATP', '', '', '', '', ''],
+            ['CQL01', 'Cấp quản lý mẫu', 'CAP_QUAN_LY', 'CATP', '', '', '', '', '']
         ]
 
         const columnWidths = [
@@ -716,7 +746,7 @@
 
         const guideWorksheet = XLSX.utils.aoa_to_sheet([
             ['Cot', 'Gia tri hop le'],
-            ['LoaiDonVi', 'THANH_PHO, PHONG hoặc XA'],
+            ['LoaiDonVi', 'THANH_PHO, PHONG, XA, DON_VI_TRUC_THUOC hoặc CAP_QUAN_LY'],
             ['MaDonViCha', 'Nhập mã đơn vị cha đã có trong hệ thống hoặc nằm ở dòng phía trên trong file'],
             ['Email', 'Bỏ trống hoặc nhập đúng định dạng email'],
             ['Lưu ý', 'Nhập dữ liệu ở sheet MauNhap; sheet ViDu chỉ để tham khảo']
@@ -754,6 +784,7 @@
     }
 
     const openCreateModal = () => {
+        if (!canCreateUnitCatalog) return
         isEdit.value = false
         editingId.value = null
         resetForm()
@@ -761,6 +792,7 @@
     }
 
     const openEditModal = (item) => {
+        if (!canEditUnitCatalog) return
         isEdit.value = true
         editingId.value = item.id
 
@@ -815,6 +847,14 @@
 
     const handleSubmit = async () => {
         if (!validateForm()) return
+        if (!isEdit.value && !canCreateUnitCatalog) {
+            alert('Bạn chưa có quyền tạo danh mục đơn vị.')
+            return
+        }
+        if (isEdit.value && !canEditUnitCatalog) {
+            alert('Bạn chưa có quyền sửa danh mục đơn vị.')
+            return
+        }
 
         try {
             saving.value = true
@@ -837,6 +877,7 @@
     }
 
     const handleDelete = async (item) => {
+        if (!canDeleteUnitCatalog) return
         const ok = window.confirm(`Bạn có chắc muốn xóa đơn vị "${item.tenDonVi}" không?`)
         if (!ok) return
 
@@ -856,12 +897,7 @@
     }
 
     const mapLoaiDonVi = (value) => {
-        const map = {
-            THANH_PHO: 'Thành phố',
-            PHONG: 'Cấp phòng',
-            XA: 'Cấp xã/phường'
-        }
-        return map[value] || value || '-'
+        return loaiDonViOptions.find(option => option.value === value)?.label || value || '-'
     }
 
     const getParentName = (donViChaId) => {

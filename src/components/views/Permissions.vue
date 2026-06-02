@@ -67,7 +67,7 @@
               <select class="form-select" v-model="selectedUserId" @change="handleUserChange">
                 <option value="">-- Chọn user --</option>
                 <option v-for="item in filteredUsers" :key="item.id" :value="item.id">
-                  {{ item.fullName || item.userName || item.email }} - {{ item.email }}
+                  {{ item.fullName || item.userName || '-' }}
                 </option>
               </select>
               <div class="small text-muted mt-2">Quyền ở đây là quyền gán trực tiếp riêng cho user.</div>
@@ -77,7 +77,7 @@
               <select class="form-select" v-model="selectedRoleId" @change="handleRoleChange">
                 <option value="">-- Chọn role --</option>
                 <option v-for="item in filteredRoles" :key="item.id" :value="item.id">
-                  {{ item.roleName }}{{ item.userCount ? ` (${item.userCount} user)` : '' }}
+                  {{ item.roleName || '-' }}
                 </option>
               </select>
               <div class="small text-muted mt-2">Quyền theo role sẽ áp dụng cho các user đang mang role tương ứng.</div>
@@ -218,9 +218,21 @@
       label: 'Danh mục hệ thống',
       description: 'Danh mục nền tảng và kỳ báo cáo dùng chung cho toàn hệ thống.',
       permissions: [
-        { label: 'Quản lý danh mục chỉ tiêu', value: 'ManageIndicatorCatalog', description: 'Cho phép xem, thêm, sửa và nhập danh mục chỉ tiêu.' },
-        { label: 'Quản lý danh mục đơn vị', value: 'ManageUnitCatalog', description: 'Cho phép xem, thêm, sửa và nhập danh mục đơn vị.' },
-        { label: 'Quản lý kỳ báo cáo', value: 'ManageReportingPeriods', description: 'Cho phép tạo và chỉnh sửa các kỳ báo cáo.' }
+        { label: 'Quản lý danh mục chỉ tiêu', value: 'ManageIndicatorCatalog', description: 'Cho phép mở màn danh mục chỉ tiêu.' },
+        { label: 'Tạo danh mục chỉ tiêu', value: 'CreateIndicatorCatalog', description: 'Hiển thị nút Tạo danh mục chỉ tiêu.' },
+        { label: 'Nhập Excel danh mục chỉ tiêu', value: 'ImportIndicatorCatalog', description: 'Hiển thị nút Nhập từ Excel trong danh mục chỉ tiêu.' },
+        { label: 'Gán đơn vị chủ trì chỉ tiêu', value: 'AssignIndicatorCatalogOwner', description: 'Hiển thị nút Gán chủ trì trong bảng danh mục chỉ tiêu.' },
+        { label: 'Sửa danh mục chỉ tiêu', value: 'EditIndicatorCatalog', description: 'Hiển thị nút Sửa trong bảng danh mục chỉ tiêu.' },
+        { label: 'Xóa danh mục chỉ tiêu', value: 'DeleteIndicatorCatalog', description: 'Hiển thị nút Xóa trong bảng danh mục chỉ tiêu.' },
+        { label: 'Quản lý danh mục đơn vị', value: 'ManageUnitCatalog', description: 'Cho phép mở màn danh mục đơn vị.' },
+        { label: 'Tạo danh mục đơn vị', value: 'CreateUnitCatalog', description: 'Hiển thị nút Tạo đơn vị.' },
+        { label: 'Nhập Excel danh mục đơn vị', value: 'ImportUnitCatalog', description: 'Hiển thị nút Nhập từ Excel trong danh mục đơn vị.' },
+        { label: 'Sửa danh mục đơn vị', value: 'EditUnitCatalog', description: 'Hiển thị nút Sửa trong bảng danh mục đơn vị.' },
+        { label: 'Xóa danh mục đơn vị', value: 'DeleteUnitCatalog', description: 'Hiển thị nút Xóa trong bảng danh mục đơn vị.' },
+        { label: 'Quản lý kỳ báo cáo', value: 'ManageReportingPeriods', description: 'Cho phép mở màn kỳ báo cáo.' },
+        { label: 'Tạo kỳ báo cáo', value: 'CreateReportingPeriods', description: 'Hiển thị nút Tạo kỳ báo cáo.' },
+        { label: 'Sửa kỳ báo cáo', value: 'EditReportingPeriods', description: 'Hiển thị nút Sửa trong bảng kỳ báo cáo.' },
+        { label: 'Xóa kỳ báo cáo', value: 'DeleteReportingPeriods', description: 'Hiển thị nút Xóa trong bảng kỳ báo cáo.' }
       ]
     },
     {
@@ -228,10 +240,16 @@
       label: 'Giao chỉ tiêu',
       description: 'Các chức năng tạo đợt giao và giao chỉ tiêu xuống từng cấp đơn vị.',
       permissions: [
-        { label: 'Quản lý đợt giao chỉ tiêu', value: 'ManageAssignmentWaves', description: 'Cho phép tạo và cập nhật đợt giao chỉ tiêu.' },
+        { label: 'Quản lý đợt giao chỉ tiêu', value: 'ManageAssignmentWaves', description: 'Cho phép mở màn đợt giao chỉ tiêu.' },
+        { label: 'Tạo đợt giao chỉ tiêu', value: 'CreateAssignmentWaves', description: 'Hiển thị nút Tạo đợt giao.' },
+        { label: 'Sửa đợt giao chỉ tiêu', value: 'EditAssignmentWaves', description: 'Hiển thị nút Sửa trong bảng đợt giao chỉ tiêu.' },
+        { label: 'Xóa đợt giao chỉ tiêu', value: 'DeleteAssignmentWaves', description: 'Hiển thị nút Xóa trong bảng đợt giao chỉ tiêu.' },
         { label: 'Giao chỉ tiêu cho CATP', value: 'AssignTargetsToCatp', description: 'Cho phép giao chỉ tiêu cho Công an thành phố.' },
         { label: 'Giao chỉ tiêu cho Phòng', value: 'AssignTargetsToPhong', description: 'Cho phép giao chỉ tiêu cho khối phòng.' },
         { label: 'Giao chỉ tiêu cho CADP phường/xã', value: 'AssignTargetsToCadp', description: 'Cho phép giao chỉ tiêu cho CADP phường/xã.' },
+        { label: 'Tạo giao chỉ tiêu', value: 'CreateAssignedTargets', description: 'Hiển thị nút Tạo giao chỉ tiêu trong các màn giao chỉ tiêu.' },
+        { label: 'Sửa giao chỉ tiêu', value: 'EditAssignedTargets', description: 'Hiển thị nút Sửa trong các bảng giao chỉ tiêu.' },
+        { label: 'Xóa giao chỉ tiêu', value: 'DeleteAssignedTargets', description: 'Hiển thị nút Xóa trong các bảng giao chỉ tiêu.' },
         { label: 'Xem danh sách chỉ tiêu được giao', value: 'ViewAssignedTargetsList', description: 'Cho phép mở màn danh sách chỉ tiêu được giao.' }
       ]
     },
@@ -240,9 +258,18 @@
       label: 'Theo dõi thực hiện',
       description: 'Nhập kết quả báo cáo định kỳ và theo dõi tình hình cập nhật kết quả.',
       permissions: [
-        { label: 'Nhập và gửi kết quả báo cáo', value: 'SubmitPeriodicReports', description: 'Cho phép nhập, chỉnh sửa và gửi kết quả báo cáo định kỳ.' },
-        { label: 'Xem báo cáo cần điều chỉnh', value: 'ViewReturnedReports', description: 'Cho phép mở danh sách báo cáo cần điều chỉnh của đơn vị và gửi lại xét duyệt.' },
-        { label: 'Xét duyệt báo cáo chờ duyệt', value: 'ReviewPendingReports', description: 'Cho phép xem, chấp nhận hoặc gửi trả báo cáo đang chờ xét duyệt.' },
+        { label: 'Vào chức năng báo cáo định kỳ', value: 'SubmitPeriodicReports', description: 'Cho phép mở màn danh sách báo cáo và gửi báo cáo định kỳ.' },
+        { label: 'Tạo báo cáo định kỳ', value: 'CreatePeriodicReports', description: 'Hiển thị nút Nhập báo cáo định kỳ.' },
+        { label: 'Gửi báo cáo định kỳ', value: 'SendPeriodicReports', description: 'Hiển thị nút Gửi, Gửi đã chọn và Gửi tất cả.' },
+        { label: 'Sửa báo cáo định kỳ', value: 'EditPeriodicReports', description: 'Hiển thị nút Sửa trong bảng danh sách báo cáo và báo cáo chờ gửi.' },
+        { label: 'Xóa báo cáo định kỳ', value: 'DeletePeriodicReports', description: 'Hiển thị nút Xóa trong bảng danh sách báo cáo và báo cáo chờ gửi.' },
+        { label: 'Xem báo cáo cần điều chỉnh', value: 'ViewReturnedReports', description: 'Cho phép mở danh sách báo cáo cần điều chỉnh của đơn vị.' },
+        { label: 'Gửi lại báo cáo cần điều chỉnh', value: 'ResubmitReturnedReports', description: 'Hiển thị nút Gửi lại xét duyệt trong báo cáo cần điều chỉnh.' },
+        { label: 'Xóa báo cáo cần điều chỉnh', value: 'DeleteReturnedReports', description: 'Hiển thị nút Xóa trong bảng báo cáo cần điều chỉnh.' },
+        { label: 'Xét duyệt báo cáo chờ duyệt', value: 'ReviewPendingReports', description: 'Cho phép mở màn danh sách báo cáo chờ xét duyệt.' },
+        { label: 'Xem chi tiết báo cáo chờ duyệt', value: 'ViewPendingReportDetails', description: 'Hiển thị nút Xem chi tiết báo cáo chờ duyệt.' },
+        { label: 'Chấp nhận báo cáo chờ duyệt', value: 'ApprovePendingReports', description: 'Hiển thị nút Duyệt và Lưu và chấp nhận.' },
+        { label: 'Gửi trả báo cáo chờ duyệt', value: 'ReturnPendingReports', description: 'Hiển thị nút Gửi trả báo cáo.' },
         { label: 'Xem tiến độ thực hiện', value: 'ViewExecutionProgress', description: 'Cho phép xem trang tiến độ thực hiện chỉ tiêu.' },
         { label: 'Xem đơn vị chưa nộp báo cáo', value: 'ViewUnitsPendingUpdate', description: 'Cho phép xem danh sách đơn vị chưa nộp báo cáo.' }
       ]
@@ -252,11 +279,17 @@
       label: 'Đánh giá - phân tích',
       description: 'Cấu hình ngưỡng, so sánh, xếp hạng và các màn thi đua.',
       permissions: [
-        { label: 'Cấu hình ngưỡng đánh giá', value: 'ConfigureEvaluationThresholds', description: 'Cho phép cấu hình ngưỡng và quy tắc đánh giá.' },
+        { label: 'Cấu hình ngưỡng đánh giá', value: 'ConfigureEvaluationThresholds', description: 'Cho phép mở màn cấu hình ngưỡng và quy tắc đánh giá.' },
+        { label: 'Tạo cấu hình ngưỡng', value: 'CreateEvaluationThresholds', description: 'Hiển thị nút Tạo cấu hình ngưỡng đánh giá.' },
+        { label: 'Sửa cấu hình ngưỡng', value: 'EditEvaluationThresholds', description: 'Hiển thị nút Sửa trong bảng cấu hình ngưỡng đánh giá.' },
+        { label: 'Xóa cấu hình ngưỡng', value: 'DeleteEvaluationThresholds', description: 'Hiển thị nút Xóa trong bảng cấu hình ngưỡng đánh giá.' },
         { label: 'Xem cảnh báo rủi ro', value: 'ViewRiskWarnings', description: 'Cho phép xem cảnh báo các KPI có rủi ro.' },
         { label: 'So sánh đơn vị', value: 'CompareUnits', description: 'Cho phép xem trang so sánh giữa các đơn vị.' },
         { label: 'Xếp hạng đơn vị', value: 'RankUnits', description: 'Cho phép xem bảng xếp hạng đơn vị.' },
-        { label: 'Thiết lập nhóm thi đua', value: 'ConfigureCompetitionGroups', description: 'Cho phép cấu hình nhóm thi đua, đơn vị và chỉ tiêu áp dụng.' },
+        { label: 'Thiết lập nhóm thi đua', value: 'ConfigureCompetitionGroups', description: 'Cho phép mở màn thiết lập nhóm thi đua.' },
+        { label: 'Tạo nhóm thi đua', value: 'CreateCompetitionGroups', description: 'Hiển thị nút Tạo nhóm mới.' },
+        { label: 'Sửa nhóm thi đua', value: 'EditCompetitionGroups', description: 'Hiển thị quyền chỉnh sửa nhóm thi đua đã có.' },
+        { label: 'Xóa nhóm thi đua', value: 'DeleteCompetitionGroups', description: 'Hiển thị nút Xóa nhóm thi đua.' },
         { label: 'Xem xếp hạng nhóm thi đua', value: 'ViewCompetitionGroups', description: 'Cho phép xem tổng hợp và xếp hạng trong nhóm thi đua.' }
       ]
     },
@@ -268,7 +301,8 @@
         { label: 'Xem báo cáo tổng hợp', value: 'ViewSummaryReports', description: 'Cho phép mở màn báo cáo tổng hợp KPI.' },
         { label: 'Xem tổng hợp số liệu cuối kỳ', value: 'ViewAccumulatedEvaluation', description: 'Cho phép mở màn tổng hợp số liệu cuối kỳ của chỉ tiêu không định tính.' },
         { label: 'Xem báo cáo theo đơn vị', value: 'ViewReportsByUnit', description: 'Cho phép xem báo cáo tổng hợp theo đơn vị.' },
-        { label: 'Xem báo cáo theo chỉ tiêu', value: 'ViewReportsByIndicator', description: 'Cho phép xem báo cáo theo từng chỉ tiêu.' }
+        { label: 'Xem báo cáo theo chỉ tiêu', value: 'ViewReportsByIndicator', description: 'Cho phép xem báo cáo theo từng chỉ tiêu.' },
+        { label: 'Xuất báo cáo', value: 'ExportReports', description: 'Cho phép xuất dữ liệu báo cáo ra file CSV/Excel khi chức năng có hỗ trợ.' }
       ]
     },
     {
@@ -276,7 +310,13 @@
       label: 'Quản trị hệ thống',
       description: 'Các chức năng người dùng, phân quyền và nhật ký hệ thống.',
       permissions: [
-        { label: 'Quản trị người dùng', value: 'ManageUsers', description: 'Cho phép xem danh sách người dùng và gán vai trò.' },
+        { label: 'Quản trị người dùng', value: 'ManageUsers', description: 'Cho phép xem danh sách người dùng.' },
+        { label: 'Tạo người dùng', value: 'CreateUsers', description: 'Hiển thị nút Thêm người dùng.' },
+        { label: 'Sửa người dùng', value: 'EditUsers', description: 'Hiển thị nút Sửa trong bảng người dùng.' },
+        { label: 'Gán vai trò người dùng', value: 'ManageUserRoles', description: 'Hiển thị nút Gán vai trò trong bảng người dùng.' },
+        { label: 'Tạo vai trò', value: 'CreateRoles', description: 'Hiển thị nút Thêm vai trò trong quản lý vai trò.' },
+        { label: 'Sửa vai trò', value: 'EditRoles', description: 'Cho phép mở chức năng sửa tên vai trò.' },
+        { label: 'Xóa vai trò', value: 'DeleteRoles', description: 'Hiển thị nút Xóa vai trò.' },
         { label: 'Cấp lại mật khẩu', value: 'ResetUserPasswords', description: 'Cho phép mở màn cấp lại mật khẩu và thực hiện lấy token/reset mật khẩu.' },
         { label: 'Quản trị phân quyền', value: 'ManagePermissions', description: 'Cho phép mở và cấu hình màn phân quyền.' },
         { label: 'Xem nhật ký hệ thống', value: 'ViewSystemLogs', description: 'Cho phép xem nhật ký hệ thống.' }

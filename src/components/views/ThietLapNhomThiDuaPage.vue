@@ -13,7 +13,7 @@
                                 đua.</p>
                         </div>
                     </div>
-                    <button class="btn btn-primary" type="button" @click="startCreateGroup">Tạo nhóm mới</button>
+                    <button v-if="canCreateCompetitionGroups" class="btn btn-primary" type="button" @click="startCreateGroup">Tạo nhóm mới</button>
                 </div>
 
                 <div class="layout-grid">
@@ -145,11 +145,11 @@
                         </div>
 
                         <div class="form-actions">
-                            <button class="btn btn-primary" type="button" @click="saveGroup" :disabled="saving">
+                            <button v-if="editForm.id ? canEditCompetitionGroups : canCreateCompetitionGroups" class="btn btn-primary" type="button" @click="saveGroup" :disabled="saving">
                                 {{ saving ? 'Đang lưu...' : 'Lưu nhóm' }}
                             </button>
                             <button class="btn btn-secondary" type="button" @click="startCreateGroup">Làm mới</button>
-                            <button v-if="editForm.id" class="btn btn-danger" type="button" @click="deleteGroup"
+                            <button v-if="editForm.id && canDeleteCompetitionGroups" class="btn btn-danger" type="button" @click="deleteGroup"
                                 :disabled="saving">
                                 Xóa nhóm
                             </button>
@@ -165,6 +165,7 @@
     import { computed, onMounted, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
     import { apiRequest } from '../../services/api'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const groups = ref([])
     const donViOptions = ref([])
@@ -174,6 +175,11 @@
     const groupError = ref('')
     const unitKeyword = ref('')
     const criteriaKeyword = ref('')
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canCreateCompetitionGroups = canAccessPermission(currentPermissions, 'CreateCompetitionGroups', currentProfile)
+    const canEditCompetitionGroups = canAccessPermission(currentPermissions, 'EditCompetitionGroups', currentProfile)
+    const canDeleteCompetitionGroups = canAccessPermission(currentPermissions, 'DeleteCompetitionGroups', currentProfile)
 
     const editForm = reactive(createEmptyForm())
 
@@ -232,6 +238,7 @@
     }
 
     function startCreateGroup() {
+        if (!canCreateCompetitionGroups) return
         Object.assign(editForm, createEmptyForm())
     }
 
@@ -249,6 +256,15 @@
     }
 
     async function saveGroup() {
+        if (editForm.id && !canEditCompetitionGroups) {
+            window.alert('Bạn chưa có quyền sửa nhóm thi đua.')
+            return
+        }
+        if (!editForm.id && !canCreateCompetitionGroups) {
+            window.alert('Bạn chưa có quyền tạo nhóm thi đua.')
+            return
+        }
+
         if (!editForm.tenNhom.trim()) {
             window.alert('Bạn cần nhập tên nhóm thi đua.')
             return
@@ -297,6 +313,10 @@
     }
 
     async function deleteGroup() {
+        if (!canDeleteCompetitionGroups) {
+            return
+        }
+
         if (!editForm.id) {
             return
         }
@@ -309,7 +329,7 @@
         saving.value = true
         try {
             await apiRequest(`/NhomThiDua/${editForm.id}`, 'DELETE')
-            startCreateGroup()
+            Object.assign(editForm, createEmptyForm())
             await fetchGroups()
             window.alert('Đã xóa nhóm thi đua.')
         } catch (error) {

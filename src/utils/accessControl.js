@@ -19,8 +19,18 @@ export const isCatpProfile = (profile) => {
   const roleMatch = roles.some(role => normalizeAccessText(role).includes('CONG AN THANH PHO'))
   const unitMatch = normalizeAccessText(profile.donVi).includes('CONG AN THANH PHO')
   const codeMatch = ['CATP', 'CONG AN THANH PHO'].includes(normalizeAccessText(profile.maDonVi))
+  const typeMatch = normalizeAccessText(profile.loaiDonVi) === 'THANH_PHO'
 
-  return roleMatch || unitMatch || codeMatch
+  return roleMatch || unitMatch || codeMatch || typeMatch
+}
+
+export const isOwnerScopeProfile = (profile) => {
+  if (!profile || isPrivilegedProfile(profile)) return false
+  return ['THANH_PHO', 'CAP_QUAN_LY'].includes(normalizeAccessText(profile.loaiDonVi))
+}
+
+export const canBypassUnitFilter = (profile) => {
+  return isPrivilegedProfile(profile) || isCatpProfile(profile) || isOwnerScopeProfile(profile)
 }
 
 export const hasRole = (profile, roleName) => {
@@ -39,6 +49,7 @@ export const resolveEffectivePermissions = (profile) => {
 
 export const canAccessPermission = (permissions, requiredPermission, profile = null) => {
   if (!requiredPermission) return true
+  if (requiredPermission === 'ViewDashboard') return true
   if (isPrivilegedProfile(profile)) return true
   if (!Array.isArray(permissions)) return false
   return permissions.includes(requiredPermission)

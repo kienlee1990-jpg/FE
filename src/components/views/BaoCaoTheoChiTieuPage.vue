@@ -66,7 +66,7 @@
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                         <template v-else>
                             <div class="table-toolbar report-table-toolbar">
-                                <button class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
+                                <button v-if="canExportReports" class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
                                 <ColumnVisibilityTools table-id="BaoCaoTheoChiTieuPage-table" />
                             </div>
 
@@ -133,6 +133,7 @@
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
     import {
         countTrackedStatuses,
         createTrackedStatusCounter,
@@ -142,6 +143,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         getDanhGiaRank,
         getDanhGiaStatusCode
     } from '../../utils/danhGiaStatusClean.js'
+
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canExportReports = canAccessPermission(currentPermissions, 'ExportReports', currentProfile)
 
     const {
         loading,

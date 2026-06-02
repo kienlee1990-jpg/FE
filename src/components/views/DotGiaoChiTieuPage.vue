@@ -12,7 +12,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mb-4">
-                    <button class="btn btn-primary btn-action" @click="openCreateModal">
+                    <button v-if="canCreateAssignmentWaves" class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Tạo đợt giao
                     </button>
@@ -130,14 +130,23 @@
                                                 {{ mapTrangThai(item.trangThai) }}
                                             </span>
                                         </td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary" @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canEditAssignmentWaves" class="action-btn action-edit" title="Sửa đợt giao chỉ tiêu"
+                                                    @click="openEditModal(item)">
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger" @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                <button v-if="canDeleteAssignmentWaves" class="action-btn action-delete" title="Xóa đợt giao chỉ tiêu"
+                                                    @click="handleDelete(item)">
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canEditAssignmentWaves && !canDeleteAssignmentWaves" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -244,6 +253,7 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 import { apiRequest } from '../../services/api.js'
+import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -251,6 +261,11 @@ const showModal = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
 const items = ref([])
+const currentProfile = getStoredUserProfile()
+const currentPermissions = getStoredUserPermissions()
+const canCreateAssignmentWaves = canAccessPermission(currentPermissions, 'CreateAssignmentWaves', currentProfile)
+const canEditAssignmentWaves = canAccessPermission(currentPermissions, 'EditAssignmentWaves', currentProfile)
+const canDeleteAssignmentWaves = canAccessPermission(currentPermissions, 'DeleteAssignmentWaves', currentProfile)
 
 const filters = reactive({
     keyword: '',
@@ -355,6 +370,7 @@ const fetchDotGiaoChiTieu = async () => {
 }
 
 const openCreateModal = () => {
+    if (!canCreateAssignmentWaves) return
     isEdit.value = false
     editingId.value = null
     resetForm()
@@ -370,6 +386,7 @@ const toDateTimeLocal = (value) => {
 }
 
 const openEditModal = (item) => {
+    if (!canEditAssignmentWaves) return
     isEdit.value = true
     editingId.value = getId(item)
     Object.assign(form, {
@@ -455,6 +472,14 @@ const validateForm = () => {
 
 const handleSubmit = async () => {
     if (!validateForm()) return
+    if (!isEdit.value && !canCreateAssignmentWaves) {
+        alert('Bạn chưa có quyền tạo đợt giao chỉ tiêu.')
+        return
+    }
+    if (isEdit.value && !canEditAssignmentWaves) {
+        alert('Bạn chưa có quyền sửa đợt giao chỉ tiêu.')
+        return
+    }
 
     try {
         saving.value = true
@@ -477,6 +502,7 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (item) => {
+    if (!canDeleteAssignmentWaves) return
     const ok = window.confirm(`Bạn có chắc muốn xóa đợt giao "${item.tenDotGiao}" không?`)
     if (!ok) return
 

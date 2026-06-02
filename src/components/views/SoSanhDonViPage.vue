@@ -55,6 +55,7 @@
                             <div class="form-group">
                                 <label>Sắp xếp</label>
                                 <select v-model="filters.sortBy">
+                                    <option value="rankingFormula">Theo công thức xếp hạng</option>
                                     <option value="avgCompletion">Theo % hoàn thành TB</option>
                                     <option value="total">Theo số chỉ tiêu</option>
                                     <option value="vuotMuc">Theo số chỉ tiêu hoàn thành vượt mức</option>
@@ -91,7 +92,7 @@
                                 <span class="stat-label">Đơn vị tốt nhất</span>
                                 <strong class="stat-value">{{ bestUnit?.tenDonVi || '-' }}</strong>
                                 <span class="stat-note">
-                                    {{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}
+                                    {{ bestUnit ? `${bestUnit.hoanThanhMucTieu} hoàn thành mục tiêu` : '-' }}
                                 </span>
                             </div>
 
@@ -166,6 +167,10 @@
                                                 <strong>{{ formatPercent(unit.avgCompletion) }}</strong>
                                             </div>
                                             <div class="metric-item">
+                                                <span>Hoàn thành mục tiêu</span>
+                                                <strong>{{ unit.hoanThanhMucTieu }}</strong>
+                                            </div>
+                                            <div class="metric-item">
                                                 <span>Hoàn thành vượt mức</span>
                                                 <strong>{{ unit.HOAN_THANH_VUOT_MUC }}</strong>
                                             </div>
@@ -195,6 +200,10 @@
                                         <strong>{{ formatPercent(compareGap.avgCompletionGap) }}</strong>
                                     </div>
                                     <div class="summary-row">
+                                        <span>Chênh lệch hoàn thành mục tiêu</span>
+                                        <strong>{{ compareGap.hoanThanhMucTieuGap }}</strong>
+                                    </div>
+                                    <div class="summary-row">
                                         <span>Chênh lệch chỉ tiêu cần chú ý</span>
                                         <strong>{{ compareGap.canChuYGap }}</strong>
                                     </div>
@@ -221,8 +230,10 @@
 
                         <section class="panel-card">
                             <div class="panel-header">
-                                <h3>Bảng tổng hợp đơn vị</h3>
-                                <span>{{ unitSummaries.length }} dòng</span>
+                                <div class="panel-title">
+                                    <h3>Bảng tổng hợp đơn vị</h3>
+                                    <span>{{ unitSummaries.length }} dòng</span>
+                                </div>
                             </div>
 
                             <div v-if="unitSummaries.length === 0" class="empty-panel">Không có dữ liệu đơn vị</div>
@@ -234,6 +245,7 @@
                                             <th>#</th>
                                             <th>Đơn vị</th>
                                             <th>Số chỉ tiêu</th>
+                                            <th>Hoàn thành mục tiêu</th>
                                             <th>% hoàn thành TB</th>
                                             <th>Hoàn thành vượt mức</th>
                                             <th>Hoàn thành</th>
@@ -250,6 +262,7 @@
                                             <td>{{ index + 1 }}</td>
                                             <td>{{ item.tenDonVi }}</td>
                                             <td>{{ item.total }}</td>
+                                            <td>{{ item.hoanThanhMucTieu }}</td>
                                             <td>{{ formatPercent(item.avgCompletion) }}</td>
                                             <td>{{ item.HOAN_THANH_VUOT_MUC }}</td>
                                             <td>{{ item.HOAN_THANH }}</td>
@@ -297,8 +310,8 @@
                                         <strong>{{ bestUnit?.tenDonVi || '-' }}</strong>
                                     </div>
                                     <div class="modal-summary-item">
-                                        <span>Hoàn thành TB tốt nhất</span>
-                                        <strong>{{ bestUnit ? formatPercent(bestUnit.avgCompletion) : '-' }}</strong>
+                                        <span>Hoàn thành mục tiêu</span>
+                                        <strong>{{ bestUnit ? bestUnit.hoanThanhMucTieu : '-' }}</strong>
                                     </div>
                                 </div>
 
@@ -308,42 +321,9 @@
                                     <apexchart v-else type="bar" :height="fullChartHeight"
                                         :options="fullStackedUnitChartOptions" :series="fullStackedUnitSeries" />
                                 </div>
-
-                                <div class="modal-table-wrapper">
-                                    <table class="modal-summary-table">
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Đơn vị</th>
-                                                <th>Số chỉ tiêu</th>
-                                                <th>% hoàn thành TB</th>
-                                                <th>Vượt mức</th>
-                                                <th>Hoàn thành</th>
-                                                <th>Chưa hoàn thành</th>
-                                                <th>Không hoàn thành</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="(item, index) in unitSummaries" :key="`modal-${item.tenDonVi}`"
-                                                :class="getModalRankClass(index)">
-                                                <td>
-                                                    <span class="modal-rank-badge">{{ index + 1 }}</span>
-                                                </td>
-                                                <td>
-                                                    <strong>{{ item.tenDonVi }}</strong>
-                                                </td>
-                                                <td>{{ item.total }}</td>
-                                                <td>{{ formatPercent(item.avgCompletion) }}</td>
-                                                <td>{{ item.HOAN_THANH_VUOT_MUC }}</td>
-                                                <td>{{ item.HOAN_THANH }}</td>
-                                                <td>{{ item.CHUA_HOAN_THANH }}</td>
-                                                <td>{{ item.KHONG_HOAN_THANH }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
                             </div>
                         </div>
+
                     </template>
                 </div>
             </div>
@@ -354,10 +334,10 @@
 <script setup>
     import { computed, reactive, ref } from 'vue'
     import BaseLayout from '../BaseLayout.vue'
-import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import VueApexCharts from 'vue3-apexcharts'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
-    import { countTrackedStatuses, getDanhGiaStatusCode, isKhongHoanThanhStatus } from '../../utils/danhGiaStatusClean.js'
+    import { countTrackedStatuses, isKhongHoanThanhStatus } from '../../utils/danhGiaStatusClean.js'
 
     const apexchart = VueApexCharts
     const {
@@ -373,6 +353,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     } = useBaoCaoTongHopPage({ applyDefaultUnitFilter: false })
     const CITY_POLICE_UNIT_NAME = 'Công an thành phố Đà Nẵng'
     const TOP_UNITS_LIMIT = 10
+    const DEFAULT_UNIT_SORT = 'rankingFormula'
     const rows = computed(() => reportRows.value)
     const donViOptions = computed(() =>
         reportDonViOptions.value.filter(item => !isCityPoliceUnitName(item))
@@ -383,7 +364,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         kyBaoCaoKPIId: '',
         unitA: '',
         unitB: '',
-        sortBy: 'avgCompletion',
+        sortBy: DEFAULT_UNIT_SORT,
         keyword: ''
     })
     const filteredRows = computed(() => {
@@ -425,6 +406,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 total: items.length,
                 avgCompletion: averageOf(items, 'tyLeHoanThanh'),
                 ...trackedCounts,
+                hoanThanhMucTieu: (trackedCounts.HOAN_THANH || 0) + (trackedCounts.HOAN_THANH_VUOT_MUC || 0),
                 canChuY: items.filter(item => isKhongHoanThanhStatus(item.xepLoai)).length,
                 positiveDauKy: dauKySummary.positive,
                 negativeDauKy: dauKySummary.negative,
@@ -439,7 +421,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const topUnitSummaries = computed(() => unitSummaries.value.slice(0, TOP_UNITS_LIMIT))
     const hasMoreUnits = computed(() => unitSummaries.value.length > TOP_UNITS_LIMIT)
 
-    const bestUnit = computed(() => unitSummaries.value[0] || null)
+    const bestUnit = computed(() => [...unitSummaries.value].sort(compareRankingFormula)[0] || null)
 
     const worstUnit = computed(() => {
         return [...unitSummaries.value]
@@ -461,16 +443,18 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         if (selectedUnits.value.length < 2) {
             return {
                 avgCompletionGap: 0,
+                hoanThanhMucTieuGap: 0,
                 canChuYGap: 0,
                 betterUnit: '-'
             }
         }
 
         const [a, b] = selectedUnits.value
-        const betterUnit = a.avgCompletion >= b.avgCompletion ? a.tenDonVi : b.tenDonVi
+        const betterUnit = compareRankingFormula(a, b) <= 0 ? a.tenDonVi : b.tenDonVi
 
         return {
             avgCompletionGap: roundNumber(Math.abs(a.avgCompletion - b.avgCompletion)),
+            hoanThanhMucTieuGap: Math.abs(a.hoanThanhMucTieu - b.hoanThanhMucTieu),
             canChuYGap: Math.abs(a.canChuY - b.canChuY),
             betterUnit
         }
@@ -483,7 +467,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const stackedUnitSeries = computed(() => buildStackedUnitSeries(topUnitSummaries.value))
     const fullStackedUnitSeries = computed(() => buildStackedUnitSeries(unitSummaries.value))
-    const stackedUnitChartOptions = computed(() => buildStackedUnitChartOptions(topUnitSummaries.value))
+    const stackedUnitChartOptions = computed(() => buildStackedUnitChartOptions(topUnitSummaries.value, { labelLength: 28 }))
     const fullStackedUnitChartOptions = computed(() =>
         buildStackedUnitChartOptions(unitSummaries.value, { horizontal: true, labelLength: 34 })
     )
@@ -507,6 +491,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             name: item.tenDonVi,
             data: [
                 roundNumber(item.avgCompletion),
+                item.hoanThanhMucTieu,
                 item.HOAN_THANH_VUOT_MUC,
                 item.HOAN_THANH,
                 item.CHUA_HOAN_THANH,
@@ -520,7 +505,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             toolbar: { show: false }
         },
         xaxis: {
-            categories: ['% HT TB', 'Hoàn thành vượt mức', 'Hoàn thành', 'Chưa hoàn thành', 'Không hoàn thành']
+            categories: ['% HT TB', 'Hoàn thành mục tiêu', 'Hoàn thành vượt mức', 'Hoàn thành', 'Chưa hoàn thành', 'Không hoàn thành']
         },
         yaxis: {
             show: true
@@ -555,29 +540,32 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         chartModalMode.value = ''
     }
 
-    function getModalRankClass(index) {
-        if (index === 0) return 'rank-first'
-        if (index === 1) return 'rank-second'
-        if (index === 2) return 'rank-third'
-        return ''
-    }
-
     function resetFilters() {
         filters.kyBaoCaoKPIId = ''
         filters.unitA = canViewAllUnits.value ? '' : currentUnitName.value
         filters.unitB = canViewAllUnits.value ? '' : currentUnitName.value
-        filters.sortBy = 'avgCompletion'
+        filters.sortBy = DEFAULT_UNIT_SORT
         filters.keyword = ''
         fetchCompareData()
     }
 
+    function compareRankingFormula(a, b) {
+        return (
+            (b.hoanThanhMucTieu - a.hoanThanhMucTieu) ||
+            (b.HOAN_THANH_VUOT_MUC - a.HOAN_THANH_VUOT_MUC) ||
+            (b.avgCompletion - a.avgCompletion) ||
+            a.tenDonVi.localeCompare(b.tenDonVi, 'vi')
+        )
+    }
+
     function compareUnits(a, b, sortBy) {
-        if (sortBy === 'total') return b.total - a.total
+        if (sortBy === 'total') return (b.total - a.total) || compareRankingFormula(a, b)
         if (sortBy === 'vuotMuc') {
-            return b.HOAN_THANH_VUOT_MUC - a.HOAN_THANH_VUOT_MUC || b.avgCompletion - a.avgCompletion
+            return (b.HOAN_THANH_VUOT_MUC - a.HOAN_THANH_VUOT_MUC) || compareRankingFormula(a, b)
         }
-        if (sortBy === 'canChuY') return b.canChuY - a.canChuY || a.avgCompletion - b.avgCompletion
-        return b.avgCompletion - a.avgCompletion
+        if (sortBy === 'canChuY') return (b.canChuY - a.canChuY) || compareRankingFormula(a, b)
+        if (sortBy === 'avgCompletion') return (b.avgCompletion - a.avgCompletion) || compareRankingFormula(a, b)
+        return compareRankingFormula(a, b)
     }
 
     function groupBy(items, getKey) {
@@ -615,8 +603,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     function buildCompletionSeries(items) {
         return [
             {
-                name: '% hoàn thành TB',
-                data: items.map(item => roundNumber(item.avgCompletion))
+                name: 'Hoàn thành mục tiêu',
+                data: items.map(item => item.hoanThanhMucTieu)
             }
         ]
     }
@@ -635,17 +623,27 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             },
             dataLabels: {
                 enabled: true,
-                formatter: value => `${value}%`
+                formatter: value => `${value}`
             },
             xaxis: {
-                categories: items.map(item => item.tenDonVi),
+                categories: items.map(item => formatUnitChartLabel(item.tenDonVi, 34)),
+                labels: {}
+            },
+            yaxis: {
                 labels: {
-                    formatter: value => `${value}%`
+                    maxWidth: 190
                 }
             },
             tooltip: {
+                x: {
+                    formatter: (value, context) => items[context?.dataPointIndex]?.tenDonVi || value
+                },
                 y: {
-                    formatter: value => `${value}%`
+                    formatter: (value, context) => {
+                        const item = items[context?.dataPointIndex]
+                        if (!item) return `${value}`
+                        return `${value} chỉ tiêu, ${item.HOAN_THANH_VUOT_MUC} vượt mức, ${formatPercent(item.avgCompletion)} TB`
+                    }
                 }
             },
             colors: ['#2563eb']
@@ -692,10 +690,35 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                 }
             },
             xaxis: {
-                categories: items.map(item => truncateText(item.tenDonVi, labelLength))
+                categories: items.map(item => formatUnitChartLabel(item.tenDonVi, labelLength)),
+                labels: horizontal
+                    ? {}
+                    : {
+                        rotate: -45,
+                        rotateAlways: true,
+                        hideOverlappingLabels: false,
+                        trim: false,
+                        minHeight: 96,
+                        style: {
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }
+                    }
+            },
+            grid: {
+                padding: {
+                    left: horizontal ? 16 : 28,
+                    right: 18,
+                    bottom: horizontal ? 8 : 12
+                }
             },
             legend: {
                 position: 'bottom'
+            },
+            tooltip: {
+                x: {
+                    formatter: (value, context) => items[context?.dataPointIndex]?.tenDonVi || value
+                }
             },
             dataLabels: {
                 enabled: false
@@ -726,6 +749,18 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         const text = String(value || '')
         if (text.length <= length) return text
         return `${text.slice(0, length)}...`
+    }
+
+    function shortenUnitName(value) {
+        return String(value || '')
+            .replace(/^Công an\s+/i, '')
+            .replace(/^CA\s+/i, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+    }
+
+    function formatUnitChartLabel(value, length = 30) {
+        return truncateText(shortenUnitName(value), length)
     }
 
     function formatPercent(value) {
@@ -1248,87 +1283,6 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         background: #fff;
     }
 
-    .modal-table-wrapper {
-        margin: 0 20px 20px;
-        max-height: 38vh;
-        overflow: auto;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        background: #fff;
-    }
-
-    .modal-summary-table {
-        width: 100%;
-        min-width: 900px;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-    .modal-summary-table th,
-    .modal-summary-table td {
-        padding: 12px 14px;
-        border-bottom: 1px solid #e2e8f0;
-        white-space: nowrap;
-        text-align: left;
-    }
-
-    .modal-summary-table th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: #eef4fb;
-        color: #334155;
-        font-weight: 700;
-        box-shadow: inset 0 -1px 0 #dbe4ef;
-    }
-
-    .modal-summary-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .modal-summary-table tbody tr:hover {
-        background: #f8fbff;
-    }
-
-    .modal-summary-table tbody tr.rank-first {
-        background: #fffaf0;
-    }
-
-    .modal-summary-table tbody tr.rank-second {
-        background: #f8fafc;
-    }
-
-    .modal-summary-table tbody tr.rank-third {
-        background: #fff7ed;
-    }
-
-    .modal-rank-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 999px;
-        background: #e8eef7;
-        color: #0f2f61;
-        font-weight: 800;
-    }
-
-    .rank-first .modal-rank-badge {
-        background: linear-gradient(180deg, #f8d27a, #c89b3c);
-        color: #3f2b06;
-    }
-
-    .rank-second .modal-rank-badge {
-        background: linear-gradient(180deg, #e5e7eb, #cbd5e1);
-        color: #334155;
-    }
-
-    .rank-third .modal-rank-badge {
-        background: linear-gradient(180deg, #fed7aa, #f59e0b);
-        color: #422006;
-    }
-
     @media (max-width: 1200px) {
         .filter-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1383,8 +1337,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             padding: 16px;
         }
 
-        .modal-chart-wrapper,
-        .modal-table-wrapper {
+        .modal-chart-wrapper {
             margin-left: 12px;
             margin-right: 12px;
         }

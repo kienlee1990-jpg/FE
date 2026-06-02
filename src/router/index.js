@@ -35,11 +35,10 @@ import Users from "../components/views/Users.vue"
 import XepHangDonViPage from "../components/views/XepHangDonViPage.vue"
 import {
     canAccessPermission,
+    canBypassUnitFilter,
     getStoredUserPermissions,
     getStoredUserProfile,
-    hasRole,
-    isCatpProfile,
-    isPrivilegedProfile
+    hasRole
 } from "../utils/accessControl"
 import { clearAuthSession, isTokenExpired } from "../utils/authSession"
 
@@ -57,7 +56,8 @@ const routes = [
         meta: { requiresAuth: true, permission: "ViewDashboard" }
     },
     {
-        path: "/bao-cao-chi-tieu-cong-an-thanh-pho",
+        path: "/bao-cao",
+        alias: "/bao-cao-chi-tieu-cong-an-thanh-pho",
         name: "BaoCaoChiTieuCongAnThanhPho",
         component: BaoCaoChiTieuCongAnThanhPhoPage,
         meta: { requiresAuth: true, permission: "ViewCatpIndicatorReport" }
@@ -269,13 +269,12 @@ const router = createRouter({
     routes
 })
 
-const shouldLandOnDonVi = (profile) => {
-    if (!profile) return false
-    return !isPrivilegedProfile(profile) && !isCatpProfile(profile)
-}
-
 const canAccessRoutePermission = (permissions, requiredPermission, profile) => {
-    if (requiredPermission === "ViewReturnedReports" && (isPrivilegedProfile(profile) || isCatpProfile(profile))) {
+    if (requiredPermission === "ViewDashboard") {
+        return true
+    }
+
+    if (requiredPermission === "ViewReturnedReports" && canBypassUnitFilter(profile)) {
         return true
     }
 
@@ -283,8 +282,8 @@ const canAccessRoutePermission = (permissions, requiredPermission, profile) => {
 }
 
 const getFirstAuthorizedPath = (permissions, profile) => {
-    if (shouldLandOnDonVi(profile)) {
-        return "/don-vi"
+    if (profile) {
+        return "/dashboard"
     }
 
     const firstRoute = routes.find(route => {
@@ -329,10 +328,6 @@ router.beforeEach((to) => {
             return true
         }
         return { path: fallbackPath }
-    }
-
-    if (token && to.path === "/don-vi" && shouldLandOnDonVi(profile)) {
-        return true
     }
 
     if (token && to.meta.requiresAuth && !canAccessRoutePermission(permissions, to.meta.permission, profile)) {

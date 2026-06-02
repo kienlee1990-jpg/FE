@@ -64,15 +64,11 @@
                             <strong>{{ filteredRows.length }}</strong>
                         </div>
                         <div class="summary-card">
-                            <span class="label">Hoàn thành trung bình</span>
-                            <strong>{{ formatPercent(averageCompletion) }}</strong>
-                        </div>
-                        <div class="summary-card">
                             <span class="label">Hoàn thành</span>
                             <strong>{{ (thongKe.HOAN_THANH || 0) + (thongKe.HOAN_THANH_VUOT_MUC || 0) }}</strong>
                         </div>
                         <div class="summary-card">
-                            <span class="label">Vượt chỉ tiêu</span>
+                            <span class="label">Hoàn thành vượt mức</span>
                             <strong>{{ thongKe.HOAN_THANH_VUOT_MUC }}</strong>
                         </div>
                         <div class="summary-card">
@@ -90,7 +86,7 @@
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                         <template v-else>
                             <div class="table-toolbar report-table-toolbar">
-                                <button class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
+                                <button v-if="canExportReports" class="btn btn-primary" @click="exportCsv">Xuất CSV</button>
                                 <ColumnVisibilityTools
                                     table-id="BaoCaoTongHopPage-table-v3"
                                     :default-visible-columns="[0, 1, 2, 3, 4, 10, 11, 14]"
@@ -224,6 +220,11 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
+
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canExportReports = canAccessPermission(currentPermissions, 'ExportReports', currentProfile)
 
     const {
         loading,
@@ -235,7 +236,6 @@
         donViOptions,
         filteredRows,
         thongKe,
-        averageCompletion,
         fetchBaoCaoTongHop,
         resetFilters,
         getId,

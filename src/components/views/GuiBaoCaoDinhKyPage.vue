@@ -13,7 +13,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mb-4">
-                    <button class="btn btn-primary btn-action" @click="openCreateReport">
+                    <button v-if="canCreatePeriodicReports" class="btn btn-primary btn-action" @click="openCreateReport">
                         <i class="bi bi-plus-circle me-2"></i>
                         Nhập báo cáo định kỳ
                     </button>
@@ -97,7 +97,7 @@
                             <div>
                                 <h5 class="mb-1">Danh sách báo cáo chờ gửi</h5>
                                 <small class="text-muted">Bấm gửi để chuyển báo cáo sang danh sách chờ xét duyệt</small>
-                                <div v-if="filteredItems.length" class="bulk-actions mt-3">
+                                <div v-if="canSendPeriodicReports && filteredItems.length" class="bulk-actions mt-3">
                                     <label class="select-all-control">
                                         <input v-model="allVisibleSelected" class="form-check-input" type="checkbox" />
                                         <span>Chọn tất cả đang hiển thị</span>
@@ -138,7 +138,7 @@
                                 class="table table-hover align-middle mb-0 custom-table managed-table">
                                 <thead>
                                     <tr>
-                                        <th class="text-center" style="width: 56px">
+                                        <th v-if="canSendPeriodicReports" class="text-center" style="width: 56px">
                                             <input v-model="allVisibleSelected" class="form-check-input" type="checkbox"
                                                 aria-label="Chọn tất cả báo cáo đang hiển thị" />
                                         </th>
@@ -155,7 +155,7 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="item in filteredItems" :key="getId(item)">
-                                        <td class="text-center">
+                                        <td v-if="canSendPeriodicReports" class="text-center">
                                             <input v-model="selectedReportIds" class="form-check-input" type="checkbox"
                                                 :value="getId(item)" :aria-label="`Chọn báo cáo ${getChiTieuDisplay(item)}`" />
                                         </td>
@@ -177,25 +177,34 @@
                                         <td>
                                             <span class="badge text-bg-warning">Chờ gửi</span>
                                         </td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-success" :disabled="processingId === getId(item)"
-                                                    @click="sendItem(item)">
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions has-three-actions">
+                                                <button v-if="canSendPeriodicReports" class="action-btn action-send" :disabled="processingId === getId(item)"
+                                                    title="Gửi báo cáo" @click="sendItem(item)">
                                                     <span v-if="processingId === getId(item)"
                                                         class="spinner-border spinner-border-sm me-1"></span>
-                                                    <i v-else class="bi bi-send me-1"></i>
-                                                    Gửi
+                                                    <span v-else class="action-icon">
+                                                        <i class="bi bi-send"></i>
+                                                    </span>
+                                                    <span>Gửi</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-primary"
-                                                    :disabled="processingId === getId(item)" @click="editItem(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>
-                                                    Sửa
+                                                <button v-if="canEditPeriodicReports" class="action-btn action-edit"
+                                                    :disabled="processingId === getId(item)" title="Sửa báo cáo"
+                                                    @click="editItem(item)">
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
-                                                    :disabled="processingId === getId(item)" @click="deleteItem(item)">
-                                                    <i class="bi bi-trash me-1"></i>
-                                                    Xóa
+                                                <button v-if="canDeletePeriodicReports" class="action-btn action-delete"
+                                                    :disabled="processingId === getId(item)" title="Xóa báo cáo"
+                                                    @click="deleteItem(item)">
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canSendPeriodicReports && !canEditPeriodicReports && !canDeletePeriodicReports" class="text-muted small">Chá»‰ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -215,7 +224,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
-    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+    import { canAccessPermission, canBypassUnitFilter, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const API_PATH = '/TheoDoiThucHienKPI'
     const WAITING_SEND_STATUS = 'CHO_GUI'
@@ -227,6 +236,11 @@
     const bulkSending = ref(false)
     const selectedReportIds = ref([])
     const currentProfile = ref(getStoredUserProfile())
+    const currentPermissions = getStoredUserPermissions()
+    const canCreatePeriodicReports = canAccessPermission(currentPermissions, 'CreatePeriodicReports', currentProfile.value)
+    const canSendPeriodicReports = canAccessPermission(currentPermissions, 'SendPeriodicReports', currentProfile.value)
+    const canEditPeriodicReports = canAccessPermission(currentPermissions, 'EditPeriodicReports', currentProfile.value)
+    const canDeletePeriodicReports = canAccessPermission(currentPermissions, 'DeletePeriodicReports', currentProfile.value)
 
     const filters = reactive({
         kyBaoCaoKPIId: '',
@@ -237,9 +251,7 @@
 
     const currentDonViId = computed(() => Number(currentProfile.value?.donViId || 0))
     const currentUnitName = computed(() => currentProfile.value?.donVi || 'Đơn vị hiện tại')
-    const canManageAllUnits = computed(() =>
-        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-    )
+    const canManageAllUnits = computed(() => canBypassUnitFilter(currentProfile.value))
 
     const normalizeList = (response) => {
         const data = response?.data ?? response
@@ -268,6 +280,8 @@
         const name = item?.TenChiTieu || item?.tenChiTieu || '-'
         return code ? `${code} - ${name}` : name
     }
+
+    const getChiTieuOptionLabel = (item) => item?.TenChiTieu || item?.tenChiTieu || '-'
 
     const waitingItems = computed(() => {
         return items.value.filter((item) => {
@@ -310,7 +324,7 @@
         waitingItems.value.forEach((item) => {
             const id = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
             if (id > 0 && !map.has(id)) {
-                map.set(id, { id, label: getChiTieuDisplay(item) })
+                map.set(id, { id, label: getChiTieuOptionLabel(item) })
             }
         })
         return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, 'vi'))
@@ -387,6 +401,7 @@
     }
 
     const sendItem = async (item) => {
+        if (!canSendPeriodicReports) return
         const id = getId(item)
         if (!id) return
 
@@ -407,6 +422,7 @@
     }
 
     const sendReports = async (targetItems, confirmMessage) => {
+        if (!canSendPeriodicReports) return
         const uniqueItems = targetItems.filter((item, index, source) =>
             getId(item) > 0 && source.findIndex(candidate => getId(candidate) === getId(item)) === index
         )
@@ -447,6 +463,7 @@
     }
 
     const editItem = (item) => {
+        if (!canEditPeriodicReports) return
         const id = getId(item)
         if (!id) return
 
@@ -454,6 +471,7 @@
     }
 
     const deleteItem = async (item) => {
+        if (!canDeletePeriodicReports) return
         const id = getId(item)
         if (!id) return
 
@@ -474,6 +492,7 @@
     }
 
     const openCreateReport = () => {
+        if (!canCreatePeriodicReports) return
         router.push({ path: '/nhap-ket-qua', query: { openCreate: '1', returnTo: 'gui-bao-cao-dinh-ky' } })
     }
 

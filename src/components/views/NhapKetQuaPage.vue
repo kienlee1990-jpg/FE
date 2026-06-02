@@ -152,16 +152,23 @@
                                                 <td>{{ formatNumber(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy, item.DonViTinh || item.donViTinh) }}</td>
                                                 <td>{{ formatNumber(item.GiaTriCuoiKy ?? item.giaTriCuoiKy, item.DonViTinh || item.donViTinh) }}</td>
                                                 <td>{{ formatNumber(item.GiaTriLuyKe ?? item.giaTriLuyKe, item.DonViTinh || item.donViTinh) }}</td>
-                                                <td class="text-center">
-                                                    <div v-if="canManageAllUnits" class="d-flex justify-content-center gap-2">
-                                                        <button class="btn btn-sm btn-outline-primary"
+                                                <td class="table-actions-cell">
+                                                    <div v-if="canManageAllUnits" class="row-actions">
+                                                        <button v-if="canEditPeriodicReports" class="action-btn action-edit" title="Sửa báo cáo"
                                                             @click="openEditModal(item)">
-                                                            <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                            <span class="action-icon">
+                                                                <i class="bi bi-pencil-square"></i>
+                                                            </span>
+                                                            <span>Sửa</span>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-danger"
+                                                        <button v-if="canDeletePeriodicReports" class="action-btn action-delete" title="Xóa báo cáo"
                                                             @click="handleDelete(item)">
-                                                            <i class="bi bi-trash me-1"></i>Xóa
+                                                            <span class="action-icon">
+                                                                <i class="bi bi-trash"></i>
+                                                            </span>
+                                                            <span>Xóa</span>
                                                         </button>
+                                                        <span v-if="!canEditPeriodicReports && !canDeletePeriodicReports" class="text-muted small">Chỉ xem</span>
                                                     </div>
                                                     <span v-else class="text-muted">Không khả dụng</span>
                                                 </td>
@@ -187,16 +194,23 @@
                                             <td>{{ formatNumber(row.item.GiaTriThucHienTrongKy ?? row.item.giaTriThucHienTrongKy, row.item.DonViTinh || row.item.donViTinh) }}</td>
                                             <td>{{ formatNumber(row.item.GiaTriCuoiKy ?? row.item.giaTriCuoiKy, row.item.DonViTinh || row.item.donViTinh) }}</td>
                                             <td>{{ formatNumber(row.item.GiaTriLuyKe ?? row.item.giaTriLuyKe, row.item.DonViTinh || row.item.donViTinh) }}</td>
-                                            <td class="text-center">
-                                                <div v-if="canManageAllUnits" class="d-flex justify-content-center gap-2">
-                                                    <button class="btn btn-sm btn-outline-primary"
+                                            <td class="table-actions-cell">
+                                                <div v-if="canManageAllUnits" class="row-actions">
+                                                    <button v-if="canEditPeriodicReports" class="action-btn action-edit" title="Sửa báo cáo"
                                                         @click="openEditModal(row.item)">
-                                                        <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                        <span class="action-icon">
+                                                            <i class="bi bi-pencil-square"></i>
+                                                        </span>
+                                                        <span>Sửa</span>
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-danger"
+                                                    <button v-if="canDeletePeriodicReports" class="action-btn action-delete" title="Xóa báo cáo"
                                                         @click="handleDelete(row.item)">
-                                                        <i class="bi bi-trash me-1"></i>Xóa
+                                                        <span class="action-icon">
+                                                            <i class="bi bi-trash"></i>
+                                                        </span>
+                                                        <span>Xóa</span>
                                                     </button>
+                                                    <span v-if="!canEditPeriodicReports && !canDeletePeriodicReports" class="text-muted small">Chỉ xem</span>
                                                 </div>
                                                 <span v-else class="text-muted">Không khả dụng</span>
                                             </td>
@@ -453,7 +467,7 @@
 
                             <div class="modal-footer border-0 pt-0">
                                 <button class="btn btn-light" @click="closeModal">Hủy</button>
-                                <button class="btn btn-primary" :disabled="saving" @click="handleSubmit">
+                                <button v-if="isEdit ? canEditPeriodicReports : canCreatePeriodicReports" class="btn btn-primary" :disabled="saving" @click="handleSubmit">
                                     <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
                                     {{ saving ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Lưu báo cáo định kỳ' }}
                                 </button>
@@ -474,7 +488,7 @@
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
-    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+    import { canAccessPermission, canBypassUnitFilter, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const router = useRouter()
     const route = useRoute()
@@ -496,6 +510,10 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const editingId = ref(null)
     const isHydratingForm = ref(false)
     const currentProfile = ref(getStoredUserProfile())
+    const currentPermissions = getStoredUserPermissions()
+    const canCreatePeriodicReports = canAccessPermission(currentPermissions, 'CreatePeriodicReports', currentProfile.value)
+    const canEditPeriodicReports = canAccessPermission(currentPermissions, 'EditPeriodicReports', currentProfile.value)
+    const canDeletePeriodicReports = canAccessPermission(currentPermissions, 'DeletePeriodicReports', currentProfile.value)
 
     const items = ref([])
     const chiTietGiaoChiTieuOptions = ref([])
@@ -513,9 +531,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const currentDonViId = computed(() => Number(currentProfile.value?.donViId || 0))
     const currentUnitName = computed(() => currentProfile.value?.donVi || 'Đơn vị hiện tại')
-    const canManageAllUnits = computed(() =>
-        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-    )
+    const canManageAllUnits = computed(() => canBypassUnitFilter(currentProfile.value))
     const showBackToProgress = computed(() => route.query.returnTo === 'tien-do-thuc-hien')
 
     const createDefaultForm = () => ({
@@ -1009,32 +1025,27 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         )
     }
 
+    const getChiTietNameOnly = (item) => {
+        const danhMuc = findDanhMucById(getDanhMucChiTieuId(item))
+
+        return (
+            danhMuc?.TenChiTieu ||
+            danhMuc?.tenChiTieu ||
+            item?.TenDanhMucChiTieu ||
+            item?.tenDanhMucChiTieu ||
+            item?.TenChiTieuHienThi ||
+            item?.tenChiTieuHienThi ||
+            '-'
+        )
+    }
+
     const getChiTietOptionLabel = (item) => {
-        const mainDisplay = item?.LaTieuChiCon
-            ? `Tiêu chí giao: ${getCriterionDisplay(item)}`
-            : getChiTietDisplayWithoutDonVi(item)
-        const metaParts = []
-
-        if (item?.LaTieuChiCon) {
-            metaParts.push(`Chỉ tiêu cha: ${getParentChiTietDisplay(item)}`)
-        }
-
-        const dotGiaoDisplay = getDotGiaoDisplay(item)
-        if (dotGiaoDisplay !== '-') {
-            metaParts.push(`Đợt giao: ${dotGiaoDisplay}`)
-        }
-
-        if (item?.TenDonViNhanHienThi) {
-            metaParts.push(`Đơn vị: ${item.TenDonViNhanHienThi}`)
-        }
-
-        return metaParts.length ? `${mainDisplay} • ${metaParts.join(' • ')}` : mainDisplay
+        return getChiTietNameOnly(item)
     }
 
     const getParentFilterOptionLabel = (item) => {
-        const ma = item?.MaChiTieuHienThi || ''
         const ten = item?.TenChiTieuHienThi || ''
-        return [ma, ten].filter(Boolean).join(' - ') || '-'
+        return ten || '-'
     }
 
     const donViNhanFilterOptions = computed(() => {
@@ -1530,6 +1541,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     const openCreateModal = async () => {
+        if (!canCreatePeriodicReports) return
         isEdit.value = false
         editingId.value = null
         await hydrateFormSafely(createDefaultForm())
@@ -1537,6 +1549,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     const openEditModal = async (item) => {
+        if (!canEditPeriodicReports) return
         const chiTietId = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
         const chiTiet = enrichedChiTietGiaoChiTieuOptions.value.find((x) => getId(x) === chiTietId)
         const donViNhanId = getDonViNhanId(chiTiet)
@@ -1666,6 +1679,14 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
     const handleSubmit = async () => {
         if (!validateForm()) return
+        if (!isEdit.value && !canCreatePeriodicReports) {
+            alert('Bạn chưa có quyền tạo báo cáo định kỳ.')
+            return
+        }
+        if (isEdit.value && !canEditPeriodicReports) {
+            alert('Bạn chưa có quyền sửa báo cáo định kỳ.')
+            return
+        }
 
         try {
             saving.value = true
@@ -1697,6 +1718,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     const handleDelete = async (item) => {
+        if (!canDeletePeriodicReports) return
         const itemDonViNhanId = Number(item.DonViNhanId ?? item.donViNhanId ?? 0)
         if (!canManageAllUnits.value && itemDonViNhanId !== currentDonViId.value) {
             alert('Bạn chỉ được thao tác với đơn vị của tài khoản hiện tại.')

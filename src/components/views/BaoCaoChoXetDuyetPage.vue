@@ -127,23 +127,33 @@
                                         <td>
                                             <span class="badge status-badge">Chờ xét duyệt</span>
                                         </td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canViewPendingReportDetails" class="action-btn action-view action-wide" title="Xem chi tiết báo cáo"
                                                     :disabled="processingId === getId(item)"
                                                     @click="openDetailModal(item)">
-                                                    <i class="bi bi-eye me-1"></i>Xem chi tiết
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-eye"></i>
+                                                    </span>
+                                                    <span>Xem chi tiết</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-success"
+                                                <button v-if="canApprovePendingReports" class="action-btn action-approve" title="Chấp nhận báo cáo"
                                                     :disabled="processingId === getId(item)"
                                                     @click="approveItem(item)">
-                                                    <i class="bi bi-check2-circle me-1"></i>Chấp nhận
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-check2-circle"></i>
+                                                    </span>
+                                                    <span>Duyệt</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canReturnPendingReports" class="action-btn action-delete" title="Gửi trả báo cáo"
                                                     :disabled="processingId === getId(item)"
-                                                    @click="returnItem(item)">
-                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Gửi trả
+                                                    @click="openReturnModal(item)">
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </span>
+                                                    <span>Gửi trả</span>
                                                 </button>
+                                                <span v-if="!canViewPendingReportDetails && !canApprovePendingReports && !canReturnPendingReports" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -225,16 +235,53 @@
 
                             <div class="modal-footer border-0 pt-0">
                                 <button class="btn btn-light" @click="closeDetailModal">Đóng</button>
-                                <button class="btn btn-outline-danger"
+                                <button v-if="canReturnPendingReports" class="btn btn-outline-danger"
                                     :disabled="processingId === getId(selectedItem)"
-                                    @click="returnItem(selectedItem, { closeModal: true })">
+                                    @click="openReturnModal(selectedItem, { closeModal: true })">
                                     <i class="bi bi-arrow-counterclockwise me-1"></i>Gửi trả
                                 </button>
-                                <button class="btn btn-primary" :disabled="processingId === getId(selectedItem)"
+                                <button v-if="canApprovePendingReports" class="btn btn-primary" :disabled="processingId === getId(selectedItem)"
                                     @click="saveAndApproveItem(selectedItem)">
                                     <span v-if="processingId === getId(selectedItem)"
                                         class="spinner-border spinner-border-sm me-2"></span>
                                     Lưu và chấp nhận
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="returnTarget" class="modal fade show d-block custom-modal" tabindex="-1"
+                    @click.self="closeReturnModal">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg rounded-4">
+                            <div class="modal-header border-0 pb-0">
+                                <div>
+                                    <h4 class="modal-title mb-1">Gửi trả báo cáo</h4>
+                                    <p class="text-muted mb-0">Nhập lý do để đơn vị gửi báo cáo biết nội dung cần điều chỉnh.</p>
+                                </div>
+                                <button type="button" class="btn-close" @click="closeReturnModal"></button>
+                            </div>
+
+                            <div class="modal-body">
+                                <div class="return-report-summary mb-3">
+                                    <span>Kỳ báo cáo</span>
+                                    <strong>{{ getKyDisplay(returnTarget) }}</strong>
+                                    <span>Chỉ tiêu</span>
+                                    <strong>{{ getChiTieuDisplay(returnTarget) }}</strong>
+                                </div>
+                                <label class="form-label">Lý do gửi trả</label>
+                                <textarea v-model.trim="returnReason" class="form-control" rows="5"
+                                    placeholder="Nhập lý do cần điều chỉnh số liệu hoặc nội dung báo cáo..."></textarea>
+                            </div>
+
+                            <div class="modal-footer border-0 pt-0">
+                                <button class="btn btn-light" @click="closeReturnModal">Hủy</button>
+                                <button v-if="canReturnPendingReports" class="btn btn-danger" :disabled="processingId === getId(returnTarget)"
+                                    @click="submitReturn">
+                                    <span v-if="processingId === getId(returnTarget)"
+                                        class="spinner-border spinner-border-sm me-2"></span>
+                                    Gửi trả
                                 </button>
                             </div>
                         </div>
@@ -250,6 +297,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import httpClient from '../../services/httpClient'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
 
     const API_PATH = '/TheoDoiThucHienKPI'
     const PENDING_STATUS = 'CHO_XET_DUYET'
@@ -258,6 +306,14 @@
     const loading = ref(false)
     const processingId = ref(null)
     const selectedItem = ref(null)
+    const returnTarget = ref(null)
+    const returnReason = ref('')
+    const returnOptions = ref({})
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canViewPendingReportDetails = canAccessPermission(currentPermissions, 'ViewPendingReportDetails', currentProfile)
+    const canApprovePendingReports = canAccessPermission(currentPermissions, 'ApprovePendingReports', currentProfile)
+    const canReturnPendingReports = canAccessPermission(currentPermissions, 'ReturnPendingReports', currentProfile)
     const detailForm = reactive({
         giaTriPhatSinhTrongKy: 0,
         giaTriThucHienTrongKy: 0,
@@ -306,6 +362,8 @@
         return code ? `${code} - ${name}` : name
     }
 
+    const getChiTieuOptionLabel = (item) => item?.TenChiTieu || item?.tenChiTieu || '-'
+
     const selectedIsDinhTinh = computed(() =>
         normalizeCode(selectedItem.value?.TieuChiDanhGia ?? selectedItem.value?.tieuChiDanhGia) === 'DINH_TINH'
     )
@@ -336,7 +394,7 @@
         pendingItems.value.forEach((item) => {
             const id = Number(item.ChiTietGiaoChiTieuId ?? item.chiTietGiaoChiTieuId ?? 0)
             if (id > 0 && !map.has(id)) {
-                map.set(id, { id, label: getChiTieuDisplay(item) })
+                map.set(id, { id, label: getChiTieuOptionLabel(item) })
             }
         })
         return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, 'vi'))
@@ -380,6 +438,7 @@
     }
 
     const openDetailModal = (item) => {
+        if (!canViewPendingReportDetails) return
         selectedItem.value = item
         detailForm.giaTriPhatSinhTrongKy = Number(item.GiaTriPhatSinhTrongKy ?? item.giaTriPhatSinhTrongKy ?? 0)
         detailForm.giaTriThucHienTrongKy = Number(item.GiaTriThucHienTrongKy ?? item.giaTriThucHienTrongKy ?? 0)
@@ -426,6 +485,7 @@
     })
 
     const approveItem = async (item) => {
+        if (!canApprovePendingReports) return
         const id = getId(item)
         if (!id) return
 
@@ -445,6 +505,7 @@
     }
 
     const saveAndApproveItem = async (item) => {
+        if (!canApprovePendingReports) return
         const id = getId(item)
         if (!id) return
         if (!validateDetailForm()) return
@@ -466,17 +527,37 @@
         }
     }
 
-    const returnItem = async (item, options = {}) => {
+    const openReturnModal = (item, options = {}) => {
+        if (!canReturnPendingReports) return
+        returnTarget.value = item
+        returnReason.value = ''
+        returnOptions.value = options
+    }
+
+    const closeReturnModal = () => {
+        returnTarget.value = null
+        returnReason.value = ''
+        returnOptions.value = {}
+    }
+
+    const submitReturn = async () => {
+        if (!canReturnPendingReports) return
+        const item = returnTarget.value
         const id = getId(item)
         if (!id) return
 
-        const ok = window.confirm('Gửi trả báo cáo này để đơn vị nhập lại?')
-        if (!ok) return
+        const lyDo = returnReason.value.trim()
+        if (!lyDo) {
+            alert('Vui lòng nhập lý do gửi trả báo cáo.')
+            return
+        }
 
         try {
             processingId.value = id
-            await httpClient.post(`${API_PATH}/${id}/return-for-reentry`)
-            if (options.closeModal) {
+            await httpClient.post(`${API_PATH}/${id}/return-for-reentry`, { lyDo })
+            const shouldCloseDetail = returnOptions.value?.closeModal
+            closeReturnModal()
+            if (shouldCloseDetail) {
                 closeDetailModal()
             }
             await fetchItems()
@@ -645,6 +726,27 @@
     }
 
     .detail-item strong {
+        color: #1f2937;
+        line-height: 1.4;
+    }
+
+    .return-report-summary {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 8px 12px;
+        padding: 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .return-report-summary span {
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .return-report-summary strong {
         color: #1f2937;
         line-height: 1.4;
     }

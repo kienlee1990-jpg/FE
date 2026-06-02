@@ -7,7 +7,7 @@
             <i class="bi bi-speedometer2"></i>
           </div>
           <div class="gov-text">
-            <div class="gov-title">BẢNG ĐIỀU KHIỂN</div>
+            <div class="gov-title">TỔNG QUAN</div>
           </div>
         </div>
 
@@ -31,7 +31,7 @@
                 </select>
               </div>
 
-              <div class="form-group">
+              <div v-if="showDonViFilter" class="form-group">
                 <label>Đơn vị nhận</label>
                 <select v-model="filters.donVi">
                   <option value="">-- Tất cả đơn vị nhận --</option>
@@ -193,6 +193,12 @@
   import BaseLayout from './BaseLayout.vue'
   import VueApexCharts from 'vue3-apexcharts'
   import {
+    getStoredUserProfile,
+    isCatpProfile,
+    isPrivilegedProfile,
+    normalizeAccessText
+  } from '../utils/accessControl'
+  import {
     countTrackedStatuses,
     DANH_GIA_TRACKED_STATUS_OPTIONS,
     getDanhGiaStatusCode,
@@ -202,6 +208,16 @@
 
   const apexchart = VueApexCharts
   const trackedStatusOptions = DANH_GIA_TRACKED_STATUS_OPTIONS
+  const currentProfile = getStoredUserProfile()
+  const isManagerRoleProfile = (profile) => {
+    const roles = Array.isArray(profile?.roles) ? profile.roles : []
+    return roles.some((role) => {
+      const normalizedRole = normalizeAccessText(role).replace(/\s+/g, '_')
+      return normalizedRole.includes('QUAN_LY') || normalizedRole.includes('MANAGER')
+    })
+  }
+  const managerRoleAccount = isManagerRoleProfile(currentProfile)
+
   const {
     donViOptions,
     errorMessage,
@@ -210,9 +226,40 @@
     filteredRows: dashboardRows,
     getKyLabel,
     kyBaoCaoOptions,
-    loading,
-    resetFilters
-  } = useBaoCaoTongHopPage({ applyDefaultUnitFilter: false })
+    loading
+  } = useBaoCaoTongHopPage({
+    applyDefaultUnitFilter: false,
+    forceViewAllUnits: managerRoleAccount
+  })
+
+  const currentUnitName = computed(() => String(currentProfile?.donVi || '').trim())
+  const currentUnitType = computed(() => normalizeAccessText(currentProfile?.loaiDonVi).replace(/\s+/g, '_'))
+  const isAdminAccount = computed(() => isPrivilegedProfile(currentProfile))
+  const hasManagerRole = computed(() => managerRoleAccount)
+  const showDonViFilter = computed(() =>
+    currentUnitType.value !== 'CAP_QUAN_LY' &&
+    (
+      isAdminAccount.value ||
+      hasManagerRole.value ||
+      isCatpProfile(currentProfile) ||
+      !currentUnitName.value
+    )
+  )
+
+  const resolveDefaultDonViFilter = () => {
+    if (isAdminAccount.value || hasManagerRole.value || !currentUnitName.value) return ''
+    return currentUnitName.value
+  }
+
+  filters.donVi = resolveDefaultDonViFilter()
+
+  const resetFilters = () => {
+    filters.kyBaoCaoKPIId = ''
+    filters.donVi = resolveDefaultDonViFilter()
+    filters.xepLoai = ''
+    filters.keyword = ''
+    fetchDashboardData()
+  }
 
   const filteredRows = computed(() => dashboardRows.value)
 

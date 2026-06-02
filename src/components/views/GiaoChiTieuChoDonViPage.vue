@@ -12,7 +12,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mb-4">
-                    <button class="btn btn-primary btn-action" @click="openCreateModal">
+                    <button v-if="canCreateAssignedTargets" class="btn btn-primary btn-action" @click="openCreateModal">
                         <i class="bi bi-plus-circle me-2"></i>
                         Tạo giao chỉ tiêu
                     </button>
@@ -40,7 +40,7 @@
                                 <select v-model.number="filters.danhMucChiTieuId" class="form-select">
                                     <option :value="null">Tất cả</option>
                                     <option v-for="item in assignableDanhMucOptions" :key="item.id" :value="item.id">
-                                        {{ item.maChiTieu }} - {{ item.tenChiTieu }}
+                                        {{ item.tenChiTieu || '-' }}
                                     </option>
                                 </select>
                             </div>
@@ -52,7 +52,7 @@
                                     <optgroup v-for="group in groupedDonViOptions" :key="group.key"
                                         :label="group.label">
                                         <option v-for="item in group.items" :key="item.id" :value="item.id">
-                                            {{ item.maDonVi ? `${item.maDonVi} - ` : '' }}{{ item.tenDonVi }}
+                                            {{ item.tenDonVi || '-' }}
                                         </option>
                                     </optgroup>
                                 </select>
@@ -181,16 +181,23 @@
                                             <div v-else>{{ formatAssignmentBaseline(item) }}</div>
                                         </td>
                                         <td>{{ item.ghiChu || '-' }}</td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canEditAssignedTargets" class="action-btn action-edit" title="Sửa giao chỉ tiêu"
                                                     @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canDeleteAssignedTargets" class="action-btn action-delete" title="Xóa giao chỉ tiêu"
                                                     @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canEditAssignedTargets && !canDeleteAssignedTargets" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -247,16 +254,23 @@
                                             <div v-else>{{ formatAssignmentBaseline(item) }}</div>
                                         </td>
                                         <td>{{ item.ghiChu || '-' }}</td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button class="btn btn-sm btn-outline-primary"
+                                        <td class="table-actions-cell">
+                                            <div class="row-actions">
+                                                <button v-if="canEditAssignedTargets" class="action-btn action-edit" title="Sửa giao chỉ tiêu"
                                                     @click="openEditModal(item)">
-                                                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </span>
+                                                    <span>Sửa</span>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger"
+                                                <button v-if="canDeleteAssignedTargets" class="action-btn action-delete" title="Xóa giao chỉ tiêu"
                                                     @click="handleDelete(item)">
-                                                    <i class="bi bi-trash me-1"></i>Xóa
+                                                    <span class="action-icon">
+                                                        <i class="bi bi-trash"></i>
+                                                    </span>
+                                                    <span>Xóa</span>
                                                 </button>
+                                                <span v-if="!canEditAssignedTargets && !canDeleteAssignedTargets" class="text-muted small">Chỉ xem</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -285,8 +299,7 @@
                                         <select v-model.number="form.dotGiaoChiTieuId" class="form-select">
                                             <option :value="null">Chọn đợt giao</option>
                                             <option v-for="item in dotOptions" :key="item.id" :value="item.id">
-                                                {{ item.tenDotGiao }}{{ formatDotRange(item) ? ` •
-                                                ${formatDotRange(item)}` : '' }}
+                                                {{ item.tenDotGiao || '-' }}
                                             </option>
                                         </select>
                                     </div>
@@ -298,9 +311,7 @@
                                             <option :value="null">Chọn chỉ tiêu</option>
                                             <option v-for="item in assignableDanhMucOptions" :key="item.id"
                                                 :value="item.id">
-                                                {{ item.maChiTieu }} - {{ item.tenChiTieu }}{{
-                                                item.tieuChiDanhGias.length ? ` (${item.tieuChiDanhGias.length} tiêu chí
-                                                con)` : '' }}
+                                                {{ item.tenChiTieu || '-' }}
                                             </option>
                                         </select>
                                     </div>
@@ -323,7 +334,7 @@
                                             <optgroup v-for="group in groupedDonViOptions" :key="group.key"
                                                 :label="group.label">
                                                 <option v-for="item in group.items" :key="item.id" :value="item.id">
-                                                    {{ item.maDonVi ? `${item.maDonVi} - ` : '' }}{{ item.tenDonVi }}
+                                                    {{ item.tenDonVi || '-' }}
                                                 </option>
                                             </optgroup>
                                         </select>
@@ -366,7 +377,7 @@
                                                         <option :value="null">Chọn nhóm thi đua</option>
                                                         <option v-for="group in scopedNhomThiDuaOptions" :key="group.id"
                                                             :value="group.id">
-                                                            {{ group.tenNhom }} ({{ group.donVis.length }} đơn vị)
+                                                            {{ group.tenNhom || '-' }}
                                                         </option>
                                                     </select>
                                                     <small class="text-muted d-block mt-1">
@@ -829,6 +840,7 @@
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
     import {
         CHIEU_SO_SANH_OPTIONS,
         KIEU_SO_SANH_OPTIONS,
@@ -857,6 +869,11 @@
     })
     const route = useRoute()
     const router = useRouter()
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canCreateAssignedTargets = canAccessPermission(currentPermissions, 'CreateAssignedTargets', currentProfile)
+    const canEditAssignedTargets = canAccessPermission(currentPermissions, 'EditAssignedTargets', currentProfile)
+    const canDeleteAssignedTargets = canAccessPermission(currentPermissions, 'DeleteAssignedTargets', currentProfile)
 
     const API_PATHS = {
         chiTietGiaoChiTieu: '/ChiTietGiaoChiTieu',
@@ -1909,6 +1926,7 @@
     }
 
     const openCreateModal = () => {
+        if (!canCreateAssignedTargets) return
         isEdit.value = false
         editingId.value = null
         resetForm()
@@ -1917,6 +1935,7 @@
     }
 
     const openEditModal = async (item) => {
+        if (!canEditAssignedTargets) return
         const existingAssignment = findAssignmentById(item?.id) || item
         isEdit.value = true
         editingId.value = existingAssignment.id
@@ -1958,6 +1977,7 @@
     }
 
     const tryOpenEditFromRoute = async () => {
+        if (!canEditAssignedTargets) return
         const editId = Number(route.query?.editId || 0)
         if (!editId || loading.value || showModal.value) return
 
@@ -1976,6 +1996,14 @@
 
     const handleSubmit = async () => {
         if (!validateForm()) return
+        if (!isEdit.value && !canCreateAssignedTargets) {
+            alert('Bạn chưa có quyền tạo giao chỉ tiêu.')
+            return
+        }
+        if (isEdit.value && !canEditAssignedTargets) {
+            alert('Bạn chưa có quyền sửa giao chỉ tiêu.')
+            return
+        }
 
         try {
             saving.value = true
@@ -2002,6 +2030,7 @@
     }
 
     const handleDelete = async (item) => {
+        if (!canDeleteAssignedTargets) return
         const ok = window.confirm(`Bạn có chắc muốn xóa giao chỉ tiêu "${item.tenDanhMucChiTieu}" của đơn vị "${item.tenDonViNhan}" không?`)
         if (!ok) return
 

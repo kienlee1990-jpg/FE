@@ -137,14 +137,21 @@
                   <div v-else>{{ formatAssignmentBaseline(item) }}</div>
                 </td>
                 <td>{{ item.ghiChu || '-' }}</td>
-                <td class="text-center">
-                  <div v-if="canViewAllAssignments" class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-sm btn-outline-primary" @click="openAssignmentEditor(item)">
-                      <i class="bi bi-pencil-square me-1"></i>Sửa
+                <td class="table-actions-cell">
+                  <div v-if="canViewAllAssignments" class="row-actions">
+                    <button v-if="canEditAssignedTargets" class="action-btn action-edit" title="Sửa giao chỉ tiêu" @click="openAssignmentEditor(item)">
+                      <span class="action-icon">
+                        <i class="bi bi-pencil-square"></i>
+                      </span>
+                      <span>Sửa</span>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" @click="handleDelete(item)">
-                      <i class="bi bi-trash me-1"></i>Xóa
+                    <button v-if="canDeleteAssignedTargets" class="action-btn action-delete" title="Xóa giao chỉ tiêu" @click="handleDelete(item)">
+                      <span class="action-icon">
+                        <i class="bi bi-trash"></i>
+                      </span>
+                      <span>Xóa</span>
                     </button>
+                    <span v-if="!canEditAssignedTargets && !canDeleteAssignedTargets" class="text-muted small">Chỉ xem</span>
                   </div>
                   <span v-else class="text-muted">Chỉ xem</span>
                 </td>
@@ -168,9 +175,10 @@
   import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
   import httpClient from '../../services/httpClient'
   import {
+    canAccessPermission,
+    canBypassUnitFilter,
+    getStoredUserPermissions,
     getStoredUserProfile,
-    isCatpProfile,
-    isPrivilegedProfile
   } from '../../utils/accessControl'
   import {
     isDinhTinhCriterion,
@@ -183,6 +191,9 @@
   const dotOptions = ref([])
   const donViOptions = ref([])
   const currentProfile = ref(getStoredUserProfile())
+  const currentPermissions = getStoredUserPermissions()
+  const canEditAssignedTargets = canAccessPermission(currentPermissions, 'EditAssignedTargets', currentProfile.value)
+  const canDeleteAssignedTargets = canAccessPermission(currentPermissions, 'DeleteAssignedTargets', currentProfile.value)
   const router = useRouter()
 
   const filters = reactive({
@@ -198,9 +209,7 @@
       .trim()
       .toUpperCase()
 
-  const canViewAllAssignments = computed(() =>
-    isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-  )
+  const canViewAllAssignments = computed(() => canBypassUnitFilter(currentProfile.value))
 
   const currentDonViId = computed(() => Number(currentProfile.value?.donViId || 0))
   const currentUnitName = computed(() => currentProfile.value?.donVi || 'Đơn vị hiện tại')
@@ -341,6 +350,7 @@
   }
 
   const openAssignmentEditor = (item) => {
+    if (!canEditAssignedTargets) return
     const scopeKey = getAssignmentScopeKey(item)
     const path = assignmentScopePathMap[scopeKey] || assignmentScopePathMap.CADP_PHUONG_XA
     router.push({
@@ -352,6 +362,7 @@
   }
 
   const handleDelete = async (item) => {
+    if (!canDeleteAssignedTargets) return
     const ok = window.confirm(`Bạn có chắc muốn xóa giao chỉ tiêu "${item.tenDanhMucChiTieu}" của đơn vị "${item.tenDonViNhan}" không?`)
     if (!ok) return
 

@@ -68,12 +68,6 @@
                     </div>
 
                     <div class="table-card">
-                        <div class="table-toolbar">
-                            <button class="btn btn-success" @click="exportCsv" :disabled="rankedRows.length === 0">
-                                Xuất CSV
-                            </button>
-                        </div>
-
                         <div v-if="loading" class="state loading">Đang tải dữ liệu...</div>
                         <div v-else-if="errorMessage" class="state error">{{ errorMessage }}</div>
                         <div v-else-if="!filters.dotGiaoChiTieuId" class="state empty">
@@ -82,9 +76,16 @@
                         <div v-else-if="!filters.danhMucChiTieuId" class="state empty">
                             Vui lòng chọn danh mục chỉ tiêu.
                         </div>
-                        <div v-else class="table-wrapper">
-                            <ColumnVisibilityTools table-id="XepHangDonViPage-table" />
-                            <table id="XepHangDonViPage-table" class="managed-table">
+                        <template v-else>
+                            <div class="table-toolbar report-table-toolbar">
+                                <button v-if="canExportReports" class="btn btn-primary" @click="exportCsv" :disabled="rankedRows.length === 0">
+                                    Xuất CSV
+                                </button>
+                                <ColumnVisibilityTools table-id="XepHangDonViPage-table" />
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table id="XepHangDonViPage-table" class="managed-table">
                                 <thead>
                                     <tr>
                                         <th>Hạng</th>
@@ -129,8 +130,9 @@
                                         <td>{{ row.nhanXetDanhGia || '-' }}</td>
                                     </tr>
                                 </tbody>
-                            </table>
-                        </div>
+                                </table>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -143,11 +145,12 @@
     import BaseLayout from '../BaseLayout.vue'
 import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     import { apiRequest } from '../../services/api.js'
-    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+    import { canAccessPermission, canBypassUnitFilter, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
     import {
         getDanhGiaBadgeClass,
         getDanhGiaLabel,
-        getDanhGiaRank
+        getDanhGiaRank,
+        getDanhGiaStatusCode
     } from '../../utils/danhGiaStatusClean.js'
 
     const loading = ref(false)
@@ -158,6 +161,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     const kyBaoCaoOptions = ref([])
     const danhGiaRows = ref([])
     const currentProfile = ref(getStoredUserProfile())
+    const currentPermissions = getStoredUserPermissions()
+    const canExportReports = canAccessPermission(currentPermissions, 'ExportReports', currentProfile.value)
     const CITY_POLICE_UNIT_NAME = 'Công an thành phố Đà Nẵng'
 
     const filters = reactive({
@@ -165,9 +170,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         danhMucChiTieuId: '',
         keyword: ''
     })
-    const canViewAllUnits = computed(() =>
-        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-    )
+    const canViewAllUnits = computed(() => canBypassUnitFilter(currentProfile.value))
     const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
     onMounted(async () => {
@@ -228,9 +231,8 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
     }
 
     function formatDotGiaoLabel(item) {
-        const ma = item.maDotGiao || ''
         const ten = item.tenDotGiao || `Đợt #${item.id}`
-        return ma ? `${ma} - ${ten}` : ten
+        return ten || '-'
     }
 
     const flattenedChiTietGiaoRows = computed(() => {
@@ -366,6 +368,7 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
                     soBanGhiTyLe: 0,
 
                     kyBaoCaoIds: new Set(),
+                    latestStatusByChiTiet: new Map(),
                     latestItem: item,
 
                     ketQua: item.ketQua || '',
@@ -388,6 +391,12 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             if (tyLe !== null) {
                 target.tongTyLeHoanThanh += tyLe
                 target.soBanGhiTyLe += 1
+            }
+
+            const chiTietKey = String(item.chiTietGiaoChiTieuId || item.id || `${tenDonVi}__${tenChiTieu}`)
+            const latestStatusItem = target.latestStatusByChiTiet.get(chiTietKey)
+            if (!latestStatusItem || compareEvaluationOrder(item, latestStatusItem) > 0) {
+                target.latestStatusByChiTiet.set(chiTietKey, item)
             }
 
             if (
@@ -415,12 +424,27 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
 
             const latest = item.latestItem || null
             const xepLoai = latest?.xepLoai || 'CHUA_DANH_GIA'
+            let soHoanThanh = 0
+            let soHoanThanhVuotMuc = 0
+
+            for (const statusItem of item.latestStatusByChiTiet.values()) {
+                const statusCode = getDanhGiaStatusCode(statusItem?.xepLoai)
+                if (statusCode === 'HOAN_THANH') {
+                    soHoanThanh += 1
+                }
+                if (statusCode === 'HOAN_THANH_VUOT_MUC') {
+                    soHoanThanhVuotMuc += 1
+                }
+            }
 
             return {
                 ...item,
                 giaTriMucTieu: item.giaTriMucTieu ?? toFiniteNumberOrNull(latest?.giaTriMucTieu) ?? 0,
                 tyLeHoanThanh,
                 xepLoai,
+                soHoanThanh,
+                soHoanThanhVuotMuc,
+                tongHoanThanhMucTieu: soHoanThanh + soHoanThanhVuotMuc,
                 ketQua: latest?.ketQua || item.ketQua || '',
                 nguoiDanhGia: latest?.nguoiDanhGia || item.nguoiDanhGia || '',
                 ngayDanhGia: latest?.ngayDanhGia || item.ngayDanhGia || null,
@@ -434,14 +458,13 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
         const rows = aggregatedRows.value
             .map(item => ({
                 ...item,
-                xepLoaiScore: getXepLoaiScore(item.xepLoai),
                 tyLeHoanThanhNumber: Number(item.tyLeHoanThanh ?? -1),
                 giaTriCuoiKyNumber: Number(item.giaTriCuoiKy ?? -1)
             }))
             .sort((a, b) =>
+                (b.tongHoanThanhMucTieu - a.tongHoanThanhMucTieu) ||
+                (b.soHoanThanhVuotMuc - a.soHoanThanhVuotMuc) ||
                 (b.tyLeHoanThanhNumber - a.tyLeHoanThanhNumber) ||
-                (b.xepLoaiScore - a.xepLoaiScore) ||
-                (b.giaTriCuoiKyNumber - a.giaTriCuoiKyNumber) ||
                 a.tenDonViNhan.localeCompare(b.tenDonViNhan, 'vi')
             )
 
@@ -453,9 +476,9 @@ import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
             displayedIndex += 1
 
             const scoreKey = [
-                item.tyLeHoanThanhNumber,
-                item.xepLoaiScore,
-                item.giaTriCuoiKyNumber
+                item.tongHoanThanhMucTieu,
+                item.soHoanThanhVuotMuc,
+                item.tyLeHoanThanhNumber
             ].join('|')
 
             if (scoreKey !== previousScoreKey) {

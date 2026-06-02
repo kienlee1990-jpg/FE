@@ -16,10 +16,6 @@
                     <div class="hero-actions">
                         <button class="btn btn-primary" type="button" @click="reloadData">Tải dữ liệu</button>
                         <button class="btn btn-secondary" type="button" @click="resetFilters">Đặt lại</button>
-                        <button class="btn btn-success" type="button" @click="exportCsv"
-                            :disabled="rankedRows.length === 0">
-                            Xuất CSV
-                        </button>
                     </div>
                 </div>
 
@@ -106,9 +102,17 @@
                     <div v-else-if="combinedError" class="state error">{{ combinedError }}</div>
                     <div v-else-if="!selectedGroup" class="state empty">Chưa có nhóm thi đua để hiển thị</div>
                     <div v-else-if="rankedRows.length === 0" class="state empty">{{ emptyStateMessage }}</div>
-                    <div v-else class="table-wrapper">
-                        <ColumnVisibilityTools table-id="NhomThiDuaPage-table" />
-                        <table id="NhomThiDuaPage-table" class="managed-table">
+                    <template v-else>
+                        <div class="table-toolbar report-table-toolbar">
+                            <button v-if="canExportReports" class="btn btn-primary" type="button" @click="exportCsv"
+                                :disabled="rankedRows.length === 0">
+                                Xuất CSV
+                            </button>
+                            <ColumnVisibilityTools table-id="NhomThiDuaPage-table" />
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table id="NhomThiDuaPage-table" class="managed-table">
                             <thead>
                                 <tr>
                                     <th>Hạng</th>
@@ -132,7 +136,9 @@
                                         <div class="sub-label">{{ item.soKpi }} KPI được tính trong nhóm</div>
                                     </td>
                                     <td class="text-center">{{ item.soKpi }}</td>
-                                    <td class="text-center">{{ item.hoanThanhDatChuan }}
+                                    <td class="text-center">
+                                        <strong>{{ item.hoanThanhDatChuan }}</strong>
+                                        <div class="sub-label">{{ item.hoanThanhVuotMuc }} vượt mức</div>
                                     </td>
                                     <td class="text-center">{{
                                         item.chuaHoanThanhTong }}</td>
@@ -145,8 +151,9 @@
                                     <td>{{ item.dotGiaoGanNhat || '-' }}</td>
                                 </tr>
                             </tbody>
-                        </table>
-                    </div>
+                            </table>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -160,6 +167,11 @@
     import { apiRequest } from '../../services/api'
     import { useBaoCaoTongHopPage } from './baoCaoTongHopPageState.js'
     import { getDanhGiaStatusCode } from '../../utils/danhGiaStatusClean.js'
+    import { canAccessPermission, getStoredUserPermissions, getStoredUserProfile } from '../../utils/accessControl'
+
+    const currentProfile = getStoredUserProfile()
+    const currentPermissions = getStoredUserPermissions()
+    const canExportReports = canAccessPermission(currentPermissions, 'ExportReports', currentProfile)
 
     const {
         loading,
@@ -299,7 +311,7 @@
             if (statusCode === 'KHONG_HOAN_THANH') target.khongHoanThanh += 1
         })
 
-        return [...grouped.values()]
+        const rows = [...grouped.values()]
             .map(item => ({
                 ...item,
                 tyLeHoanThanhTrungBinh: item.soKpiCoTyLe ? item.tongTyLeHoanThanh / item.soKpiCoTyLe : null,
@@ -307,24 +319,45 @@
                 chuaHoanThanhTong: item.chuaHoanThanh + item.khongHoanThanh
             }))
             .sort((left, right) => {
-                if (right.tyLeHoanThanhTrungBinh !== left.tyLeHoanThanhTrungBinh) {
-                    return numberOrMinusInfinity(right.tyLeHoanThanhTrungBinh) - numberOrMinusInfinity(left.tyLeHoanThanhTrungBinh)
-                }
-
                 if (right.hoanThanhDatChuan !== left.hoanThanhDatChuan) {
                     return right.hoanThanhDatChuan - left.hoanThanhDatChuan
                 }
 
-                if (left.chuaHoanThanhTong !== right.chuaHoanThanhTong) {
-                    return left.chuaHoanThanhTong - right.chuaHoanThanhTong
+                if (right.hoanThanhVuotMuc !== left.hoanThanhVuotMuc) {
+                    return right.hoanThanhVuotMuc - left.hoanThanhVuotMuc
+                }
+
+                const tyLeDiff = numberOrMinusInfinity(right.tyLeHoanThanhTrungBinh) - numberOrMinusInfinity(left.tyLeHoanThanhTrungBinh)
+                if (tyLeDiff !== 0) {
+                    return tyLeDiff
                 }
 
                 return left.tenDonVi.localeCompare(right.tenDonVi, 'vi')
             })
-            .map((item, index) => ({
+
+        let currentRank = 0
+        let previousScoreKey = ''
+        let displayedIndex = 0
+
+        return rows.map(item => {
+            displayedIndex += 1
+
+            const scoreKey = [
+                item.hoanThanhDatChuan,
+                item.hoanThanhVuotMuc,
+                numberOrMinusInfinity(item.tyLeHoanThanhTrungBinh)
+            ].join('|')
+
+            if (scoreKey !== previousScoreKey) {
+                currentRank = displayedIndex
+                previousScoreKey = scoreKey
+            }
+
+            return {
                 ...item,
-                ranking: index + 1
-            }))
+                ranking: currentRank
+            }
+        })
     })
 
     const totalKpi = computed(() => rankedRows.value.reduce((sum, item) => sum + item.soKpi, 0))

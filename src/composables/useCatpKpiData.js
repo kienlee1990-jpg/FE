@@ -1,6 +1,6 @@
 import { computed, reactive, ref } from 'vue'
 import { apiRequest } from '../services/api.js'
-import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../utils/accessControl'
+import { canBypassUnitFilter, getStoredUserProfile, isOwnerScopeProfile } from '../utils/accessControl'
 
 export const TARGET_EXECUTION_UNIT = 'Công an thành phố Đà Nẵng'
 const WAITING_SEND_STATUS = 'CHO_GUI'
@@ -27,9 +27,8 @@ export function useCatpKpiData() {
     allAssignments.value.filter(item => item.parentId),
     item => item.parentId
   ))
-  const canViewAllUnits = computed(() =>
-    isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-  )
+  const canViewAllUnits = computed(() => canBypassUnitFilter(currentProfile.value))
+  const isOwnerScopedAccount = computed(() => isOwnerScopeProfile(currentProfile.value))
   const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim())
 
   const targetAssignments = computed(() => {
@@ -37,6 +36,10 @@ export function useCatpKpiData() {
       return allAssignments.value.filter(item =>
         normalizeText(item.tenDonViNhan) === normalizeText(currentUnitName.value)
       )
+    }
+
+    if (isOwnerScopedAccount.value) {
+      return allAssignments.value
     }
 
     return allAssignments.value.filter(item =>
@@ -180,9 +183,8 @@ export function useCatpKpiData() {
 }
 
 export function buildKyLabel(item) {
-  const maKy = item?.maKy || item?.MaKy || ''
   const tenKy = item?.tenKy || item?.TenKy || ''
-  return [maKy, tenKy].filter(Boolean).join(' - ') || tenKy || maKy || '-'
+  return tenKy || '-'
 }
 
 export function formatTarget(row) {

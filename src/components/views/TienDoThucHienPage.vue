@@ -38,25 +38,30 @@
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">Chỉ tiêu</label>
-                                <select v-model.number="filters.chiTietGiaoChiTieuId" class="form-select">
+                                <label class="form-label">Danh mục chỉ tiêu</label>
+                                <select v-model="filters.danhMucChiTieuKey" class="form-select">
                                     <option :value="null">Tất cả</option>
-                                    <option v-for="item in flatChiTietGiaoChiTieuOptions" :key="getId(item)"
-                                        :value="getId(item)">
-                                        {{ getChiTietDisplay(item) }}
+                                    <option v-for="item in danhMucChiTieuFilterOptions" :key="item.key"
+                                        :value="item.key">
+                                        {{ item.label }}
                                     </option>
                                 </select>
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">Đơn vị</label>
-                                <select v-model.number="filters.donViId" class="form-select"
-                                    :disabled="!canManageAllUnits">
-                                    <option :value="null">{{ canManageAllUnits ? 'Tất cả' : currentUnitName }}</option>
-                                    <option v-for="item in donViOptions" :key="getId(item)" :value="getId(item)">
-                                        {{ item.TenDonVi || item.tenDonVi || '-' }}
-                                    </option>
-                                </select>
+                                <StickyOptionSelect
+                                    v-model="filters.donViId"
+                                    :options="donViOptions"
+                                    :disabled="!canManageAllUnits"
+                                    :include-all="canManageAllUnits"
+                                    :all-value="null"
+                                    all-label="Tất cả"
+                                    :placeholder="currentUnitName"
+                                    :value-keys="['Id', 'id']"
+                                    :label-keys="['TenDonVi', 'tenDonVi']"
+                                    search-placeholder="Tìm đơn vị..."
+                                />
                             </div>
 
                             <div class="col-12 col-md-6 col-xl-3">
@@ -142,7 +147,7 @@
                 </div>
 
                 <div v-else class="d-flex flex-column gap-4">
-                    <div v-for="item in groupedProgress" :key="item.key" class="card custom-card">
+                    <div v-for="item in visibleGroupedProgress" :key="item.key" class="card custom-card">
                         <div class="card-header bg-white border-0">
                             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
                                 <div>
@@ -296,6 +301,13 @@
                             </div>
                         </div>
                     </div>
+
+                    <div v-if="hasMoreProgressItems" class="show-more-wrap">
+                        <button class="btn show-more-btn" @click="showAllProgress = !showAllProgress">
+                            <i :class="showAllProgress ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
+                            {{ showAllProgress ? 'Thu gọn' : `Xem thêm ${groupedProgress.length - visibleGroupedProgress.length} chỉ tiêu` }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -303,12 +315,13 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, reactive, ref } from 'vue'
+    import { computed, onMounted, reactive, ref, watch } from 'vue'
     import { useRouter } from 'vue-router'
     import BaseLayout from '../BaseLayout.vue'
     import ColumnVisibilityTools from '../shared/ColumnVisibilityTools.vue'
+    import StickyOptionSelect from '../shared/StickyOptionSelect.vue'
     import { apiRequest } from '../../services/api.js'
-    import { getStoredUserProfile, isCatpProfile, isPrivilegedProfile } from '../../utils/accessControl'
+    import { canBypassUnitFilter, getStoredUserProfile } from '../../utils/accessControl'
 
     const API_PATHS = {
         theoDoiThucHienKPI: '/TheoDoiThucHienKPI',
@@ -323,6 +336,9 @@
     const loading = ref(false)
     const expandedKeys = ref(new Set())
     const currentProfile = ref(getStoredUserProfile())
+    const defaultDonViFilterApplied = ref(false)
+    const enforcedDonViId = ref(null)
+    const showAllProgress = ref(false)
 
     const progressItems = ref([])
     const danhGiaItems = ref([])
@@ -333,20 +349,23 @@
 
     const filters = reactive({
         dotGiaoChiTieuId: null,
-        chiTietGiaoChiTieuId: null,
+        danhMucChiTieuKey: null,
         donViId: null,
         kyBaoCaoKPIId: null,
         keyword: ''
     })
 
     const currentDonViId = computed(() => Number(currentProfile.value?.donViId || 0))
-    const currentUnitName = computed(() => currentProfile.value?.donVi || 'Đơn vị hiện tại')
-    const canManageAllUnits = computed(() =>
-        isPrivilegedProfile(currentProfile.value) || isCatpProfile(currentProfile.value)
-    )
+    const CITY_POLICE_UNIT_NAME = 'Công an thành phố Đà Nẵng'
+    const CITY_POLICE_UNIT_CODES = new Set(['CATP', 'CONG_AN_THANH_PHO', 'CONG_AN_THANH_PHO_DA_NANG'])
+    const currentUnitName = computed(() => String(currentProfile.value?.donVi || '').trim() || CITY_POLICE_UNIT_NAME)
+    const canManageAllUnits = computed(() => canBypassUnitFilter(currentProfile.value))
     const ACCEPTED_REPORT_STATUSES = new Set(['MOI_TAO', 'DA_DUYET', 'DA_GHI_NHAN'])
+    const DEFAULT_VISIBLE_PROGRESS_COUNT = 5
 
     const getId = (item) => Number(item?.Id ?? item?.id ?? 0)
+    const getDonViName = (item) => String(item?.TenDonVi || item?.tenDonVi || '').trim()
+    const getDonViCode = (item) => String(item?.MaDonVi || item?.maDonVi || '').trim()
 
     const normalizeList = (response) => {
         if (Array.isArray(response)) return response
@@ -355,13 +374,6 @@
         if (Array.isArray(response?.data?.items)) return response.data.items
         if (Array.isArray(response?.items)) return response.items
         return []
-    }
-
-    const getChiTietDisplay = (item) => {
-        const ma = item?.MaChiTieu || item?.maChiTieu || item?.MaDanhMucChiTieu || item?.maDanhMucChiTieu || ''
-        const ten = item?.TenChiTieu || item?.tenChiTieu || item?.TenDanhMucChiTieu || item?.tenDanhMucChiTieu || ''
-        const donVi = item?.TenDonViNhanHienThi || item?.TenDonViNhan || item?.tenDonViNhan || ''
-        return [ma, ten, donVi].filter(Boolean).join(' - ') || '-'
     }
 
     const pick = (source, ...keys) => {
@@ -379,6 +391,60 @@
         .trim()
         .toUpperCase()
         .replace(/\s+/g, '_')
+
+    const normalizeText = (value) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, ' ')
+
+    const getDanhMucChiTieuId = (item) => {
+        const candidates = [
+            pick(item, 'DanhMucChiTieuId', 'danhMucChiTieuId'),
+            pick(item, 'DanhMucChiTieuIdHienThi', 'danhMucChiTieuIdHienThi')
+        ]
+
+        for (const value of candidates) {
+            const parsed = Number(value || 0)
+            if (parsed > 0) return parsed
+        }
+
+        return 0
+    }
+
+    const getDanhMucChiTieuName = (item) => String(
+        pick(
+            item,
+            'TenDanhMucChiTieuHienThi',
+            'tenDanhMucChiTieuHienThi',
+            'TenDanhMucChiTieu',
+            'tenDanhMucChiTieu',
+            'TenChiTieu',
+            'tenChiTieu'
+        ) || ''
+    ).trim()
+
+    const getDanhMucChiTieuCode = (item) => String(
+        pick(
+            item,
+            'MaDanhMucChiTieuHienThi',
+            'maDanhMucChiTieuHienThi',
+            'MaDanhMucChiTieu',
+            'maDanhMucChiTieu',
+            'MaChiTieu',
+            'maChiTieu'
+        ) || ''
+    ).trim()
+
+    const buildDanhMucChiTieuKey = (id, name) => {
+        const parsedId = Number(id || 0)
+        if (parsedId > 0) return `dm-${parsedId}`
+        const normalizedName = normalizeText(name)
+        return normalizedName ? `ten-${normalizedName}` : ''
+    }
 
     const getNumberOrNull = (value) => {
         if (value === null || value === undefined || value === '') return null
@@ -403,6 +469,18 @@
                 TenChiTieuChaHienThi:
                     pick(parent, 'TenDanhMucChiTieu', 'tenDanhMucChiTieu', 'TenChiTieu', 'tenChiTieu') ||
                     parent?.TenChiTieuHienThi ||
+                    '',
+                DanhMucChiTieuIdHienThi:
+                    pick(item, 'DanhMucChiTieuId', 'danhMucChiTieuId') ??
+                    parent?.DanhMucChiTieuIdHienThi ??
+                    null,
+                MaDanhMucChiTieuHienThi:
+                    pick(item, 'MaDanhMucChiTieu', 'maDanhMucChiTieu', 'MaChiTieu', 'maChiTieu') ||
+                    parent?.MaDanhMucChiTieuHienThi ||
+                    '',
+                TenDanhMucChiTieuHienThi:
+                    pick(item, 'TenDanhMucChiTieu', 'tenDanhMucChiTieu', 'TenChiTieu', 'tenChiTieu') ||
+                    parent?.TenDanhMucChiTieuHienThi ||
                     '',
                 DotGiaoChiTieuIdHienThi:
                     pick(item, 'DotGiaoChiTieuId', 'dotGiaoChiTieuId') ??
@@ -435,6 +513,26 @@
 
     const flatChiTietGiaoChiTieuOptions = computed(() => flattenChiTietGiaoChiTieu(chiTietGiaoChiTieuOptions.value))
 
+    const danhMucChiTieuFilterOptions = computed(() => {
+        const map = new Map()
+
+        flatChiTietGiaoChiTieuOptions.value.forEach((item) => {
+            const id = getDanhMucChiTieuId(item)
+            const name = getDanhMucChiTieuName(item)
+            const key = buildDanhMucChiTieuKey(id, name)
+
+            if (!key || map.has(key)) return
+
+            map.set(key, {
+                key,
+                id,
+                label: name || `Danh mục #${id}`
+            })
+        })
+
+        return Array.from(map.values()).sort((left, right) => left.label.localeCompare(right.label, 'vi'))
+    })
+
     const chiTietById = computed(() => {
         const map = new Map()
         flatChiTietGiaoChiTieuOptions.value.forEach((item) => {
@@ -444,26 +542,62 @@
         return map
     })
 
+    const isCityPoliceUnit = (item) => {
+        const normalizedName = normalizeText(getDonViName(item))
+        const normalizedCode = normalizeCode(getDonViCode(item))
+        return normalizedName === normalizeText(CITY_POLICE_UNIT_NAME) || CITY_POLICE_UNIT_CODES.has(normalizedCode)
+    }
+
+    const resolveDefaultDonViId = (options = donViOptions.value) => {
+        const units = Array.isArray(options) ? options : []
+        const currentId = currentDonViId.value
+
+        if (currentId > 0) {
+            const matchedById = units.find((item) => getId(item) === currentId)
+            if (matchedById) return getId(matchedById)
+            if (!units.length) return currentId
+        }
+
+        const profileUnitName = String(currentProfile.value?.donVi || '').trim()
+        if (profileUnitName) {
+            const matchedByName = units.find((item) => normalizeText(getDonViName(item)) === normalizeText(profileUnitName))
+            if (matchedByName) return getId(matchedByName)
+        }
+
+        const cityPoliceUnit = units.find(isCityPoliceUnit)
+        return cityPoliceUnit ? getId(cityPoliceUnit) : null
+    }
+
+    const applyDefaultDonViFilter = (options = donViOptions.value, force = false) => {
+        if (!force && defaultDonViFilterApplied.value) return
+        const defaultDonViId = resolveDefaultDonViId(options)
+        filters.donViId = defaultDonViId || null
+        defaultDonViFilterApplied.value = true
+    }
+
     const fetchData = async () => {
         try {
             loading.value = true
+
+            const donViResponse = await apiRequest(API_PATHS.donVi)
+            const normalizedDonViOptions = normalizeList(donViResponse)
+            const defaultDonViId = resolveDefaultDonViId(normalizedDonViOptions)
+            const scopedDonViId = currentDonViId.value || defaultDonViId || 0
 
             const [
                 progressResponse,
                 danhGiaResponse,
                 chiTietResponse,
                 kyBaoCaoResponse,
-                dotResponse,
-                donViResponse
+                dotResponse
             ] = await Promise.all([
                 apiRequest(API_PATHS.theoDoiThucHienKPI),
                 apiRequest(API_PATHS.danhGiaKPI),
                 canManageAllUnits.value
                     ? apiRequest(API_PATHS.chiTietGiaoChiTieu)
-                    : apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/by-donvi-nhan/${currentDonViId.value}`),
+                    : apiRequest(`${API_PATHS.chiTietGiaoChiTieu}/by-donvi-nhan/${scopedDonViId}`),
                 apiRequest(API_PATHS.kyBaoCaoKPI),
-                apiRequest(API_PATHS.dotGiaoChiTieu),
-                apiRequest(API_PATHS.donVi)
+                apiRequest(API_PATHS.dotGiaoChiTieu)
             ])
 
             progressItems.value = normalizeList(progressResponse)
@@ -471,14 +605,12 @@
             chiTietGiaoChiTieuOptions.value = normalizeList(chiTietResponse)
             kyBaoCaoOptions.value = normalizeList(kyBaoCaoResponse)
             dotOptions.value = normalizeList(dotResponse)
-            const normalizedDonViOptions = normalizeList(donViResponse)
             donViOptions.value = canManageAllUnits.value
                 ? normalizedDonViOptions
-                : normalizedDonViOptions.filter((item) => Number(getId(item)) === currentDonViId.value)
+                : normalizedDonViOptions.filter((item) => Number(getId(item)) === scopedDonViId)
+            enforcedDonViId.value = canManageAllUnits.value ? null : scopedDonViId
 
-            if (!canManageAllUnits.value && currentDonViId.value) {
-                filters.donViId = currentDonViId.value
-            }
+            applyDefaultDonViFilter(normalizedDonViOptions)
         } catch (error) {
             console.error('fetchData error:', error)
             alert(error.message || 'Không tải được dữ liệu tiến độ KPI.')
@@ -515,16 +647,26 @@
 
             const dot = dotOptions.value.find((x) => getId(x) === dotId)
             const donVi = donViOptions.value.find((x) => getId(x) === donViId)
+            const danhMucSource = { ...item, ...(chiTiet || {}) }
+            const danhMucChiTieuId = getDanhMucChiTieuId(danhMucSource)
+            const tenDanhMucChiTieu = getDanhMucChiTieuName(danhMucSource)
+            const maDanhMucChiTieu = getDanhMucChiTieuCode(danhMucSource)
+            const danhMucChiTieuKey = buildDanhMucChiTieuKey(danhMucChiTieuId, tenDanhMucChiTieu)
 
             return {
                 id: getId(item),
                 chiTietGiaoChiTieuId: chiTietId,
+                danhMucChiTieuId,
+                danhMucChiTieuKey,
+                maDanhMucChiTieu,
+                tenDanhMucChiTieu,
                 kyBaoCaoKPIId: kyId,
                 dotGiaoChiTieuId: dotId,
                 donViId,
                 maChiTieu:
                     item.MaChiTieu ||
                     item.maChiTieu ||
+                    maDanhMucChiTieu ||
                     chiTiet?.MaChiTieu ||
                     chiTiet?.maChiTieu ||
                     chiTiet?.MaDanhMucChiTieu ||
@@ -533,6 +675,7 @@
                 tenChiTieu:
                     item.TenChiTieu ||
                     item.tenChiTieu ||
+                    tenDanhMucChiTieu ||
                     chiTiet?.TenChiTieu ||
                     chiTiet?.tenChiTieu ||
                     chiTiet?.TenDanhMucChiTieu ||
@@ -664,6 +807,8 @@
             const searchText = [
                 item.maChiTieu,
                 item.tenChiTieu,
+                item.maDanhMucChiTieu,
+                item.tenDanhMucChiTieu,
                 item.tenDonVi,
                 item.tenDotGiao,
                 item.maKy,
@@ -675,13 +820,13 @@
 
             const matchKeyword = !keyword || searchText.includes(keyword)
             const matchDot = !filters.dotGiaoChiTieuId || Number(filters.dotGiaoChiTieuId) === item.dotGiaoChiTieuId
-            const matchChiTiet =
-                !filters.chiTietGiaoChiTieuId || Number(filters.chiTietGiaoChiTieuId) === item.chiTietGiaoChiTieuId
-            const forcedUnitMatch = canManageAllUnits.value ? true : item.donViId === currentDonViId.value
+            const matchDanhMuc = !filters.danhMucChiTieuKey || filters.danhMucChiTieuKey === item.danhMucChiTieuKey
+            const forcedDonViId = enforcedDonViId.value || currentDonViId.value
+            const forcedUnitMatch = canManageAllUnits.value ? true : item.donViId === forcedDonViId
             const matchDonVi = !filters.donViId || Number(filters.donViId) === item.donViId
             const matchKy = !filters.kyBaoCaoKPIId || Number(filters.kyBaoCaoKPIId) === item.kyBaoCaoKPIId
 
-            return forcedUnitMatch && matchKeyword && matchDot && matchChiTiet && matchDonVi && matchKy
+            return forcedUnitMatch && matchKeyword && matchDot && matchDanhMuc && matchDonVi && matchKy
         })
     })
 
@@ -758,6 +903,13 @@
         })
 
         return result.sort((a, b) => a.tenChiTieu.localeCompare(b.tenChiTieu))
+    })
+
+    const hasMoreProgressItems = computed(() => groupedProgress.value.length > DEFAULT_VISIBLE_PROGRESS_COUNT)
+
+    const visibleGroupedProgress = computed(() => {
+        if (showAllProgress.value || !hasMoreProgressItems.value) return groupedProgress.value
+        return groupedProgress.value.slice(0, DEFAULT_VISIBLE_PROGRESS_COUNT)
     })
 
     const summary = computed(() => {
@@ -1097,11 +1249,25 @@
 
     const resetFilters = () => {
         filters.dotGiaoChiTieuId = null
-        filters.chiTietGiaoChiTieuId = null
-        filters.donViId = canManageAllUnits.value ? null : currentDonViId.value || null
+        filters.danhMucChiTieuKey = null
+        applyDefaultDonViFilter(donViOptions.value, true)
         filters.kyBaoCaoKPIId = null
         filters.keyword = ''
+        showAllProgress.value = false
     }
+
+    watch(
+        () => [
+            filters.dotGiaoChiTieuId,
+            filters.danhMucChiTieuKey,
+            filters.donViId,
+            filters.kyBaoCaoKPIId,
+            filters.keyword
+        ],
+        () => {
+            showAllProgress.value = false
+        }
+    )
 
     onMounted(async () => {
         await fetchData()
@@ -1180,6 +1346,35 @@
         border-radius: 20px;
         box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         overflow: hidden;
+    }
+
+    .show-more-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 4px 0 8px;
+    }
+
+    .show-more-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 210px;
+        min-height: 44px;
+        padding: 10px 22px;
+        border-radius: 999px;
+        border: 1px solid #cfe0ff;
+        background: #ffffff;
+        color: #0d47a1;
+        font-weight: 700;
+        box-shadow: 0 10px 24px rgba(13, 110, 253, 0.12);
+    }
+
+    .show-more-btn:hover,
+    .show-more-btn:focus {
+        border-color: #0d6efd;
+        background: #eef5ff;
+        color: #084298;
     }
 
     .btn-action {
