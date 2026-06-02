@@ -99,7 +99,9 @@
                         </div>
 
                         <div v-else class="table-responsive">
-                            <ColumnVisibilityTools table-id="GiaoChiTieuChoDonViPage-table" />
+                            <ColumnVisibilityTools
+                                table-id="GiaoChiTieuChoDonViPage-table"
+                                :default-hidden-column-labels="['Đơn vị nhận', 'Đầu kỳ cố định', 'Ghi chú']" />
                             <table id="GiaoChiTieuChoDonViPage-table"
                                 class="table table-hover align-middle mb-0 custom-table managed-table assignment-table">
                                 <colgroup>

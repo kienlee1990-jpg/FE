@@ -17,13 +17,13 @@
         </div>
       </div>
 
-      <div v-if="!canViewAllAssignments && !currentDonViId" class="alert alert-warning border-0 shadow-sm">
-        Tài khoản hiện tại chưa được gắn đơn vị, không thể lọc danh sách chỉ tiêu được giao.
+      <div v-if="!canLoadAssignments" class="alert alert-warning border-0 shadow-sm">
+        Tài khoản hiện tại chưa được gắn đơn vị nhận nên chưa thể tải danh sách chỉ tiêu được giao.
       </div>
 
       <div v-else class="card shadow-sm border-0 mb-3">
         <div class="card-body">
-          <div class="filter-grid">
+          <div class="filter-grid" :class="{ 'filter-grid--compact': !canShowDonViFilter }">
             <div>
               <label class="form-label">Từ khóa</label>
               <input
@@ -41,13 +41,12 @@
                 </option>
               </select>
             </div>
-            <div>
+            <div v-if="canShowDonViFilter">
               <label class="form-label">Đơn vị nhận</label>
               <select
                 v-model.number="filters.donViNhanId"
-                class="form-select"
-                :disabled="!canViewAllAssignments">
-                <option :value="null">{{ canViewAllAssignments ? 'Tất cả' : currentUnitName }}</option>
+                class="form-select">
+                <option :value="null">Tất cả</option>
                 <option v-for="donVi in donViOptions" :key="donVi.id" :value="donVi.id">
                   {{ donVi.tenDonVi }}
                 </option>
@@ -57,111 +56,115 @@
         </div>
       </div>
 
-      <div v-if="loading" class="loading-state">
+      <div v-if="loading && canLoadAssignments" class="loading-state">
         <div class="spinner-border text-primary"></div>
         <span>Đang tải danh sách chỉ tiêu được giao...</span>
       </div>
 
-      <div v-else-if="filteredItems.length" class="card shadow-sm border-0">
+      <div v-else-if="canLoadAssignments && filteredItems.length" class="card shadow-sm border-0">
         <div class="card-body p-0">
-          <ColumnVisibilityTools table-id="DanhSachChiTieuDuocGiaoPage-table" />
-          <table id="DanhSachChiTieuDuocGiaoPage-table" class="table table-hover align-middle mb-0 managed-table assignment-table">
-            <colgroup>
-              <col class="col-stt" />
-              <col class="col-dot-giao" />
-              <col class="col-don-vi" />
-              <col class="col-danh-muc" />
-              <col class="col-chi-tieu-giao" />
-              <col class="col-ky-bao-cao" />
-              <col class="col-muc-tieu" />
-              <col class="col-dau-ky" />
-              <col class="col-ghi-chu" />
-              <col class="col-thao-tac" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th class="text-center">STT</th>
-                <th>Đợt giao</th>
-                <th>Đơn vị nhận</th>
-                <th>Danh mục chỉ tiêu</th>
-                <th>Chỉ tiêu giao</th>
-                <th>Kỳ báo cáo</th>
-                <th>Mục tiêu giao</th>
-                <th>Đầu kỳ cố định</th>
-                <th>Ghi chú</th>
-                <th class="text-center" style="width: 140px">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(item, index) in filteredItems" :key="item.id">
-                <td class="text-center">{{ index + 1 }}</td>
-                <td>
-                  <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
-                  <div class="muted-line">{{ item.maDotGiaoChiTieu || 'Chưa có mã đợt' }}</div>
-                </td>
-                <td>
-                  <div class="fw-semibold">{{ item.tenDonViNhan || currentUnitName }}</div>
-                  <div class="muted-line">{{ item.tenDonViThucHienChinh || 'Chưa gán đơn vị thực hiện chính' }}</div>
-                </td>
-                <td>
-                  <div v-if="item.tieuChiCon.length" class="table-stack">
-                    <div v-for="child in item.tieuChiCon" :key="`${child.id}-danh-muc`" class="table-stack-line">
-                      <div class="fw-semibold text-primary">{{ child.tenDanhMucChiTieu || '-' }}</div>
+          <div class="table-responsive">
+            <ColumnVisibilityTools
+              table-id="DanhSachChiTieuDuocGiaoPage-table"
+              :default-hidden-column-labels="['Đơn vị nhận', 'Đầu kỳ cố định', 'Ghi chú']" />
+            <table id="DanhSachChiTieuDuocGiaoPage-table" class="table table-hover align-middle mb-0 custom-table managed-table assignment-table">
+              <colgroup>
+                <col class="col-stt" />
+                <col class="col-dot-giao" />
+                <col class="col-don-vi" />
+                <col class="col-danh-muc" />
+                <col class="col-chi-tieu-giao" />
+                <col class="col-ky-bao-cao" />
+                <col class="col-muc-tieu" />
+                <col class="col-dau-ky" />
+                <col class="col-ghi-chu" />
+                <col class="col-thao-tac" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="text-center">STT</th>
+                  <th>Đợt giao</th>
+                  <th>Đơn vị nhận</th>
+                  <th>Danh mục chỉ tiêu</th>
+                  <th>Chỉ tiêu giao</th>
+                  <th>Kỳ báo cáo</th>
+                  <th>Mục tiêu giao</th>
+                  <th>Đầu kỳ cố định</th>
+                  <th>Ghi chú</th>
+                  <th class="text-center" style="width: 140px">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in filteredItems" :key="item.id">
+                  <td class="text-center">{{ index + 1 }}</td>
+                  <td>
+                    <div class="fw-semibold">{{ item.tenDotGiaoChiTieu || '-' }}</div>
+                    <div class="muted-line">{{ item.maDotGiaoChiTieu || 'Chưa có mã đợt' }}</div>
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ item.tenDonViNhan || currentUnitName }}</div>
+                    <div class="muted-line">{{ item.tenDonViThucHienChinh || 'Chưa gán đơn vị thực hiện chính' }}</div>
+                  </td>
+                  <td>
+                    <div v-if="item.tieuChiCon.length" class="table-stack">
+                      <div v-for="child in item.tieuChiCon" :key="`${child.id}-danh-muc`" class="table-stack-line">
+                        <div class="fw-semibold text-primary">{{ child.tenDanhMucChiTieu || '-' }}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div v-else class="fw-semibold text-primary">{{ item.tenDanhMucChiTieu || '-' }}</div>
-                </td>
-                <td>
-                  <div v-if="item.tieuChiCon.length" class="table-stack">
-                    <div v-for="child in item.tieuChiCon" :key="`${child.id}-chi-tieu-giao`" class="table-stack-line">
-                      <div>{{ child.giaTriMucTieuText || '-' }}</div>
+                    <div v-else class="fw-semibold text-primary">{{ item.tenDanhMucChiTieu || '-' }}</div>
+                  </td>
+                  <td>
+                    <div v-if="item.tieuChiCon.length" class="table-stack">
+                      <div v-for="child in item.tieuChiCon" :key="`${child.id}-chi-tieu-giao`" class="table-stack-line">
+                        <div>{{ child.giaTriMucTieuText || '-' }}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div v-else>{{ item.giaTriMucTieuText || '-' }}</div>
-                </td>
-                <td>{{ getKyBaoCaoLabel(item.tanSuatBaoCao) }}</td>
-                <td>
-                  <div v-if="item.tieuChiCon.length" class="table-stack">
-                    <div v-for="child in item.tieuChiCon" :key="`${child.id}-target`" class="table-stack-line">
-                      <div>{{ formatAssignmentTarget(child) }}</div>
+                    <div v-else>{{ item.giaTriMucTieuText || '-' }}</div>
+                  </td>
+                  <td>{{ getKyBaoCaoLabel(item.tanSuatBaoCao) }}</td>
+                  <td>
+                    <div v-if="item.tieuChiCon.length" class="table-stack">
+                      <div v-for="child in item.tieuChiCon" :key="`${child.id}-target`" class="table-stack-line">
+                        <div>{{ formatAssignmentTarget(child) }}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div v-else>{{ formatAssignmentTarget(item) }}</div>
-                </td>
-                <td>
-                  <div v-if="item.tieuChiCon.length" class="table-stack">
-                    <div v-for="child in item.tieuChiCon" :key="`${child.id}-baseline`" class="table-stack-line">
-                      <div>{{ formatAssignmentBaseline(child) }}</div>
+                    <div v-else>{{ formatAssignmentTarget(item) }}</div>
+                  </td>
+                  <td>
+                    <div v-if="item.tieuChiCon.length" class="table-stack">
+                      <div v-for="child in item.tieuChiCon" :key="`${child.id}-baseline`" class="table-stack-line">
+                        <div>{{ formatAssignmentBaseline(child) }}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div v-else>{{ formatAssignmentBaseline(item) }}</div>
-                </td>
-                <td>{{ item.ghiChu || '-' }}</td>
-                <td class="table-actions-cell">
-                  <div v-if="canViewAllAssignments" class="row-actions">
-                    <button v-if="canEditAssignedTargets" class="action-btn action-edit" title="Sửa giao chỉ tiêu" @click="openAssignmentEditor(item)">
-                      <span class="action-icon">
-                        <i class="bi bi-pencil-square"></i>
-                      </span>
-                      <span>Sửa</span>
-                    </button>
-                    <button v-if="canDeleteAssignedTargets" class="action-btn action-delete" title="Xóa giao chỉ tiêu" @click="handleDelete(item)">
-                      <span class="action-icon">
-                        <i class="bi bi-trash"></i>
-                      </span>
-                      <span>Xóa</span>
-                    </button>
-                    <span v-if="!canEditAssignedTargets && !canDeleteAssignedTargets" class="text-muted small">Chỉ xem</span>
-                  </div>
-                  <span v-else class="text-muted">Chỉ xem</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <div v-else>{{ formatAssignmentBaseline(item) }}</div>
+                  </td>
+                  <td>{{ item.ghiChu || '-' }}</td>
+                  <td class="table-actions-cell">
+                    <div v-if="canShowDonViFilter" class="row-actions">
+                      <button v-if="canEditAssignedTargets" class="action-btn action-edit" title="Sửa giao chỉ tiêu" @click="openAssignmentEditor(item)">
+                        <span class="action-icon">
+                          <i class="bi bi-pencil-square"></i>
+                        </span>
+                        <span>Sửa</span>
+                      </button>
+                      <button v-if="canDeleteAssignedTargets" class="action-btn action-delete" title="Xóa giao chỉ tiêu" @click="handleDelete(item)">
+                        <span class="action-icon">
+                          <i class="bi bi-trash"></i>
+                        </span>
+                        <span>Xóa</span>
+                      </button>
+                      <span v-if="!canEditAssignedTargets && !canDeleteAssignedTargets" class="text-muted small">Chỉ xem</span>
+                    </div>
+                    <span v-else class="text-muted">Chỉ xem</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div v-else class="alert alert-light border shadow-sm">
+      <div v-else-if="canLoadAssignments" class="alert alert-light border shadow-sm">
         Không có chỉ tiêu được giao phù hợp với bộ lọc hiện tại.
       </div>
     </div>
@@ -196,12 +199,6 @@
   const canDeleteAssignedTargets = canAccessPermission(currentPermissions, 'DeleteAssignedTargets', currentProfile.value)
   const router = useRouter()
 
-  const filters = reactive({
-    keyword: '',
-    dotGiaoChiTieuId: null,
-    donViNhanId: null
-  })
-
   const normalizeText = (value) =>
     String(value || '')
       .normalize('NFD')
@@ -209,10 +206,17 @@
       .trim()
       .toUpperCase()
 
-  const canViewAllAssignments = computed(() => canBypassUnitFilter(currentProfile.value))
-
   const currentDonViId = computed(() => Number(currentProfile.value?.donViId || 0))
   const currentUnitName = computed(() => currentProfile.value?.donVi || 'Đơn vị hiện tại')
+  const canShowDonViFilter = computed(() => canBypassUnitFilter(currentProfile.value))
+  const canViewAllAssignments = computed(() => canShowDonViFilter.value)
+  const canLoadAssignments = computed(() => canViewAllAssignments.value || currentDonViId.value > 0)
+
+  const filters = reactive({
+    keyword: '',
+    dotGiaoChiTieuId: null,
+    donViNhanId: currentDonViId.value || null
+  })
 
   const normalizeList = (response) => {
     if (Array.isArray(response)) return response
@@ -408,13 +412,15 @@
   })
 
   const fetchData = async () => {
-    if (!canViewAllAssignments.value && !currentDonViId.value) {
-      items.value = []
-      return
-    }
-
     loading.value = true
     try {
+      if (!canLoadAssignments.value) {
+        items.value = []
+        dotOptions.value = []
+        donViOptions.value = []
+        return
+      }
+
       const assignmentsPromise = canViewAllAssignments.value
         ? httpClient.get('/ChiTietGiaoChiTieu')
         : httpClient.get(`/ChiTietGiaoChiTieu/by-donvi-nhan/${currentDonViId.value}`)
@@ -428,10 +434,6 @@
       items.value = normalizeList(assignmentsRes.data).map(normalizeAssignment)
       dotOptions.value = normalizeList(dotsRes.data).map(normalizeDot)
       donViOptions.value = normalizeList(donViRes.data).map(normalizeDonVi)
-
-      if (!canViewAllAssignments.value && currentDonViId.value) {
-        filters.donViNhanId = currentDonViId.value
-      }
     } catch (error) {
       console.error(error)
       alert(error.response?.data?.message || error.message || 'Không tải được danh sách chỉ tiêu được giao.')
@@ -497,6 +499,10 @@
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
     gap: 14px;
+  }
+
+  .filter-grid--compact {
+    grid-template-columns: 2fr 1fr;
   }
 
   .loading-state {

@@ -706,6 +706,34 @@ table.managed-table tbody td {
   background: #fff !important;
 }
 
+.table-wrapper table th,
+.table-responsive table th,
+.table-scroll-panel table th,
+table.managed-table th,
+.table-wrapper table td,
+.table-responsive table td,
+.table-scroll-panel table td,
+table.managed-table td {
+  min-width: 0;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  text-overflow: clip !important;
+}
+
+.table-wrapper table td *,
+.table-responsive table td *,
+.table-scroll-panel table td *,
+table.managed-table td *,
+.table-wrapper table th *,
+.table-responsive table th *,
+.table-scroll-panel table th *,
+table.managed-table th * {
+  max-width: 100%;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  text-overflow: clip !important;
+}
+
 .table-wrapper table tbody td:last-child,
 .table-responsive table tbody td:last-child,
 .table-scroll-panel table tbody td:last-child,
@@ -769,6 +797,8 @@ table.managed-table td small {
 .table-scroll-panel table .badge,
 table.managed-table .badge {
   font-weight: 700 !important;
+  white-space: normal !important;
+  line-height: 1.25 !important;
 }
 
 .table-wrapper table td.text-center,

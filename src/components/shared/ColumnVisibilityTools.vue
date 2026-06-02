@@ -227,9 +227,11 @@ const prepareZoomTable = () => {
   })
 
   if (clone instanceof HTMLElement) {
-    clone.style.width = ''
-    clone.style.minWidth = ''
-    clone.style.tableLayout = ''
+    const columnCount = Math.max(clone.querySelectorAll('thead th').length, columns.value.length, 1)
+    const zoomWidth = Math.max(columnCount * 150, 960)
+    clone.style.width = `${zoomWidth}px`
+    clone.style.minWidth = '100%'
+    clone.style.tableLayout = 'fixed'
   }
 
   clone.querySelectorAll('col, th, td').forEach(element => {
@@ -329,7 +331,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
-.table-tools{position:sticky;top:0;left:0;display:flex;justify-content:flex-end;align-items:center;gap:10px;width:100%;min-height:58px;margin-bottom:0;padding:10px 12px;z-index:80;background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(248,251,255,.94) 100%);border-bottom:1px solid #e2e8f0;backdrop-filter:blur(8px)}
+.table-tools{position:sticky;top:0;left:0;right:0;display:flex;justify-content:flex-end;align-items:center;gap:10px;width:100%;min-height:58px;margin-bottom:0;padding:10px 12px;z-index:80;background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(248,251,255,.94) 100%);border-bottom:1px solid #e2e8f0;backdrop-filter:blur(8px)}
 .table-tools.table-tools-open{z-index:160 !important}
 .table-tools-trigger{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border:1px solid #d7deea;border-radius:999px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);color:#0f172a;font-size:13px;font-weight:700;box-shadow:0 10px 22px rgba(15,23,42,.06);transition:all .18s ease}
 .table-tools-zoom{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:13px;font-weight:800;box-shadow:0 10px 22px rgba(37,99,235,.08);transition:all .18s ease}
@@ -375,11 +377,14 @@ body.table-zoom-open{overflow:hidden !important}
 .table-zoom-close{width:36px;height:36px;display:grid;place-items:center;flex-shrink:0;border:1px solid rgba(255,255,255,.24);border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:15px;cursor:pointer}
 .table-zoom-close:hover{background:rgba(255,255,255,.2);color:#fff}
 .table-zoom-body{margin:18px 20px 20px;max-height:calc(94vh - 116px);overflow:auto;border:1px solid #e2e8f0;border-radius:16px;background:#fff}
-.table-zoom-body table.table-zoom-clone{width:max-content !important;min-width:100% !important;table-layout:auto !important;border-radius:0 !important;border:none !important}
+.table-zoom-body table.table-zoom-clone{min-width:100% !important;table-layout:fixed !important;border-radius:0 !important;border:none !important}
 .table-zoom-body table.table-zoom-clone col{width:auto !important;min-width:auto !important}
 .table-zoom-body table.table-zoom-clone thead,.table-zoom-body table.table-zoom-clone thead th{position:sticky !important;top:0 !important;z-index:5 !important}
-.table-zoom-body table.table-zoom-clone th,.table-zoom-body table.table-zoom-clone td{min-width:96px;max-width:340px;white-space:normal !important;overflow:visible !important;overflow-wrap:anywhere !important;word-break:normal !important;line-height:1.45 !important}
-.table-zoom-body table.table-zoom-clone th *,.table-zoom-body table.table-zoom-clone td *{max-width:100% !important;white-space:normal !important;overflow-wrap:anywhere !important;word-break:normal !important;text-overflow:clip !important}
+.table-zoom-body table.table-zoom-clone th,.table-zoom-body table.table-zoom-clone td{min-width:96px;max-width:340px;white-space:normal !important;overflow:visible !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.45 !important;text-overflow:clip !important}
+.table-zoom-body table.table-zoom-clone th *,.table-zoom-body table.table-zoom-clone td *{max-width:100% !important;white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;text-overflow:clip !important}
+.table-zoom-body table.table-zoom-clone .badge{display:inline-flex !important;align-items:center !important;justify-content:center !important;white-space:normal !important;line-height:1.25 !important;text-align:center !important}
+.table-zoom-body table.table-zoom-clone .row-actions{display:flex !important;flex-wrap:wrap !important;justify-content:center !important;max-width:none !important;gap:6px !important}
+.table-zoom-body table.table-zoom-clone .action-btn{min-width:0 !important;white-space:normal !important;line-height:1.2 !important;padding:7px 9px !important}
 .table-zoom-body table.table-zoom-clone th:first-child,.table-zoom-body table.table-zoom-clone td:first-child{min-width:64px;max-width:96px;text-align:center !important}
 .table-zoom-body table.table-zoom-clone th.text-right,.table-zoom-body table.table-zoom-clone td.text-right,.table-zoom-body table.table-zoom-clone th.text-end,.table-zoom-body table.table-zoom-clone td.text-end{white-space:nowrap !important}
 </style>
